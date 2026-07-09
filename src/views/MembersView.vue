@@ -231,8 +231,8 @@ function roleLabel(member) {
   return '学生'
 }
 
-function approveRegistration(record) {
-  const result = store.approveRegistration(record.id)
+async function approveRegistration(record) {
+  const result = await store.approveRegistration(record.id)
   if (result.ok) {
     window.alert('审批通过，注册成功')
   } else {
@@ -240,9 +240,22 @@ function approveRegistration(record) {
   }
 }
 
-function rejectRegistration(record) {
-  store.rejectRegistration(record.id)
+async function rejectRegistration(record) {
+  const result = await store.rejectRegistration(record.id)
+  if (!result.ok) {
+    window.alert(result.message || '保存失败')
+    return
+  }
   window.alert('已拒绝注册申请')
+}
+
+async function removeMember(member) {
+  const result = await store.removeMember(member.id)
+  if (!result.ok) {
+    window.alert(result.message || '保存失败')
+    return
+  }
+  window.alert('删除成功')
 }
 
 async function submitProfile() {
@@ -410,7 +423,7 @@ async function submitProfile() {
       <div v-else class="inline-empty">暂无待审批注册申请</div>
     </section>
 
-    <div v-if="memberFormOpen" class="modal-overlay member-modal-overlay" @click.self="closeMemberForm">
+    <div v-if="memberFormOpen" class="modal-overlay member-modal-overlay">
     <form class="tool-form modal-panel member-modal member-edit-form" @submit.prevent>
       <div class="tool-page-title-row">
         <h2 class="panel-title">{{ editingId ? '编辑成员' : '添加成员' }}</h2>
@@ -619,7 +632,7 @@ async function submitProfile() {
                 <button class="icon-btn" type="button" @click="editMember(member)">
                   <Pencil :size="14" />
                 </button>
-                <button class="icon-btn icon-btn-danger" type="button" @click="store.removeMember(member.id)">
+                <button class="icon-btn icon-btn-danger" type="button" @click="removeMember(member)">
                   <Trash2 :size="14" />
                 </button>
               </div>

@@ -38,7 +38,7 @@ function clearSensitiveFields() {
   refreshCaptcha()
 }
 
-function submitRegister() {
+async function submitRegister() {
   message.value = ''
   if (!form.name.trim() || !form.staffId.trim() || !form.password || !form.confirmPassword || !form.grade || !form.direction) {
     message.value = '请填写完整信息'
@@ -55,7 +55,7 @@ function submitRegister() {
     clearSensitiveFields()
     return
   }
-  const result = store.registerMember({
+  const result = await store.registerMember({
     name: form.name,
     staff_id: form.staffId,
     password: form.password,

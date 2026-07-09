@@ -61,10 +61,11 @@ function editItem(item) {
   Object.assign(form, createEmptyForm(), JSON.parse(JSON.stringify(item)))
 }
 
-function submitOutput() {
+async function submitOutput() {
   if (!form.title.trim()) return
+  let result = { ok: false, message: '保存失败' }
   if (activeTab.value === 'publications') {
-    store.upsertOutput('publications', {
+    result = await store.upsertOutput('publications', {
       id: editingId.value,
       title: form.title.trim(),
       authors: form.authors.trim(),
@@ -79,7 +80,7 @@ function submitOutput() {
     })
   }
   if (activeTab.value === 'projects') {
-    store.upsertOutput('projects', {
+    result = await store.upsertOutput('projects', {
       id: editingId.value,
       title: form.title.trim(),
       category: form.category,
@@ -87,12 +88,16 @@ function submitOutput() {
     })
   }
   if (activeTab.value === 'awards') {
-    store.upsertOutput('awards', {
+    result = await store.upsertOutput('awards', {
       id: editingId.value,
       title: form.title.trim(),
       winner: form.winner.trim(),
       sort_order: activeList.value.find((item) => item.id === editingId.value)?.sort_order,
     })
+  }
+  if (!result.ok) {
+    window.alert(result.message || '保存失败')
+    return
   }
   resetForm()
 }
@@ -101,10 +106,28 @@ function resetSiteForm() {
   Object.assign(siteForm, cloneSiteForm())
 }
 
-function submitSiteContent() {
-  store.updateSiteContent(JSON.parse(JSON.stringify(siteForm)))
+async function submitSiteContent() {
+  const result = await store.updateSiteContent(JSON.parse(JSON.stringify(siteForm)))
+  if (!result.ok) {
+    window.alert(result.message || '保存失败')
+    return
+  }
   siteFeedback.value = '保存成功'
   window.alert(siteFeedback.value)
+}
+
+async function moveOutputUp(kind, id) {
+  const result = await store.moveOutputUp(kind, id)
+  if (!result.ok) window.alert(result.message || '保存失败')
+}
+
+async function removeOutput(kind, id) {
+  const result = await store.removeOutput(kind, id)
+  if (!result.ok) {
+    window.alert(result.message || '保存失败')
+    return
+  }
+  window.alert('删除成功')
 }
 
 function addResearchLine() {
@@ -516,11 +539,11 @@ function itemMeta(item) {
           </div>
         </div>
         <div class="row-actions">
-          <button v-if="index > 0" class="icon-btn" type="button" @click="store.moveOutputUp(activeTab, item.id)">上移</button>
+          <button v-if="index > 0" class="icon-btn" type="button" @click="moveOutputUp(activeTab, item.id)">上移</button>
           <button class="icon-btn" type="button" @click="editItem(item)">
             <Pencil :size="14" />
           </button>
-          <button class="icon-btn icon-btn-danger" type="button" @click="store.removeOutput(activeTab, item.id)">
+          <button class="icon-btn icon-btn-danger" type="button" @click="removeOutput(activeTab, item.id)">
             <Trash2 :size="14" />
           </button>
         </div>

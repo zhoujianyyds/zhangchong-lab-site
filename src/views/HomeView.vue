@@ -71,15 +71,20 @@ function editableClass() {
   return { editable: store.isSuperAdmin() }
 }
 
+async function saveEditResult(promise) {
+  const result = await promise
+  if (!result.ok) window.alert(result.message || '保存失败')
+}
+
 function editSiteField(field, label) {
   if (!store.isSuperAdmin()) return
   const next = window.prompt(`修改${label}`, store.state.site[field] || '')
   if (next === null) return
-  store.updateSiteContent({
+  saveEditResult(store.updateSiteContent({
     ...store.state.site,
     [field]: next,
     researchLines: store.state.site.researchLines,
-  })
+  }))
 }
 
 function editResearchLine(index, field, label) {
@@ -88,10 +93,10 @@ function editResearchLine(index, field, label) {
   const next = window.prompt(`修改${label}`, lines[index][field] || '')
   if (next === null) return
   lines[index][field] = next
-  store.updateSiteContent({
+  saveEditResult(store.updateSiteContent({
     ...store.state.site,
     researchLines: lines,
-  })
+  }))
 }
 
 function editToolCard(index, field, label) {
@@ -100,50 +105,50 @@ function editToolCard(index, field, label) {
   const next = window.prompt(`修改${label}`, toolCards[index][field] || '')
   if (next === null) return
   toolCards[index][field] = next
-  store.updateSiteContent({
+  saveEditResult(store.updateSiteContent({
     ...store.state.site,
     toolCards,
-  })
+  }))
 }
 
 function editMemberField(member, field, label) {
   if (!store.isSuperAdmin()) return
   const next = window.prompt(`修改${label}`, member[field] || '')
   if (next === null) return
-  store.upsertMember({
+  saveEditResult(store.upsertMember({
     ...JSON.parse(JSON.stringify(member)),
     [field]: next,
-  })
+  }))
 }
 
 function editPublication(item, field, label) {
   if (!store.isSuperAdmin()) return
   const next = window.prompt(`修改${label}`, item[field] || '')
   if (next === null) return
-  store.upsertOutput('publications', {
+  saveEditResult(store.upsertOutput('publications', {
     ...JSON.parse(JSON.stringify(item)),
     [field]: field === 'pub_year' ? Number(next) || '' : next,
-  })
+  }))
 }
 
 function editProject(item, field, label) {
   if (!store.isSuperAdmin()) return
   const next = window.prompt(`修改${label}`, item[field] || '')
   if (next === null) return
-  store.upsertOutput('projects', {
+  saveEditResult(store.upsertOutput('projects', {
     ...JSON.parse(JSON.stringify(item)),
     [field]: next,
-  })
+  }))
 }
 
 function editAward(item, field, label) {
   if (!store.isSuperAdmin()) return
   const next = window.prompt(`修改${label}`, item[field] || '')
   if (next === null) return
-  store.upsertOutput('awards', {
+  saveEditResult(store.upsertOutput('awards', {
     ...JSON.parse(JSON.stringify(item)),
     [field]: next,
-  })
+  }))
 }
 </script>
 

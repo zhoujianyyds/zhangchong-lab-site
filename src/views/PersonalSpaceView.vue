@@ -66,12 +66,12 @@ function clearPhoto() {
   form.photo = ''
 }
 
-function submitProfile() {
+async function submitProfile() {
   const member = currentMember.value
   if (!member || isSystemAdmin.value) return
   const nextGrade = lockStudyInfo.value ? '' : form.grade
   const nextDirection = lockStudyInfo.value ? '' : form.direction
-  store.upsertMember({
+  const result = await store.upsertMember({
     ...JSON.parse(JSON.stringify(member)),
     name: form.name.trim(),
     grade: nextGrade,
@@ -83,6 +83,10 @@ function submitProfile() {
     photo: form.photo,
     bio: form.bio,
   })
+  if (!result.ok) {
+    window.alert(result.message || '保存失败')
+    return
+  }
   feedback.value = '修改成功'
   window.alert(feedback.value)
 }

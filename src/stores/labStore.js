@@ -194,7 +194,7 @@ function seedData() {
   const data = {
     meta: {
       dataVersion: DATA_VERSION,
-      updatedAt: new Date().toISOString(),
+      updatedAt: '',
     },
     site: defaultSiteContent(),
     rooms: [
@@ -595,13 +595,6 @@ export function useLabStore() {
       const remoteTime = stateUpdatedTime(remoteData, result.updatedAt)
       if (remoteTime > localTime) {
         replaceState(remoteData)
-        const saveResult = await saveSharedState(cloneState())
-        if (saveResult.ok) {
-          cloud.error = ''
-          cloud.lastSavedAt = new Date().toISOString()
-        } else {
-          cloud.error = saveResult.message
-        }
       } else if (localTime > remoteTime) {
         const saveResult = await saveSharedState(localSnapshot)
         if (saveResult.ok) {
@@ -612,6 +605,7 @@ export function useLabStore() {
         }
       }
     } else if (result.ok && !result.data) {
+      if (!stateUpdatedTime(state)) writeLocalState()
       const seedResult = await saveSharedState(cloneState())
       if (!seedResult.ok) cloud.error = seedResult.message
     } else {
@@ -641,7 +635,7 @@ export function useLabStore() {
     return result.ok ? { ok: true } : { ok: false, message: result.message || '密码保存失败' }
   }
 
-  function registerMember(payload) {
+  async function registerMember(payload) {
     const staffId = payload.staff_id.trim()
     if (state.members.some((item) => item.staff_id === staffId)) {
       return { ok: false, message: '账号已存在' }
@@ -658,18 +652,18 @@ export function useLabStore() {
       direction: payload.direction.trim(),
       created_at: new Date().toISOString(),
     })
-    save()
-    return { ok: true }
+    const result = await saveImmediately()
+    return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
   }
 
-  function approveRegistration(id) {
+  async function approveRegistration(id) {
     if (!isSuperAdmin()) return { ok: false, message: '暂无审批权限' }
     const index = state.pendingRegistrations.findIndex((item) => item.id === id)
     if (index < 0) return { ok: false, message: '申请不存在' }
     const record = state.pendingRegistrations[index]
     if (state.members.some((item) => item.staff_id === record.staff_id)) {
       state.pendingRegistrations.splice(index, 1)
-      save()
+      await saveImmediately()
       return { ok: false, message: '账号已存在' }
     }
     state.members.push({
@@ -686,17 +680,19 @@ export function useLabStore() {
       ...memberProfileDefaults(record),
     })
     state.pendingRegistrations.splice(index, 1)
-    save()
-    return { ok: true }
+    const result = await saveImmediately()
+    return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
   }
 
-  function rejectRegistration(id) {
-    if (!isSuperAdmin()) return
+  async function rejectRegistration(id) {
+    if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
     const index = state.pendingRegistrations.findIndex((item) => item.id === id)
     if (index >= 0) {
       state.pendingRegistrations.splice(index, 1)
-      save()
+      const result = await saveImmediately()
+      return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
     }
+    return { ok: false, message: '数据不存在' }
   }
 
   function isSuperAdmin(member = currentMember.value) {
@@ -725,7 +721,7 @@ export function useLabStore() {
     return Boolean(isSuperAdmin(member) || member?.permissions?.can_delete_others)
   }
 
-  function addBooking(payload) {
+  async function addBooking(payload) {
     if (!currentMember.value) return { ok: false, message: '请先登录' }
     if (!payload.date || !payload.room_id || !payload.start_time || !payload.end_time || !payload.reason.trim()) {
       return { ok: false, message: '请填写所有必填字段' }
@@ -749,20 +745,20 @@ export function useLabStore() {
       reason: payload.reason.trim(),
       created_at: new Date().toISOString(),
     })
-    save()
-    return { ok: true }
+    const result = await saveImmediately()
+    return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
   }
 
-  function deleteBooking(id) {
+  async function deleteBooking(id) {
     const index = state.bookings.findIndex((item) => item.id === id)
     if (index < 0) return
     const item = state.bookings[index]
     if (item.member_id !== currentMember.value?.id && !canDeleteOthers()) return
     state.bookings.splice(index, 1)
-    save()
+    await saveImmediately()
   }
 
-  function addReimbursement(payload) {
+  async function addReimbursement(payload) {
     const amount = Number(payload.amount)
     if (!currentMember.value) return { ok: false, message: '请先登录' }
     if (!payload.reason.trim() || !amount || amount <= 0) return { ok: false, message: '请输入有效的报销金额和事由' }
@@ -776,25 +772,25 @@ export function useLabStore() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
-    save()
-    return { ok: true }
+    const result = await saveImmediately()
+    return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
   }
 
-  function updateReimbursementStatus(id, status) {
+  async function updateReimbursementStatus(id, status) {
     const item = state.reimbursements.find((record) => record.id === id)
     if (!item || !canViewAll()) return
     item.status = status
     item.updated_at = new Date().toISOString()
-    save()
+    await saveImmediately()
   }
 
-  function deleteReimbursement(id) {
+  async function deleteReimbursement(id) {
     const index = state.reimbursements.findIndex((item) => item.id === id)
     if (index < 0) return
     const item = state.reimbursements[index]
     if (item.member_id !== currentMember.value?.id && !canDeleteOthers()) return
     state.reimbursements.splice(index, 1)
-    save()
+    await saveImmediately()
   }
 
   async function upsertMember(payload) {
@@ -854,22 +850,23 @@ export function useLabStore() {
       })
       passwordTouched = true
     }
-    const result = passwordTouched ? await saveImmediately() : (save(), { ok: true })
+    const result = await saveImmediately()
     return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
   }
 
-  function removeMember(id) {
+  async function removeMember(id) {
     if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
-    if (id === currentMember.value?.id) return
+    if (id === currentMember.value?.id) return { ok: false, message: '不能删除当前登录账号' }
     const index = state.members.findIndex((item) => item.id === id)
     if (index >= 0) {
       state.members.splice(index, 1)
-      save()
+      const result = await saveImmediately()
+      return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
     }
     return { ok: true }
   }
 
-  function upsertOutput(kind, payload) {
+  async function upsertOutput(kind, payload) {
     if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
     const list = state[kind]
     if (!Array.isArray(list)) return { ok: false, message: '数据类型不存在' }
@@ -884,11 +881,11 @@ export function useLabStore() {
         sort_order: list.length + 1,
       })
     }
-    save()
-    return { ok: true }
+    const result = await saveImmediately()
+    return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
   }
 
-  function removeOutput(kind, id) {
+  async function removeOutput(kind, id) {
     if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
     const list = state[kind]
     if (!Array.isArray(list)) return { ok: false, message: '数据类型不存在' }
@@ -898,12 +895,13 @@ export function useLabStore() {
       list.forEach((item, order) => {
         item.sort_order = order + 1
       })
-      save()
+      const result = await saveImmediately()
+      return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
     }
     return { ok: true }
   }
 
-  function moveOutputUp(kind, id) {
+  async function moveOutputUp(kind, id) {
     if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
     if (!Array.isArray(state[kind])) return { ok: false, message: '数据类型不存在' }
     const list = state[kind].sort(bySortOrder)
@@ -914,11 +912,11 @@ export function useLabStore() {
     const order = current.sort_order
     current.sort_order = previous.sort_order
     previous.sort_order = order
-    save()
-    return { ok: true }
+    const result = await saveImmediately()
+    return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
   }
 
-  function updateSiteContent(payload) {
+  async function updateSiteContent(payload) {
     if (!canManageSite()) return { ok: false, message: '暂无权限' }
     const nextResearchLines = Array.isArray(payload.researchLines) ? payload.researchLines : state.site.researchLines
     const nextToolCards = Array.isArray(payload.toolCards) ? payload.toolCards : state.site.toolCards
@@ -938,15 +936,15 @@ export function useLabStore() {
         text: item.text.trim(),
       })),
     }
-    save()
-    return { ok: true }
+    const result = await saveImmediately()
+    return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
   }
 
-  function resetDemoData() {
+  async function resetDemoData() {
     if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
     Object.assign(state, seedData())
-    save()
-    return { ok: true }
+    const result = await saveImmediately()
+    return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
   }
 
   return {

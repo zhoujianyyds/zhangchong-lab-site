@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { Eye, EyeOff, LogIn, LogOut, Moon, RefreshCw, Sun, User, UserPlus } from 'lucide-vue-next'
 import { useLabStore } from './stores/labStore'
@@ -27,6 +27,7 @@ const passwordCaptchaCode = ref(createCaptcha())
 const showOldPassword = ref(false)
 const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
+let sharedSyncTimer = 0
 
 function createCaptcha() {
   return String(Math.floor(1000 + Math.random() * 9000))
@@ -95,14 +96,19 @@ function editableClass() {
   return { editable: store.isSuperAdmin() }
 }
 
+async function saveEditResult(promise) {
+  const result = await promise
+  if (!result.ok) window.alert(result.message || '保存失败')
+}
+
 function editSiteField(field, label) {
   if (!store.isSuperAdmin()) return
   const next = window.prompt(`修改${label}`, store.state.site[field] || '')
   if (next === null) return
-  store.updateSiteContent({
+  saveEditResult(store.updateSiteContent({
     ...store.state.site,
     [field]: next,
-  })
+  }))
 }
 
 function logout() {
@@ -121,9 +127,26 @@ function toggleTheme() {
   setTheme(isDark.value ? 'light' : 'dark')
 }
 
+function refreshSharedState() {
+  store.syncSharedState()
+}
+
+function refreshSharedStateWhenVisible() {
+  if (!document.hidden) refreshSharedState()
+}
+
 onMounted(() => {
   setTheme('dark')
-  store.syncSharedState()
+  refreshSharedState()
+  sharedSyncTimer = window.setInterval(refreshSharedState, 8000)
+  window.addEventListener('focus', refreshSharedState)
+  document.addEventListener('visibilitychange', refreshSharedStateWhenVisible)
+})
+
+onBeforeUnmount(() => {
+  window.clearInterval(sharedSyncTimer)
+  window.removeEventListener('focus', refreshSharedState)
+  document.removeEventListener('visibilitychange', refreshSharedStateWhenVisible)
 })
 </script>
 
