@@ -299,9 +299,6 @@ function migrateData(data) {
   for (const key of ['rooms', 'members', 'pendingRegistrations', 'publications', 'projects', 'awards', 'bookings', 'reimbursements']) {
     if (!Array.isArray(data[key])) data[key] = seeded[key]
   }
-  if (data.site.groupName?.includes('402')) data.site.groupName = '张翀研究小组'
-  if (data.site.heroTitle?.includes('402')) data.site.heroTitle = '张翀研究小组'
-  if (data.site.piIntro?.includes('402')) data.site.piIntro = seeded.site.piIntro
   for (const member of data.members) {
     const isAdminMember = member.role === 'superadmin' || member.permissions?.can_manage_members
     if (!member.password) member.password = isAdminMember ? '666666' : '123456'
