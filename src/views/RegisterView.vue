@@ -112,7 +112,7 @@ function toggleRegisterPasswordVisibility(field) {
 
     <form v-if="!store.currentMember.value" class="login-box register-box" @submit.prevent="submitRegister">
       <datalist id="register-direction-options">
-        <option v-for="direction in directionOptions" :key="direction" :value="direction"></option>
+        <option v-for="direction in directionOptions" :key="direction" :value="direction">{{ direction }}</option>
       </datalist>
 
       <div class="form-field">

@@ -95,7 +95,7 @@ async function submitProfile() {
 <template>
   <AuthGate tool-id="profile" title="Personal Space" subtitle="查看和编辑自己的个人资料。">
     <datalist id="space-direction-options">
-      <option v-for="direction in directionOptions" :key="direction" :value="direction"></option>
+      <option v-for="direction in directionOptions" :key="direction" :value="direction">{{ direction }}</option>
     </datalist>
 
     <section v-if="isSystemAdmin" class="tool-empty">

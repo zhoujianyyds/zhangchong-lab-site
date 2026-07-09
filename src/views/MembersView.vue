@@ -285,7 +285,7 @@ async function submitProfile() {
 <template>
   <AuthGate tool-id="profile" title="成员管理" subtitle="录入和管理实验室成员，设置权限与网站展示。">
     <datalist id="member-direction-options">
-      <option v-for="direction in directionOptions" :key="direction" :value="direction"></option>
+      <option v-for="direction in directionOptions" :key="direction" :value="direction">{{ direction }}</option>
     </datalist>
 
     <form v-if="!store.isSuperAdmin()" class="tool-form" @submit.prevent>
