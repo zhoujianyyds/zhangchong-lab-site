@@ -158,7 +158,6 @@ onBeforeUnmount(() => {
         <span class="brand-mark">LAB</span>
         <span>
           <strong :class="editableClass()" @dblclick.prevent="editSiteField('groupName', '网站名称')">{{ store.state.site.groupName }}</strong>
-          <small :class="editableClass()" @dblclick.prevent="editSiteField('brandTagline', '顶部副标题')">{{ store.state.site.brandTagline }}</small>
         </span>
       </RouterLink>
 
