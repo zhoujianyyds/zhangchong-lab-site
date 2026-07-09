@@ -4,6 +4,7 @@ import { fetchSharedState, saveSharedState, sharedStateEnabled } from '../lib/cl
 const STORAGE_KEY = 'lab-site-vue-store-v1'
 const SESSION_KEY = 'lab-site-vue-session-v1'
 const DATA_VERSION = 'member-persist-v1'
+const ADMIN_PASSWORD = 'zj020206zj'
 const ZHOU_JIAN_PASSWORD = 'zj020206zj'
 
 const toolIds = ['members', 'outputs']
@@ -16,16 +17,48 @@ function defaultSiteContent() {
   return {
     groupName: '张翀研究小组',
     brandTagline: '油气井 · 嵌入式 · Agent',
+    navResearchLabel: '研究方向',
+    navPeopleLabel: '成员',
+    navOutputsLabel: '成果',
+    navToolsLabel: '工具',
+    navContactLabel: '联系',
     heroKicker: '',
     heroTitle: '张翀研究小组',
     heroLede:
       '围绕油气井、嵌入式系统和 Agent 智能体开展研究与工程实践，面向真实工业场景构建可靠、可部署、可持续迭代的智能系统。',
+    heroPrimaryButton: '查看成果',
+    heroSecondaryButton: '联系加入',
     visualLabel: '研究方向',
     visualStack: '油气井 / 嵌入式 / Agent',
+    statResearchLabel: '研究方向',
+    statMembersLabel: '研究成员',
+    statOutputsLabel: '论文项目获奖',
+    researchSectionLabel: '研究方向',
+    researchSectionTitle: 'Research',
     researchIntro: '',
+    peopleSectionLabel: '团队成员',
+    peopleSectionTitle: 'People',
     peopleIntro: '张翀老师负责指导，研究成员共 12 人；研二 6 人已确定，研一 6 个名额暂时保留。',
+    piLabel: '导师',
     piIntro: '张翀老师负责研究小组，围绕油气井、嵌入式系统和 Agent 智能体方向开展研究与工程实践。',
-    toolsIntro: '所有工具都已经接入登录和权限判断。张翀管理员账号为 zhangchong / 666666。',
+    outputsSectionLabel: '代表成果',
+    outputsSectionTitle: 'Outputs',
+    projectTypeLabel: '项目',
+    projectNote: '科研项目可在成果管理中维护排序。',
+    awardTypeLabel: '获奖',
+    awardWinnerPrefix: '获奖人：',
+    awardEmptyWinner: '待录入',
+    awardNote: '竞赛与荣誉展示。',
+    toolsSectionLabel: '组内工具',
+    toolsSectionTitle: 'Tools',
+    toolsIntro: '所有工具都已经接入登录和权限判断。',
+    toolCards: [
+      { key: 'members', title: '成员管理', text: '管理实验室成员信息与权限。' },
+      { key: 'outputs', title: '成果管理', text: '管理论文、专利、科研项目和获奖信息。' },
+      { key: 'site', title: '站点内容', text: '修改首页标题、研究方向、联系邮箱和各区说明。' },
+    ],
+    contactSectionLabel: '联系',
+    contactSectionTitle: 'Contact',
     contactTitle: '开放合作与学生加入',
     contactText: '如需交流合作或咨询加入研究小组，可通过张翀导师邮箱联系。',
     contactEmail: 'zhsngchong92@swpu.edu.cn',
@@ -112,7 +145,7 @@ function enforceCoreMemberIdentities(data) {
   if (systemAdmin) {
     systemAdmin.name = 'admin'
     systemAdmin.staff_id = 'admin'
-    if (!systemAdmin.password) systemAdmin.password = '666666'
+    systemAdmin.password = ADMIN_PASSWORD
     systemAdmin.role = 'superadmin'
     systemAdmin.grade = ''
     systemAdmin.direction = ''
@@ -128,7 +161,7 @@ function enforceCoreMemberIdentities(data) {
     zhangChong.role = 'teacher'
     zhangChong.grade = ''
     zhangChong.direction = ''
-    zhangChong.permissions = superAdminPermissions()
+    zhangChong.permissions = studentPermissions()
   }
 
   const zhouJian = data.members.find((item) => item.name === '周健' || item.staff_id === '202522000755')
@@ -137,7 +170,7 @@ function enforceCoreMemberIdentities(data) {
     zhouJian.staff_id = '202522000755'
     if (!zhouJian.password) zhouJian.password = ZHOU_JIAN_PASSWORD
     zhouJian.role = 'student'
-    zhouJian.permissions = superAdminPermissions()
+    zhouJian.permissions = studentPermissions()
   }
 }
 
@@ -173,7 +206,7 @@ function seedData() {
         id: 'm-admin',
         name: 'admin',
         staff_id: 'admin',
-        password: '666666',
+        password: ADMIN_PASSWORD,
         role: 'superadmin',
         grade: '',
         direction: '',
@@ -192,7 +225,7 @@ function seedData() {
         direction: '',
         status: 'active',
         visible_on_site: true,
-        permissions: superAdminPermissions(),
+        permissions: studentPermissions(),
         ...memberProfileDefaults(),
       },
       studentMember('m-student-zhoujian', '周健', '202522000755', '研二', '油气井'),
@@ -274,7 +307,7 @@ function seedData() {
     zhouJian.staff_id = '202522000755'
     if (!zhouJian.password) zhouJian.password = ZHOU_JIAN_PASSWORD
     zhouJian.role = 'student'
-    zhouJian.permissions = superAdminPermissions()
+    zhouJian.permissions = studentPermissions()
   }
   return data
 }
@@ -311,7 +344,7 @@ function migrateData(data) {
     if (systemAdmin) {
       systemAdmin.name = 'admin'
       systemAdmin.staff_id = 'admin'
-      if (!systemAdmin.password) systemAdmin.password = '666666'
+      systemAdmin.password = ADMIN_PASSWORD
       systemAdmin.role = 'superadmin'
       systemAdmin.grade = ''
       systemAdmin.direction = ''
@@ -433,7 +466,7 @@ function migrateData(data) {
         if (name === '张翀') normalizeStudyInfo(member)
         if (name === '周健') member.role = 'student'
         if (!member.password) member.password = name === '周健' ? ZHOU_JIAN_PASSWORD : '666666'
-        member.permissions = superAdminPermissions()
+        member.permissions = studentPermissions()
       }
     }
   }
@@ -544,6 +577,13 @@ export function useLabStore() {
       const remoteTime = stateUpdatedTime(remoteData, result.updatedAt)
       if (remoteTime > localTime) {
         replaceState(remoteData)
+        const saveResult = await saveSharedState(cloneState())
+        if (saveResult.ok) {
+          cloud.error = ''
+          cloud.lastSavedAt = new Date().toISOString()
+        } else {
+          cloud.error = saveResult.message
+        }
       } else if (localTime > remoteTime) {
         const saveResult = await saveSharedState(localSnapshot)
         if (saveResult.ok) {
@@ -821,14 +861,21 @@ export function useLabStore() {
   }
 
   function updateSiteContent(payload) {
+    const nextResearchLines = Array.isArray(payload.researchLines) ? payload.researchLines : state.site.researchLines
+    const nextToolCards = Array.isArray(payload.toolCards) ? payload.toolCards : state.site.toolCards
     state.site = {
       ...state.site,
       ...payload,
-      researchLines: payload.researchLines.map((item) => ({
+      researchLines: nextResearchLines.map((item) => ({
         title: item.title.trim(),
         tag: item.tag.trim(),
         icon: item.icon,
         tone: item.tone,
+        text: item.text.trim(),
+      })),
+      toolCards: nextToolCards.map((item) => ({
+        key: item.key,
+        title: item.title.trim(),
         text: item.text.trim(),
       })),
     }

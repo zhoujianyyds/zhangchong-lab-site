@@ -7,17 +7,17 @@ import { useLabStore } from './stores/labStore'
 const store = useLabStore()
 const router = useRouter()
 
-const baseNavItems = [
-  { label: '研究方向', to: { path: '/', hash: '#research' } },
-  { label: '成员', to: { path: '/', hash: '#people' } },
-  { label: '成果', to: { path: '/', hash: '#outputs' } },
-  { label: '工具', to: { path: '/', hash: '#tools' }, adminOnly: true },
-  { label: '联系', to: { path: '/', hash: '#contact' } },
-]
-
 const theme = ref('dark')
 const isDark = computed(() => theme.value === 'dark')
-const navItems = computed(() => baseNavItems.filter((item) => !item.adminOnly || store.isSuperAdmin()))
+const navItems = computed(() =>
+  [
+    { field: 'navResearchLabel', label: store.state.site.navResearchLabel, to: { path: '/', hash: '#research' } },
+    { field: 'navPeopleLabel', label: store.state.site.navPeopleLabel, to: { path: '/', hash: '#people' } },
+    { field: 'navOutputsLabel', label: store.state.site.navOutputsLabel, to: { path: '/', hash: '#outputs' } },
+    { field: 'navToolsLabel', label: store.state.site.navToolsLabel, to: { path: '/', hash: '#tools' }, adminOnly: true },
+    { field: 'navContactLabel', label: store.state.site.navContactLabel, to: { path: '/', hash: '#contact' } },
+  ].filter((item) => !item.adminOnly || store.isSuperAdmin()),
+)
 const authMenuOpen = ref(false)
 const userMenuOpen = ref(false)
 const passwordModalOpen = ref(false)
@@ -78,6 +78,20 @@ function closePasswordModal() {
   refreshPasswordCaptcha()
 }
 
+function editableClass() {
+  return { editable: store.isSuperAdmin() }
+}
+
+function editSiteField(field, label) {
+  if (!store.isSuperAdmin()) return
+  const next = window.prompt(`修改${label}`, store.state.site[field] || '')
+  if (next === null) return
+  store.updateSiteContent({
+    ...store.state.site,
+    [field]: next,
+  })
+}
+
 function logout() {
   userMenuOpen.value = false
   passwordModalOpen.value = false
@@ -106,13 +120,15 @@ onMounted(() => {
       <RouterLink class="brand" to="/" aria-label="回到首页">
         <span class="brand-mark">LAB</span>
         <span>
-          <strong>{{ store.state.site.groupName }}</strong>
-          <small>{{ store.state.site.brandTagline }}</small>
+          <strong :class="editableClass()" @dblclick.prevent="editSiteField('groupName', '网站名称')">{{ store.state.site.groupName }}</strong>
+          <small :class="editableClass()" @dblclick.prevent="editSiteField('brandTagline', '顶部副标题')">{{ store.state.site.brandTagline }}</small>
         </span>
       </RouterLink>
 
       <nav class="nav-links" aria-label="主导航">
-        <RouterLink v-for="item in navItems" :key="item.label" :to="item.to">{{ item.label }}</RouterLink>
+        <RouterLink v-for="item in navItems" :key="item.field" :to="item.to" :class="editableClass()" @dblclick.prevent="editSiteField(item.field, '导航文字')">
+          {{ item.label }}
+        </RouterLink>
       </nav>
 
       <div class="topbar-utils">

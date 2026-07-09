@@ -16,6 +16,7 @@ const tabs = [
 
 const form = reactive(createEmptyForm())
 const siteForm = reactive(cloneSiteForm())
+const siteFeedback = ref('')
 
 const activeList = computed(() => {
   if (activeTab.value === 'site') return []
@@ -102,6 +103,8 @@ function resetSiteForm() {
 
 function submitSiteContent() {
   store.updateSiteContent(JSON.parse(JSON.stringify(siteForm)))
+  siteFeedback.value = '保存成功'
+  window.alert(siteFeedback.value)
 }
 
 function addResearchLine() {
@@ -152,6 +155,7 @@ function itemMeta(item) {
         <h2 class="panel-title">站点内容</h2>
         <button class="button button-light" type="button" @click="resetSiteForm">撤销修改</button>
       </div>
+      <div v-if="siteFeedback" class="form-success">{{ siteFeedback }}</div>
 
       <div class="form-row">
         <div class="form-field">
@@ -161,6 +165,35 @@ function itemMeta(item) {
         <div class="form-field">
           <label for="brand-tagline">顶部副标题</label>
           <input id="brand-tagline" v-model="siteForm.brandTagline" type="text" />
+        </div>
+      </div>
+
+      <div class="permission-group">
+        <strong>顶部导航</strong>
+        <p>修改顶部菜单显示文字。</p>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="nav-research">研究方向导航</label>
+            <input id="nav-research" v-model="siteForm.navResearchLabel" type="text" />
+          </div>
+          <div class="form-field">
+            <label for="nav-people">成员导航</label>
+            <input id="nav-people" v-model="siteForm.navPeopleLabel" type="text" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="nav-outputs">成果导航</label>
+            <input id="nav-outputs" v-model="siteForm.navOutputsLabel" type="text" />
+          </div>
+          <div class="form-field">
+            <label for="nav-tools">工具导航</label>
+            <input id="nav-tools" v-model="siteForm.navToolsLabel" type="text" />
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="nav-contact">联系导航</label>
+          <input id="nav-contact" v-model="siteForm.navContactLabel" type="text" />
         </div>
       </div>
 
@@ -182,12 +215,72 @@ function itemMeta(item) {
 
       <div class="form-row">
         <div class="form-field">
+          <label for="hero-primary-button">首屏主按钮</label>
+          <input id="hero-primary-button" v-model="siteForm.heroPrimaryButton" type="text" />
+        </div>
+        <div class="form-field">
+          <label for="hero-secondary-button">首屏副按钮</label>
+          <input id="hero-secondary-button" v-model="siteForm.heroSecondaryButton" type="text" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
           <label for="visual-label">视觉标签</label>
           <input id="visual-label" v-model="siteForm.visualLabel" type="text" />
         </div>
         <div class="form-field">
           <label for="visual-stack">视觉说明</label>
           <input id="visual-stack" v-model="siteForm.visualStack" type="text" />
+        </div>
+      </div>
+
+      <div class="permission-group">
+        <strong>统计与栏目标题</strong>
+        <p>首页统计条和各区块标题。</p>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="stat-research">统计：研究方向</label>
+            <input id="stat-research" v-model="siteForm.statResearchLabel" type="text" />
+          </div>
+          <div class="form-field">
+            <label for="stat-members">统计：成员</label>
+            <input id="stat-members" v-model="siteForm.statMembersLabel" type="text" />
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="stat-outputs">统计：成果</label>
+          <input id="stat-outputs" v-model="siteForm.statOutputsLabel" type="text" />
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="research-section-label">研究方向小字</label>
+            <input id="research-section-label" v-model="siteForm.researchSectionLabel" type="text" />
+          </div>
+          <div class="form-field">
+            <label for="research-section-title">研究方向大字</label>
+            <input id="research-section-title" v-model="siteForm.researchSectionTitle" type="text" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="people-section-label">成员区小字</label>
+            <input id="people-section-label" v-model="siteForm.peopleSectionLabel" type="text" />
+          </div>
+          <div class="form-field">
+            <label for="people-section-title">成员区大字</label>
+            <input id="people-section-title" v-model="siteForm.peopleSectionTitle" type="text" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="outputs-section-label">成果区小字</label>
+            <input id="outputs-section-label" v-model="siteForm.outputsSectionLabel" type="text" />
+          </div>
+          <div class="form-field">
+            <label for="outputs-section-title">成果区大字</label>
+            <input id="outputs-section-title" v-model="siteForm.outputsSectionTitle" type="text" />
+          </div>
         </div>
       </div>
 
@@ -205,10 +298,69 @@ function itemMeta(item) {
         <label for="pi-intro">负责人简介</label>
         <textarea id="pi-intro" v-model="siteForm.piIntro"></textarea>
       </div>
+      <div class="form-field">
+        <label for="pi-label">负责人标签</label>
+        <input id="pi-label" v-model="siteForm.piLabel" type="text" />
+      </div>
 
       <div class="form-field">
         <label for="tools-intro">工具区说明</label>
         <textarea id="tools-intro" v-model="siteForm.toolsIntro"></textarea>
+      </div>
+
+      <div class="permission-group">
+        <strong>成果与工具文字</strong>
+        <p>首页成果列表中的固定说明，以及工具卡片标题和说明。</p>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="project-type-label">项目标签</label>
+            <input id="project-type-label" v-model="siteForm.projectTypeLabel" type="text" />
+          </div>
+          <div class="form-field">
+            <label for="project-note">项目说明</label>
+            <input id="project-note" v-model="siteForm.projectNote" type="text" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="award-type-label">获奖标签</label>
+            <input id="award-type-label" v-model="siteForm.awardTypeLabel" type="text" />
+          </div>
+          <div class="form-field">
+            <label for="award-note">获奖说明</label>
+            <input id="award-note" v-model="siteForm.awardNote" type="text" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="award-prefix">获奖人前缀</label>
+            <input id="award-prefix" v-model="siteForm.awardWinnerPrefix" type="text" />
+          </div>
+          <div class="form-field">
+            <label for="award-empty">获奖人空值</label>
+            <input id="award-empty" v-model="siteForm.awardEmptyWinner" type="text" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="tools-section-label">工具区小字</label>
+            <input id="tools-section-label" v-model="siteForm.toolsSectionLabel" type="text" />
+          </div>
+          <div class="form-field">
+            <label for="tools-section-title">工具区大字</label>
+            <input id="tools-section-title" v-model="siteForm.toolsSectionTitle" type="text" />
+          </div>
+        </div>
+        <article v-for="(tool, index) in siteForm.toolCards" :key="tool.key" class="site-edit-card">
+          <div class="form-field">
+            <label :for="`tool-title-${index}`">工具标题</label>
+            <input :id="`tool-title-${index}`" v-model="tool.title" type="text" />
+          </div>
+          <div class="form-field">
+            <label :for="`tool-text-${index}`">工具说明</label>
+            <textarea :id="`tool-text-${index}`" v-model="tool.text"></textarea>
+          </div>
+        </article>
       </div>
 
       <div class="form-row">
@@ -219,6 +371,16 @@ function itemMeta(item) {
         <div class="form-field">
           <label for="contact-email">联系邮箱</label>
           <input id="contact-email" v-model="siteForm.contactEmail" type="email" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label for="contact-section-label">联系区小字</label>
+          <input id="contact-section-label" v-model="siteForm.contactSectionLabel" type="text" />
+        </div>
+        <div class="form-field">
+          <label for="contact-section-title">联系区大字</label>
+          <input id="contact-section-title" v-model="siteForm.contactSectionTitle" type="text" />
         </div>
       </div>
       <div class="form-field">
