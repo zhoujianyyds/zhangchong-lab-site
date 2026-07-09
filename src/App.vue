@@ -222,7 +222,7 @@ onBeforeUnmount(() => {
       </div>
     </header>
 
-    <div v-if="passwordModalOpen" class="modal-overlay" @click.self="closePasswordModal">
+    <div v-if="passwordModalOpen" class="modal-overlay">
       <div class="modal-panel user-password-modal">
         <div class="modal-head">
           <h2>修改密码</h2>
