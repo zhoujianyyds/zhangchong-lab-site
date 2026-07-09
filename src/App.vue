@@ -7,7 +7,7 @@ import { useLabStore } from './stores/labStore'
 const store = useLabStore()
 const router = useRouter()
 
-const theme = ref('dark')
+const theme = ref('light')
 const isDark = computed(() => theme.value === 'dark')
 const navItems = computed(() =>
   [
@@ -137,7 +137,7 @@ function refreshSharedStateWhenVisible() {
 }
 
 onMounted(() => {
-  setTheme('dark')
+  setTheme('light')
   refreshSharedState()
   sharedSyncTimer = window.setInterval(refreshSharedState, 8000)
   window.addEventListener('focus', refreshSharedState)
