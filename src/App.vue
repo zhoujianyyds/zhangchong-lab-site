@@ -126,7 +126,7 @@ onMounted(() => {
       </RouterLink>
 
       <nav class="nav-links" aria-label="主导航">
-        <RouterLink v-for="item in navItems" :key="item.field" :to="item.to" :class="editableClass()" @dblclick.prevent="editSiteField(item.field, '导航文字')">
+        <RouterLink v-for="item in navItems" :key="item.field" :to="item.to">
           {{ item.label }}
         </RouterLink>
       </nav>

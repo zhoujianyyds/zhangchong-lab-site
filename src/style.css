@@ -2113,6 +2113,27 @@ input[type='password']::-webkit-credentials-auto-fill-button {
   background: color-mix(in srgb, var(--jade) 7%, transparent);
 }
 
+button .editable,
+.button .editable,
+.icon-button .editable,
+.login-chip .editable,
+.menu-action-btn .editable,
+.logout-menu-btn .editable,
+.captcha-code .editable,
+.nav-links .editable,
+button.editable,
+.button.editable,
+.icon-button.editable,
+.login-chip.editable,
+.menu-action-btn.editable,
+.logout-menu-btn.editable,
+.captcha-code.editable,
+.nav-links a.editable {
+  cursor: pointer;
+  outline: none;
+  background: transparent;
+}
+
 @media (max-width: 720px) {
   .topbar-utils .login-chip {
     display: none;
