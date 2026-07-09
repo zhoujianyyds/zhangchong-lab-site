@@ -53,6 +53,7 @@ async function submitPassword() {
   const result = await store.changePassword(passwordForm.oldPassword, passwordForm.newPassword)
   passwordMessage.value = result.ok ? '密码已更新' : result.message
   if (result.ok) {
+    window.alert('密码修改成功，请重新登录')
     passwordForm.oldPassword = ''
     passwordForm.newPassword = ''
     passwordForm.confirmPassword = ''
@@ -223,7 +224,7 @@ onBeforeUnmount(() => {
     </header>
 
     <div v-if="passwordModalOpen" class="modal-overlay">
-      <div class="modal-panel user-password-modal">
+      <div class="modal-panel user-password-modal" @click.stop>
         <div class="modal-head">
           <h2>修改密码</h2>
           <button class="modal-close" type="button" @click="closePasswordModal">×</button>
