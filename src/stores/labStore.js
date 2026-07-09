@@ -495,8 +495,9 @@ function loadData() {
 }
 
 const state = reactive(loadData())
+window.localStorage.removeItem(SESSION_KEY)
 const session = reactive({
-  memberId: window.localStorage.getItem(SESSION_KEY) || '',
+  memberId: '',
 })
 const cloud = reactive({
   enabled: sharedStateEnabled,
@@ -552,8 +553,7 @@ function queueCloudSave() {
 
 function setSession(memberId) {
   session.memberId = memberId
-  if (memberId) window.localStorage.setItem(SESSION_KEY, memberId)
-  else window.localStorage.removeItem(SESSION_KEY)
+  window.localStorage.removeItem(SESSION_KEY)
 }
 
 function bySortOrder(a, b) {
