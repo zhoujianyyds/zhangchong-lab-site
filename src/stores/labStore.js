@@ -161,6 +161,7 @@ function seedData() {
   const data = {
     meta: {
       dataVersion: DATA_VERSION,
+      updatedAt: new Date().toISOString(),
     },
     site: defaultSiteContent(),
     rooms: [
@@ -443,6 +444,7 @@ function migrateData(data) {
   data.meta = {
     ...(data.meta || {}),
     dataVersion: DATA_VERSION,
+    updatedAt: data.meta?.updatedAt || '',
   }
   return data
 }
@@ -473,6 +475,11 @@ const cloud = reactive({
 let cloudSaveTimer = 0
 
 function save() {
+  state.meta = {
+    ...(state.meta || {}),
+    dataVersion: DATA_VERSION,
+    updatedAt: new Date().toISOString(),
+  }
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   queueCloudSave()
 }
@@ -489,6 +496,10 @@ function replaceState(nextData) {
   if (session.memberId && !state.members.some((item) => item.id === session.memberId)) {
     setSession('')
   }
+}
+
+function stateUpdatedTime(data, fallback = '') {
+  return Date.parse(data?.meta?.updatedAt || fallback || '') || 0
 }
 
 function queueCloudSave() {
@@ -530,7 +541,21 @@ export function useLabStore() {
     cloud.error = ''
     const result = await fetchSharedState()
     if (result.ok && result.data) {
-      replaceState(result.data)
+      const localSnapshot = cloneState()
+      const remoteData = migrateData(result.data)
+      const localTime = stateUpdatedTime(localSnapshot)
+      const remoteTime = stateUpdatedTime(remoteData, result.updatedAt)
+      if (remoteTime > localTime) {
+        replaceState(remoteData)
+      } else if (localTime > remoteTime) {
+        const saveResult = await saveSharedState(localSnapshot)
+        if (saveResult.ok) {
+          cloud.error = ''
+          cloud.lastSavedAt = new Date().toISOString()
+        } else {
+          cloud.error = saveResult.message
+        }
+      }
     } else if (result.ok && !result.data) {
       const seedResult = await saveSharedState(cloneState())
       if (!seedResult.ok) cloud.error = seedResult.message

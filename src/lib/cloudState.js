@@ -13,12 +13,12 @@ export async function fetchSharedState() {
 
   const { data, error } = await supabase
     .from('lab_site_state')
-    .select('data')
+    .select('data, updated_at')
     .eq('id', stateId)
     .maybeSingle()
 
   if (error) return { ok: false, data: null, message: error.message }
-  return { ok: true, data: data?.data || null }
+  return { ok: true, data: data?.data || null, updatedAt: data?.updated_at || '' }
 }
 
 export async function saveSharedState(data) {
