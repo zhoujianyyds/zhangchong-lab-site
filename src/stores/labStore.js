@@ -686,7 +686,11 @@ export function useLabStore() {
   }
 
   function isSuperAdmin(member = currentMember.value) {
-    return Boolean(member?.permissions?.can_manage_members)
+    return Boolean(member?.staff_id === 'admin' && member?.permissions?.can_manage_members)
+  }
+
+  function canManageSite() {
+    return isSuperAdmin()
   }
 
   function hasTool(toolId, member = currentMember.value) {
@@ -780,7 +784,25 @@ export function useLabStore() {
   }
 
   function upsertMember(payload) {
+    if (!currentMember.value) return { ok: false, message: '请先登录' }
     const existing = state.members.find((item) => item.id === payload.id)
+    const isAdminEditing = isSuperAdmin()
+    if (!isAdminEditing) {
+      if (!existing || existing.id !== currentMember.value.id) return { ok: false, message: '暂无权限' }
+      existing.name = payload.name?.trim() || existing.name
+      if (!shouldKeepStudyInfoEmpty(existing)) {
+        existing.grade = payload.grade || ''
+        existing.direction = payload.direction?.trim() || ''
+      }
+      existing.phone = payload.phone?.trim() || ''
+      existing.email = payload.email?.trim() || ''
+      existing.wechat = payload.wechat?.trim() || ''
+      existing.qq = payload.qq?.trim() || ''
+      existing.photo = payload.photo || ''
+      existing.bio = payload.bio?.trim() || ''
+      save()
+      return { ok: true }
+    }
     const emptyStudyInfo = shouldKeepStudyInfoEmpty(payload)
     const base = {
       name: payload.name.trim(),
@@ -816,19 +838,24 @@ export function useLabStore() {
       })
     }
     save()
+    return { ok: true }
   }
 
   function removeMember(id) {
+    if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
     if (id === currentMember.value?.id) return
     const index = state.members.findIndex((item) => item.id === id)
     if (index >= 0) {
       state.members.splice(index, 1)
       save()
     }
+    return { ok: true }
   }
 
   function upsertOutput(kind, payload) {
+    if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
     const list = state[kind]
+    if (!Array.isArray(list)) return { ok: false, message: '数据类型不存在' }
     const existing = list.find((item) => item.id === payload.id)
     if (existing) {
       if (payload.sort_order === undefined) delete payload.sort_order
@@ -841,10 +868,13 @@ export function useLabStore() {
       })
     }
     save()
+    return { ok: true }
   }
 
   function removeOutput(kind, id) {
+    if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
     const list = state[kind]
+    if (!Array.isArray(list)) return { ok: false, message: '数据类型不存在' }
     const index = list.findIndex((item) => item.id === id)
     if (index >= 0) {
       list.splice(index, 1)
@@ -853,21 +883,26 @@ export function useLabStore() {
       })
       save()
     }
+    return { ok: true }
   }
 
   function moveOutputUp(kind, id) {
+    if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
+    if (!Array.isArray(state[kind])) return { ok: false, message: '数据类型不存在' }
     const list = state[kind].sort(bySortOrder)
     const index = list.findIndex((item) => item.id === id)
-    if (index <= 0) return
+    if (index <= 0) return { ok: false, message: '无法上移' }
     const current = list[index]
     const previous = list[index - 1]
     const order = current.sort_order
     current.sort_order = previous.sort_order
     previous.sort_order = order
     save()
+    return { ok: true }
   }
 
   function updateSiteContent(payload) {
+    if (!canManageSite()) return { ok: false, message: '暂无权限' }
     const nextResearchLines = Array.isArray(payload.researchLines) ? payload.researchLines : state.site.researchLines
     const nextToolCards = Array.isArray(payload.toolCards) ? payload.toolCards : state.site.toolCards
     state.site = {
@@ -887,11 +922,14 @@ export function useLabStore() {
       })),
     }
     save()
+    return { ok: true }
   }
 
   function resetDemoData() {
+    if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
     Object.assign(state, seedData())
     save()
+    return { ok: true }
   }
 
   return {
