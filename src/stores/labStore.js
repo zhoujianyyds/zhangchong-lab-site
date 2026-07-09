@@ -145,7 +145,9 @@ function enforceCoreMemberIdentities(data) {
   if (systemAdmin) {
     systemAdmin.name = 'admin'
     systemAdmin.staff_id = 'admin'
-    systemAdmin.password = ADMIN_PASSWORD
+    if (!systemAdmin.password || systemAdmin.password === '666666' || systemAdmin.password === 'admin') {
+      systemAdmin.password = ADMIN_PASSWORD
+    }
     systemAdmin.role = 'superadmin'
     systemAdmin.grade = ''
     systemAdmin.direction = ''
@@ -344,7 +346,9 @@ function migrateData(data) {
     if (systemAdmin) {
       systemAdmin.name = 'admin'
       systemAdmin.staff_id = 'admin'
-      systemAdmin.password = ADMIN_PASSWORD
+      if (!systemAdmin.password || systemAdmin.password === '666666' || systemAdmin.password === 'admin') {
+        systemAdmin.password = ADMIN_PASSWORD
+      }
       systemAdmin.role = 'superadmin'
       systemAdmin.grade = ''
       systemAdmin.direction = ''
@@ -794,10 +798,13 @@ export function useLabStore() {
       photo: payload.photo || '',
       bio: payload.bio?.trim() || '',
     }
+    if (base.staff_id !== 'admin') {
+      if (base.role === 'superadmin') base.role = base.staff_id === 'zhangchong' ? 'teacher' : 'student'
+      base.permissions = studentPermissions()
+    }
     if (existing) {
-      const wasOrdinaryMember = !isSuperAdmin(existing)
       Object.assign(existing, base)
-      if (isSuperAdmin() && wasOrdinaryMember && payload.newPassword?.trim()) {
+      if (currentMember.value?.staff_id === 'admin' && payload.newPassword?.trim()) {
         existing.password = payload.newPassword.trim()
       }
     } else {

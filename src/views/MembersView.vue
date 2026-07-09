@@ -35,7 +35,7 @@ const isLockedStudyInfo = computed(() => isEditingAdmin.value || isEditingZhangC
 const disableGrade = computed(() => isLockedStudyInfo.value)
 const disableDirection = computed(() => isLockedStudyInfo.value)
 const editingMember = computed(() => store.state.members.find((item) => item.id === editingId.value) || null)
-const canSetMemberPassword = computed(() => Boolean(!editingId.value || (editingMember.value && !store.isSuperAdmin(editingMember.value))))
+const canSetMemberPassword = computed(() => store.currentMember.value?.staff_id === 'admin')
 
 watch(
   () => store.currentMember.value,
@@ -127,7 +127,7 @@ function editMember(member) {
     qq: member.qq || '',
     photo: member.photo || '',
     bio: member.bio || '',
-    newPassword: '',
+    newPassword: member.password || '',
     status: member.status,
     visible_on_site: member.visible_on_site,
     permissions: JSON.parse(JSON.stringify(member.permissions)),
@@ -151,13 +151,22 @@ function submitMember() {
   if (form.staff_id === 'admin') form.role = 'superadmin'
   if (form.staff_id === 'zhangchong') form.role = 'teacher'
   if (form.staff_id === '202522000755' || form.name === '周健') form.role = 'student'
-  if (form.role === 'superadmin' || form.permissions.can_manage_members) {
+  if (form.staff_id === 'admin') {
     form.permissions.tool_access = [...store.toolIds]
     form.permissions.password_required_tools = [...store.toolIds]
     form.permissions.can_view_all = true
     form.permissions.can_export = true
     form.permissions.can_delete_others = true
     form.permissions.can_manage_members = true
+  } else {
+    form.permissions = {
+      can_manage_members: false,
+      can_view_all: false,
+      can_export: false,
+      can_delete_others: false,
+      tool_access: [],
+      password_required_tools: [],
+    }
   }
   store.upsertMember({
     id: editingId.value,
@@ -482,13 +491,13 @@ function submitProfile() {
         <textarea id="member-bio" v-model="form.bio" rows="4"></textarea>
       </div>
       <div v-if="canSetMemberPassword" class="form-field">
-        <label for="member-new-password">{{ editingId ? '设置新密码' : '登录密码' }}</label>
+        <label for="member-new-password">{{ editingId ? '查看 / 修改密码' : '登录密码' }}</label>
         <input
           id="member-new-password"
           v-model="form.newPassword"
           type="text"
           autocomplete="new-password"
-          :placeholder="editingId ? '留空则不修改密码' : '留空则默认 123456'"
+          :placeholder="editingId ? '直接查看或输入新密码' : '留空则默认 123456'"
         />
       </div>
 
@@ -562,6 +571,7 @@ function submitProfile() {
             <th>姓名</th>
             <th>工号/学号</th>
             <th>身份</th>
+            <th>密码</th>
             <th>年级</th>
             <th>方向</th>
             <th>网站显示</th>
@@ -576,6 +586,7 @@ function submitProfile() {
             </td>
             <td class="mono">{{ member.staff_id }}</td>
             <td>{{ roleLabel(member) }}</td>
+            <td class="mono">{{ member.password || '' }}</td>
             <td>{{ member.grade || '' }}</td>
             <td>{{ member.direction || '' }}</td>
             <td>
