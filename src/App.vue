@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
-import { LogIn, LogOut, Moon, RefreshCw, Sun, User, UserPlus } from 'lucide-vue-next'
+import { Eye, EyeOff, LogIn, LogOut, Moon, RefreshCw, Sun, User, UserPlus } from 'lucide-vue-next'
 import { useLabStore } from './stores/labStore'
 
 const store = useLabStore()
@@ -21,9 +21,12 @@ const navItems = computed(() =>
 const authMenuOpen = ref(false)
 const userMenuOpen = ref(false)
 const passwordModalOpen = ref(false)
-const passwordForm = reactive({ oldPassword: '', newPassword: '', captcha: '' })
+const passwordForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '', captcha: '' })
 const passwordMessage = ref('')
 const passwordCaptchaCode = ref(createCaptcha())
+const showOldPassword = ref(false)
+const showNewPassword = ref(false)
+const showConfirmPassword = ref(false)
 
 function createCaptcha() {
   return String(Math.floor(1000 + Math.random() * 9000))
@@ -36,6 +39,11 @@ function refreshPasswordCaptcha() {
 
 async function submitPassword() {
   passwordMessage.value = ''
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    passwordMessage.value = '两次新密码不一致'
+    refreshPasswordCaptcha()
+    return
+  }
   if (passwordForm.captcha !== passwordCaptchaCode.value) {
     passwordMessage.value = '验证码不正确'
     refreshPasswordCaptcha()
@@ -46,6 +54,7 @@ async function submitPassword() {
   if (result.ok) {
     passwordForm.oldPassword = ''
     passwordForm.newPassword = ''
+    passwordForm.confirmPassword = ''
     refreshPasswordCaptcha()
     passwordModalOpen.value = false
     store.logout()
@@ -73,8 +82,12 @@ function closePasswordModal() {
   passwordModalOpen.value = false
   passwordForm.oldPassword = ''
   passwordForm.newPassword = ''
+  passwordForm.confirmPassword = ''
   passwordForm.captcha = ''
   passwordMessage.value = ''
+  showOldPassword.value = false
+  showNewPassword.value = false
+  showConfirmPassword.value = false
   refreshPasswordCaptcha()
 }
 
@@ -195,11 +208,65 @@ onMounted(() => {
         <form class="user-password-form" @submit.prevent="submitPassword">
           <label>
             <span>旧密码</span>
-            <input v-model="passwordForm.oldPassword" type="password" autocomplete="current-password" />
+            <div class="password-input-row">
+              <input
+                v-model="passwordForm.oldPassword"
+                :type="showOldPassword ? 'text' : 'password'"
+                autocomplete="current-password"
+              />
+              <button
+                class="password-eye-btn"
+                type="button"
+                :title="showOldPassword ? '隐藏密码' : '显示密码'"
+                @mousedown.prevent
+                @click.prevent.stop="showOldPassword = !showOldPassword"
+              >
+                <EyeOff v-if="showOldPassword" :size="16" />
+                <Eye v-else :size="16" />
+              </button>
+            </div>
           </label>
           <label>
             <span>新密码</span>
-            <input v-model="passwordForm.newPassword" type="password" minlength="4" autocomplete="new-password" />
+            <div class="password-input-row">
+              <input
+                v-model="passwordForm.newPassword"
+                :type="showNewPassword ? 'text' : 'password'"
+                minlength="4"
+                autocomplete="new-password"
+              />
+              <button
+                class="password-eye-btn"
+                type="button"
+                :title="showNewPassword ? '隐藏密码' : '显示密码'"
+                @mousedown.prevent
+                @click.prevent.stop="showNewPassword = !showNewPassword"
+              >
+                <EyeOff v-if="showNewPassword" :size="16" />
+                <Eye v-else :size="16" />
+              </button>
+            </div>
+          </label>
+          <label>
+            <span>确认新密码</span>
+            <div class="password-input-row">
+              <input
+                v-model="passwordForm.confirmPassword"
+                :type="showConfirmPassword ? 'text' : 'password'"
+                minlength="4"
+                autocomplete="new-password"
+              />
+              <button
+                class="password-eye-btn"
+                type="button"
+                :title="showConfirmPassword ? '隐藏密码' : '显示密码'"
+                @mousedown.prevent
+                @click.prevent.stop="showConfirmPassword = !showConfirmPassword"
+              >
+                <EyeOff v-if="showConfirmPassword" :size="16" />
+                <Eye v-else :size="16" />
+              </button>
+            </div>
           </label>
           <label>
             <span>四位验证码</span>
