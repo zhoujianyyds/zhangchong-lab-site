@@ -465,16 +465,8 @@ img {
 }
 
 .hero-visual::before {
-  position: absolute;
-  inset: 9% -9% auto auto;
-  z-index: -1;
-  width: 72%;
-  height: 54%;
-  border: 1px solid var(--border-strong);
-  background:
-    linear-gradient(135deg, rgba(0, 168, 143, 0.12), rgba(37, 99, 235, 0.08));
-  transform: rotate(4deg);
-  content: '';
+  display: none;
+  content: none;
 }
 
 .hero-visual img {
