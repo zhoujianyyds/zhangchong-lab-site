@@ -215,17 +215,6 @@ function itemMeta(item) {
 
       <div class="form-row">
         <div class="form-field">
-          <label for="hero-primary-button">首屏主按钮</label>
-          <input id="hero-primary-button" v-model="siteForm.heroPrimaryButton" type="text" />
-        </div>
-        <div class="form-field">
-          <label for="hero-secondary-button">首屏副按钮</label>
-          <input id="hero-secondary-button" v-model="siteForm.heroSecondaryButton" type="text" />
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-field">
           <label for="visual-label">视觉标签</label>
           <input id="visual-label" v-model="siteForm.visualLabel" type="text" />
         </div>

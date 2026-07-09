@@ -157,11 +157,11 @@ function editAward(item, field, label) {
         </p>
         <div class="hero-actions">
           <a class="button button-dark" href="#outputs">
-            <span :class="editableClass()" @dblclick.prevent="editSiteField('heroPrimaryButton', '首屏按钮')">{{ store.state.site.heroPrimaryButton }}</span>
+            查看成果
             <ArrowUpRight :size="17" />
           </a>
           <a class="button button-light" href="#contact">
-            <span :class="editableClass()" @dblclick.prevent="editSiteField('heroSecondaryButton', '首屏按钮')">{{ store.state.site.heroSecondaryButton }}</span>
+            联系加入
             <Mail :size="17" />
           </a>
         </div>
@@ -311,7 +311,7 @@ function editAward(item, field, label) {
         <h2 :class="editableClass()" @dblclick="editSiteField('contactSectionTitle', '联系标题')">{{ store.state.site.contactSectionTitle }}</h2>
         <p :class="editableClass()" @dblclick="editSiteField('contactText', '联系说明')">{{ store.state.site.contactText }}</p>
       </div>
-      <a class="button button-dark" :href="contactHref" :class="editableClass()" @dblclick.prevent="editSiteField('contactEmail', '联系邮箱')">
+      <a class="button button-dark" :href="contactHref">
         {{ store.state.site.contactEmail }}
         <Mail :size="17" />
       </a>
