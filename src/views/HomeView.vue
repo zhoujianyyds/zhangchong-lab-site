@@ -1,0 +1,296 @@
+<script setup>
+import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
+import {
+  ArrowUpRight,
+  Bot,
+  Cpu,
+  DatabaseZap,
+  FileText,
+  GraduationCap,
+  Mail,
+  Network,
+  UsersRound,
+} from 'lucide-vue-next'
+import heroImage from '../assets/hero.png'
+import { useLabStore } from '../stores/labStore'
+
+const store = useLabStore()
+
+const iconMap = {
+  network: Network,
+  cpu: Cpu,
+  bot: Bot,
+}
+
+const researchLines = computed(() =>
+  store.state.site.researchLines.map((line) => ({
+    ...line,
+    icon: iconMap[line.icon] || Network,
+  })),
+)
+
+const tools = [
+  { title: '成员管理', text: '管理实验室成员信息与权限。', icon: UsersRound, to: '/tools/members' },
+  { title: '成果管理', text: '管理论文、专利、科研项目和获奖信息。', icon: FileText, to: '/tools/outputs' },
+  { title: '站点内容', text: '修改首页标题、研究方向、联系邮箱和各区说明。', icon: DatabaseZap, to: '/tools/outputs' },
+]
+
+const teachers = computed(() => store.siteMembers.value.filter((member) => member.role === 'teacher'))
+const students = computed(() => store.siteMembers.value.filter((member) => member.role === 'student'))
+const gradeGroups = computed(() => [
+  {
+    title: '研二研究成员',
+    members: students.value.filter((member) => member.grade === '研二'),
+  },
+  {
+    title: '研一空位',
+    members: students.value.filter((member) => member.grade === '研一'),
+  },
+])
+const outputCount = computed(
+  () => store.state.publications.length + store.state.projects.length + store.state.awards.length,
+)
+const contactHref = computed(() => `mailto:${store.state.site.contactEmail}`)
+
+function editableClass() {
+  return { editable: store.isSuperAdmin() }
+}
+
+function editSiteField(field, label) {
+  if (!store.isSuperAdmin()) return
+  const next = window.prompt(`修改${label}`, store.state.site[field] || '')
+  if (next === null) return
+  store.updateSiteContent({
+    ...store.state.site,
+    [field]: next,
+    researchLines: store.state.site.researchLines,
+  })
+}
+
+function editResearchLine(index, field, label) {
+  if (!store.isSuperAdmin()) return
+  const lines = JSON.parse(JSON.stringify(store.state.site.researchLines))
+  const next = window.prompt(`修改${label}`, lines[index][field] || '')
+  if (next === null) return
+  lines[index][field] = next
+  store.updateSiteContent({
+    ...store.state.site,
+    researchLines: lines,
+  })
+}
+
+function editMemberField(member, field, label) {
+  if (!store.isSuperAdmin()) return
+  const next = window.prompt(`修改${label}`, member[field] || '')
+  if (next === null) return
+  store.upsertMember({
+    ...JSON.parse(JSON.stringify(member)),
+    [field]: next,
+  })
+}
+
+function editPublication(item, field, label) {
+  if (!store.isSuperAdmin()) return
+  const next = window.prompt(`修改${label}`, item[field] || '')
+  if (next === null) return
+  store.upsertOutput('publications', {
+    ...JSON.parse(JSON.stringify(item)),
+    [field]: field === 'pub_year' ? Number(next) || '' : next,
+  })
+}
+
+function editProject(item, field, label) {
+  if (!store.isSuperAdmin()) return
+  const next = window.prompt(`修改${label}`, item[field] || '')
+  if (next === null) return
+  store.upsertOutput('projects', {
+    ...JSON.parse(JSON.stringify(item)),
+    [field]: next,
+  })
+}
+
+function editAward(item, field, label) {
+  if (!store.isSuperAdmin()) return
+  const next = window.prompt(`修改${label}`, item[field] || '')
+  if (next === null) return
+  store.upsertOutput('awards', {
+    ...JSON.parse(JSON.stringify(item)),
+    [field]: next,
+  })
+}
+</script>
+
+<template>
+  <main id="top">
+    <section class="hero section-frame">
+      <div class="hero-copy">
+        <h1 :class="editableClass()" @dblclick="editSiteField('heroTitle', '首页标题')">{{ store.state.site.heroTitle }}</h1>
+        <p class="hero-lede" :class="editableClass()" @dblclick="editSiteField('heroLede', '首页介绍')">
+          {{ store.state.site.heroLede }}
+        </p>
+        <div class="hero-actions">
+          <a class="button button-dark" href="#outputs">
+            查看成果
+            <ArrowUpRight :size="17" />
+          </a>
+          <a class="button button-light" href="#contact">
+            联系加入
+            <Mail :size="17" />
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-label="研究系统视觉">
+        <img :src="heroImage" alt="研究系统抽象视觉" />
+        <div class="visual-caption">
+          <span :class="editableClass()" @dblclick="editSiteField('visualLabel', '视觉标签')">{{ store.state.site.visualLabel }}</span>
+          <strong :class="editableClass()" @dblclick="editSiteField('visualStack', '视觉说明')">{{ store.state.site.visualStack }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats-strip" aria-label="课题组概览">
+      <div>
+        <strong>{{ researchLines.length }}</strong>
+        <span>研究方向</span>
+      </div>
+      <div>
+        <strong>{{ students.length }}</strong>
+        <span>研究成员</span>
+      </div>
+      <div>
+        <strong>{{ outputCount }}</strong>
+        <span>论文项目获奖</span>
+      </div>
+    </section>
+
+    <section id="research" class="section">
+      <div class="section-title title-center">
+        <span>研究方向</span>
+        <h2>Research</h2>
+      </div>
+
+      <div class="research-grid">
+        <article v-for="(line, index) in researchLines" :key="line.title" class="research-card" :class="line.tone">
+          <div class="card-index">{{ String(index + 1).padStart(2, '0') }}</div>
+          <component :is="line.icon" :size="30" />
+          <p :class="editableClass()" @dblclick="editResearchLine(index, 'tag', '方向标签')">{{ line.tag }}</p>
+          <h3 :class="editableClass()" @dblclick="editResearchLine(index, 'title', '方向名称')">{{ line.title }}</h3>
+          <span :class="editableClass()" @dblclick="editResearchLine(index, 'text', '方向说明')">{{ line.text }}</span>
+        </article>
+      </div>
+    </section>
+
+    <section id="people" class="section people-section">
+      <div class="section-title compact title-center">
+        <span>团队成员</span>
+        <h2>People</h2>
+        <p :class="editableClass()" @dblclick="editSiteField('peopleIntro', '成员区说明')">{{ store.state.site.peopleIntro }}</p>
+      </div>
+
+      <article class="pi-panel">
+        <div class="pi-avatar">
+          <img v-if="teachers[0]?.photo" :src="teachers[0].photo" alt="导师照片" />
+          <GraduationCap v-else :size="30" />
+        </div>
+        <div>
+          <span>导师</span>
+          <h3 :class="editableClass()" @dblclick="teachers[0] && editMemberField(teachers[0], 'name', '导师姓名')">{{ teachers[0]?.name || '负责人姓名' }}</h3>
+          <p :class="editableClass()" @dblclick="editSiteField('piIntro', '导师简介')">{{ store.state.site.piIntro }}</p>
+        </div>
+      </article>
+
+      <div class="member-groups">
+        <article v-for="group in gradeGroups" :key="group.title" class="member-group">
+          <h3>{{ group.title }}</h3>
+          <div v-for="member in group.members" :key="member.id" class="member-row">
+            <div class="member-row-main">
+              <div class="site-member-avatar">
+                <img v-if="member.photo" :src="member.photo" alt="成员照片" />
+                <span v-else>{{ member.name?.slice(0, 1) || '人' }}</span>
+              </div>
+              <div class="member-row-copy">
+                <div class="member-row-head">
+                  <strong :class="editableClass()" @dblclick="editMemberField(member, 'name', '成员姓名')">{{ member.name }}</strong>
+                  <span :class="editableClass()" @dblclick="editMemberField(member, 'grade', '成员年级')">{{ member.grade || '研究生' }}</span>
+                </div>
+                <p :class="editableClass()" @dblclick="editMemberField(member, 'direction', '研究方向')">{{ member.direction }}</p>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="outputs" class="section outputs-section">
+      <div class="section-title title-center">
+        <span>代表成果</span>
+        <h2>Outputs</h2>
+      </div>
+
+      <div class="output-list">
+        <article v-for="item in store.sortedPublications.value" :key="item.id" class="output-item">
+          <span>{{ item.pub_type }}</span>
+          <div>
+            <h3 :class="editableClass()" @dblclick="editPublication(item, 'title', '论文标题')">{{ item.title }}</h3>
+            <p>
+              <span :class="editableClass()" @dblclick="editPublication(item, 'journal', '期刊/会议')">{{ item.journal }}</span>
+              ·
+              <span :class="editableClass()" @dblclick="editPublication(item, 'pub_year', '年份')">{{ item.pub_year || '待录入' }}</span>
+            </p>
+            <small :class="editableClass()" @dblclick="editPublication(item, 'authors', '作者')">{{ item.authors }}</small>
+          </div>
+        </article>
+        <article v-for="item in store.sortedProjects.value" :key="item.id" class="output-item">
+          <span>项目</span>
+          <div>
+            <h3 :class="editableClass()" @dblclick="editProject(item, 'title', '项目标题')">{{ item.title }}</h3>
+            <p :class="editableClass()" @dblclick="editProject(item, 'category', '项目类别')">{{ item.category }}</p>
+            <small>科研项目可在成果管理中维护排序。</small>
+          </div>
+        </article>
+        <article v-for="item in store.sortedAwards.value" :key="item.id" class="output-item">
+          <span>获奖</span>
+          <div>
+            <h3 :class="editableClass()" @dblclick="editAward(item, 'title', '获奖标题')">{{ item.title }}</h3>
+            <p :class="editableClass()" @dblclick="editAward(item, 'winner', '获奖人')">获奖人：{{ item.winner || '待录入' }}</p>
+            <small>竞赛与荣誉展示。</small>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section v-if="store.isSuperAdmin()" id="tools" class="section">
+      <div class="section-title compact title-center">
+        <span>组内工具</span>
+        <h2>Tools</h2>
+        <p :class="editableClass()" @dblclick="editSiteField('toolsIntro', '工具区说明')">{{ store.state.site.toolsIntro }}</p>
+      </div>
+
+      <div class="tool-grid">
+        <RouterLink v-for="tool in tools" :key="tool.title" class="tool-card tool-card-anchor" :to="tool.to">
+          <component :is="tool.icon" :size="26" />
+          <h3>{{ tool.title }}</h3>
+          <p>{{ tool.text }}</p>
+        </RouterLink>
+      </div>
+    </section>
+
+    <section id="contact" class="contact-band contact-center">
+      <div>
+        <p class="eyebrow">联系</p>
+        <h2>Contact</h2>
+        <p :class="editableClass()" @dblclick="editSiteField('contactText', '联系说明')">{{ store.state.site.contactText }}</p>
+      </div>
+      <a class="button button-dark" :href="contactHref" :class="editableClass()" @dblclick.prevent="editSiteField('contactEmail', '联系邮箱')">
+        {{ store.state.site.contactEmail }}
+        <Mail :size="17" />
+      </a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span :class="editableClass()" @dblclick="editSiteField('groupName', '网站名称')">© 2026 {{ store.state.site.groupName }}</span>
+  </footer>
+</template>
