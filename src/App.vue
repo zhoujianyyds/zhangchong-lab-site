@@ -59,6 +59,16 @@ function openPasswordModal() {
   passwordModalOpen.value = true
 }
 
+function toggleAuthMenu() {
+  authMenuOpen.value = !authMenuOpen.value
+  userMenuOpen.value = false
+}
+
+function toggleUserMenu() {
+  userMenuOpen.value = !userMenuOpen.value
+  authMenuOpen.value = false
+}
+
 function closePasswordModal() {
   passwordModalOpen.value = false
   passwordForm.oldPassword = ''
@@ -112,7 +122,7 @@ onMounted(() => {
           @mouseenter="authMenuOpen = true"
           @mouseleave="authMenuOpen = false"
         >
-          <button class="icon-button user-menu-trigger" type="button" title="账号">
+          <button class="icon-button user-menu-trigger" type="button" title="账号" @click.stop="toggleAuthMenu">
             <User :size="17" />
           </button>
           <div v-if="authMenuOpen" class="user-menu-panel auth-menu-panel">
@@ -132,8 +142,9 @@ onMounted(() => {
           @mouseenter="userMenuOpen = true"
           @mouseleave="userMenuOpen = false"
         >
-          <button class="login-chip user-menu-trigger" type="button">
-            {{ store.currentMember.value.name }}
+          <button class="login-chip user-menu-trigger" type="button" @click.stop="toggleUserMenu">
+            <User :size="15" />
+            <span class="user-name">{{ store.currentMember.value.name }}</span>
           </button>
           <div v-if="userMenuOpen" class="user-menu-panel">
             <RouterLink

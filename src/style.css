@@ -2247,7 +2247,9 @@ input[type='password']::-webkit-credentials-auto-fill-button {
   }
 
   .user-menu-panel {
-    right: 0;
+    position: fixed;
+    top: 52px;
+    right: 10px;
     width: min(260px, calc(100vw - 20px));
     max-width: calc(100vw - 20px);
     padding: 12px;
@@ -2255,6 +2257,19 @@ input[type='password']::-webkit-credentials-auto-fill-button {
 
   .auth-menu-panel {
     width: 150px;
+  }
+
+  .topbar-utils .login-chip {
+    display: inline-flex;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    min-height: 38px;
+    padding: 0;
+  }
+
+  .topbar-utils .login-chip .user-name {
+    display: none;
   }
 
   .section-frame,
