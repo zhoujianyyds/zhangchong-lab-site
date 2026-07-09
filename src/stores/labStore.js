@@ -145,9 +145,7 @@ function enforceCoreMemberIdentities(data) {
   if (systemAdmin) {
     systemAdmin.name = 'admin'
     systemAdmin.staff_id = 'admin'
-    if (!systemAdmin.password || systemAdmin.password === '666666' || systemAdmin.password === 'admin') {
-      systemAdmin.password = ADMIN_PASSWORD
-    }
+    if (!systemAdmin.password) systemAdmin.password = ADMIN_PASSWORD
     systemAdmin.role = 'superadmin'
     systemAdmin.grade = ''
     systemAdmin.direction = ''
@@ -335,8 +333,8 @@ function migrateData(data) {
     if (!Array.isArray(data[key])) data[key] = seeded[key]
   }
   for (const member of data.members) {
-    const isAdminMember = member.role === 'superadmin' || member.permissions?.can_manage_members
-    if (!member.password) member.password = isAdminMember ? '666666' : '123456'
+    const isAdminMember = member.staff_id === 'admin' || member.role === 'superadmin' || member.permissions?.can_manage_members
+    if (!member.password) member.password = isAdminMember ? ADMIN_PASSWORD : '123456'
     normalizeMemberProfile(member)
     normalizeStudyInfo(member)
   }
@@ -346,9 +344,7 @@ function migrateData(data) {
     if (systemAdmin) {
       systemAdmin.name = 'admin'
       systemAdmin.staff_id = 'admin'
-      if (!systemAdmin.password || systemAdmin.password === '666666' || systemAdmin.password === 'admin') {
-        systemAdmin.password = ADMIN_PASSWORD
-      }
+      if (!systemAdmin.password) systemAdmin.password = ADMIN_PASSWORD
       systemAdmin.role = 'superadmin'
       systemAdmin.grade = ''
       systemAdmin.direction = ''
@@ -509,14 +505,32 @@ const cloud = reactive({
 
 let cloudSaveTimer = 0
 
-function save() {
+function writeLocalState() {
   state.meta = {
     ...(state.meta || {}),
     dataVersion: DATA_VERSION,
     updatedAt: new Date().toISOString(),
   }
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+}
+
+function save() {
+  writeLocalState()
   queueCloudSave()
+}
+
+async function saveImmediately() {
+  writeLocalState()
+  if (!sharedStateEnabled) return { ok: true }
+  window.clearTimeout(cloudSaveTimer)
+  const result = await saveSharedState(cloneState())
+  if (result.ok) {
+    cloud.error = ''
+    cloud.lastSavedAt = new Date().toISOString()
+  } else {
+    cloud.error = result.message
+  }
+  return result
 }
 
 function cloneState() {
@@ -538,7 +552,7 @@ function stateUpdatedTime(data, fallback = '') {
 }
 
 function queueCloudSave() {
-  if (!sharedStateEnabled || cloud.loading) return
+  if (!sharedStateEnabled) return
   window.clearTimeout(cloudSaveTimer)
   cloudSaveTimer = window.setTimeout(async () => {
     const result = await saveSharedState(cloneState())
@@ -619,12 +633,12 @@ export function useLabStore() {
     setSession('')
   }
 
-  function changePassword(oldPassword, newPassword) {
+  async function changePassword(oldPassword, newPassword) {
     if (!currentMember.value) return { ok: false, message: '请先登录' }
     if (currentMember.value.password !== oldPassword) return { ok: false, message: '旧密码不正确' }
     currentMember.value.password = newPassword
-    save()
-    return { ok: true }
+    const result = await saveImmediately()
+    return result.ok ? { ok: true } : { ok: false, message: result.message || '密码保存失败' }
   }
 
   function registerMember(payload) {
@@ -783,7 +797,7 @@ export function useLabStore() {
     save()
   }
 
-  function upsertMember(payload) {
+  async function upsertMember(payload) {
     if (!currentMember.value) return { ok: false, message: '请先登录' }
     const existing = state.members.find((item) => item.id === payload.id)
     const isAdminEditing = isSuperAdmin()
@@ -800,8 +814,8 @@ export function useLabStore() {
       existing.qq = payload.qq?.trim() || ''
       existing.photo = payload.photo || ''
       existing.bio = payload.bio?.trim() || ''
-      save()
-      return { ok: true }
+      const result = await saveImmediately()
+      return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
     }
     const emptyStudyInfo = shouldKeepStudyInfoEmpty(payload)
     const base = {
@@ -824,10 +838,12 @@ export function useLabStore() {
       if (base.role === 'superadmin') base.role = base.staff_id === 'zhangchong' ? 'teacher' : 'student'
       base.permissions = studentPermissions()
     }
+    let passwordTouched = false
     if (existing) {
       Object.assign(existing, base)
       if (currentMember.value?.staff_id === 'admin' && payload.newPassword?.trim()) {
         existing.password = payload.newPassword.trim()
+        passwordTouched = true
       }
     } else {
       state.members.push({
@@ -836,9 +852,10 @@ export function useLabStore() {
         ...memberProfileDefaults(),
         ...base,
       })
+      passwordTouched = true
     }
-    save()
-    return { ok: true }
+    const result = passwordTouched ? await saveImmediately() : (save(), { ok: true })
+    return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
   }
 
   function removeMember(id) {

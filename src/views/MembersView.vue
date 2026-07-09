@@ -141,7 +141,7 @@ function editMember(member) {
   if (member.staff_id === '202522000755' || member.name === '周健') form.role = 'student'
 }
 
-function submitMember() {
+async function submitMember() {
   if (!form.name.trim() || !form.staff_id.trim()) return
   const isEditing = Boolean(editingId.value)
   if (isLockedStudyInfo.value) {
@@ -168,22 +168,30 @@ function submitMember() {
       password_required_tools: [],
     }
   }
-  store.upsertMember({
+  const result = await store.upsertMember({
     id: editingId.value,
     ...JSON.parse(JSON.stringify(form)),
   })
+  if (!result.ok) {
+    window.alert(result.message || '保存失败')
+    return
+  }
   resetForm()
   memberFormOpen.value = false
   feedback.value = isEditing ? '修改成功' : '添加成功'
   window.alert(feedback.value)
 }
 
-function toggleMemberVisibility(member) {
+async function toggleMemberVisibility(member) {
   if (member.staff_id === 'admin') return
-  store.upsertMember({
+  const result = await store.upsertMember({
     ...JSON.parse(JSON.stringify(member)),
     visible_on_site: !member.visible_on_site,
   })
+  if (!result.ok) {
+    window.alert(result.message || '保存失败')
+    return
+  }
   feedback.value = '修改成功'
   window.alert(feedback.value)
 }
@@ -237,10 +245,10 @@ function rejectRegistration(record) {
   window.alert('已拒绝注册申请')
 }
 
-function submitProfile() {
+async function submitProfile() {
   const member = store.currentMember.value
   if (!member || store.isSuperAdmin()) return
-  store.upsertMember({
+  const result = await store.upsertMember({
     ...JSON.parse(JSON.stringify(member)),
     name: profileForm.name.trim(),
     grade: profileForm.grade,
@@ -252,6 +260,10 @@ function submitProfile() {
     photo: profileForm.photo,
     bio: profileForm.bio,
   })
+  if (!result.ok) {
+    window.alert(result.message || '保存失败')
+    return
+  }
   profileFeedback.value = '修改成功'
   window.alert(profileFeedback.value)
 }

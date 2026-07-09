@@ -34,14 +34,14 @@ function refreshPasswordCaptcha() {
   passwordForm.captcha = ''
 }
 
-function submitPassword() {
+async function submitPassword() {
   passwordMessage.value = ''
   if (passwordForm.captcha !== passwordCaptchaCode.value) {
     passwordMessage.value = '验证码不正确'
     refreshPasswordCaptcha()
     return
   }
-  const result = store.changePassword(passwordForm.oldPassword, passwordForm.newPassword)
+  const result = await store.changePassword(passwordForm.oldPassword, passwordForm.newPassword)
   passwordMessage.value = result.ok ? '密码已更新' : result.message
   if (result.ok) {
     passwordForm.oldPassword = ''
