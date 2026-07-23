@@ -737,13 +737,18 @@ img {
 
 .pi-avatar {
   display: grid;
-  width: 58px;
-  height: 58px;
+  width: 116px;
+  height: 116px;
   place-items: center;
-  margin-bottom: 28px;
-  border: 1px solid var(--border-strong);
-  background: rgba(85, 240, 207, 0.08);
+  margin-bottom: 34px;
+  border: 2px solid color-mix(in srgb, var(--cyan) 48%, var(--inverse-text));
+  background:
+    linear-gradient(135deg, rgba(85, 240, 207, 0.18), rgba(31, 111, 235, 0.08)),
+    rgba(85, 240, 207, 0.08);
   color: var(--gold);
+  box-shadow:
+    0 0 0 8px rgba(85, 240, 207, 0.06),
+    0 18px 42px rgba(0, 0, 0, 0.18);
   overflow: hidden;
 }
 
@@ -2515,6 +2520,8 @@ button.editable,
   }
 
   .pi-avatar {
+    width: 88px;
+    height: 88px;
     margin-bottom: 18px;
   }
 

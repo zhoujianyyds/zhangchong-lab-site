@@ -244,7 +244,6 @@ function editAward(item, field, label) {
               <div class="member-row-copy">
                 <div class="member-row-head">
                   <strong :class="editableClass()" @dblclick="editMemberField(member, 'name', '成员姓名')">{{ member.name }}</strong>
-                  <span :class="editableClass()" @dblclick="editMemberField(member, 'grade', '成员年级')">{{ member.grade || '研究生' }}</span>
                 </div>
                 <p :class="editableClass()" @dblclick="editMemberField(member, 'direction', '研究方向')">{{ member.direction }}</p>
               </div>
