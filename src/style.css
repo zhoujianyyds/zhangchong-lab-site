@@ -709,14 +709,16 @@ img {
 .pi-panel {
   display: grid;
   align-content: end;
-  min-height: 280px;
-  padding: 24px;
+  position: relative;
+  min-height: 520px;
+  padding: 0;
   border: 1px solid var(--border-weak);
   color: var(--inverse-text);
   background:
     linear-gradient(135deg, rgba(85, 240, 207, 0.12), transparent 46%),
     var(--dark);
   box-shadow: inset 0 0 28px rgba(85, 240, 207, 0.07);
+  overflow: hidden;
   transition:
     box-shadow 0.24s ease,
     transform 0.24s ease;
@@ -737,29 +739,46 @@ img {
 
 .pi-avatar {
   display: grid;
-  width: 116px;
-  height: 116px;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
   place-items: center;
-  margin-bottom: 34px;
-  border: 2px solid color-mix(in srgb, var(--cyan) 48%, var(--inverse-text));
-  background:
-    linear-gradient(135deg, rgba(85, 240, 207, 0.18), rgba(31, 111, 235, 0.08)),
-    rgba(85, 240, 207, 0.08);
+  margin: 0;
+  border: 0;
+  background: rgba(85, 240, 207, 0.08);
   color: var(--gold);
-  box-shadow:
-    0 0 0 8px rgba(85, 240, 207, 0.06),
-    0 18px 42px rgba(0, 0, 0, 0.18);
+  box-shadow: none;
   overflow: hidden;
+}
+
+.pi-avatar::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(4, 33, 47, 0.1) 0%, rgba(4, 33, 47, 0.16) 44%, rgba(4, 33, 47, 0.92) 100%),
+    linear-gradient(90deg, rgba(4, 33, 47, 0.58) 0%, transparent 46%);
+  content: '';
 }
 
 .pi-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 18%;
 }
 
 .pi-avatar svg {
   margin: 0;
+}
+
+.pi-copy {
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  padding: 34px;
+  background: linear-gradient(180deg, transparent, rgba(4, 33, 47, 0.68));
 }
 
 .pi-panel span {
@@ -2515,14 +2534,15 @@ button.editable,
   }
 
   .pi-panel {
-    min-height: 0;
-    padding: 18px;
+    min-height: 420px;
   }
 
   .pi-avatar {
-    width: 88px;
-    height: 88px;
-    margin-bottom: 18px;
+    margin-bottom: 0;
+  }
+
+  .pi-copy {
+    padding: 22px;
   }
 
   .pi-panel h3 {

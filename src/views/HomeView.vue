@@ -225,7 +225,7 @@ function editAward(item, field, label) {
           <img v-if="teachers[0]?.photo" :src="teachers[0].photo" alt="导师照片" />
           <GraduationCap v-else :size="30" />
         </div>
-        <div>
+        <div class="pi-copy">
           <span :class="editableClass()" @dblclick="editSiteField('piLabel', '导师标签')">{{ store.state.site.piLabel }}</span>
           <h3 :class="editableClass()" @dblclick="teachers[0] && editMemberField(teachers[0], 'name', '导师姓名')">{{ teachers[0]?.name || '负责人姓名' }}</h3>
           <p :class="editableClass()" @dblclick="editSiteField('piIntro', '导师简介')">{{ store.state.site.piIntro }}</p>
