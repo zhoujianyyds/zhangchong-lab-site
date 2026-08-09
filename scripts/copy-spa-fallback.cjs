@@ -5,6 +5,7 @@ const indexPath = join(__dirname, '..', 'dist', 'index.html')
 const fallbackPath = join(__dirname, '..', 'dist', '404.html')
 const netlifyRedirectsPath = join(__dirname, '..', 'dist', '_redirects')
 const isCloudflarePages = Boolean(process.env.CF_PAGES)
+const isNetlify = Boolean(process.env.NETLIFY)
 
 if (isCloudflarePages) {
   rmSync(fallbackPath, { force: true })
@@ -14,5 +15,9 @@ if (isCloudflarePages) {
 
 if (existsSync(indexPath)) {
   copyFileSync(indexPath, fallbackPath)
-  writeFileSync(netlifyRedirectsPath, '/* /index.html 200\n')
+  if (isNetlify) {
+    writeFileSync(netlifyRedirectsPath, '/* /index.html 200\n')
+  } else {
+    rmSync(netlifyRedirectsPath, { force: true })
+  }
 }
