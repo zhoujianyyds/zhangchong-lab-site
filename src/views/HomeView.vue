@@ -5,7 +5,6 @@ import {
   ArrowUpRight,
   Bot,
   Cpu,
-  DatabaseZap,
   FileText,
   GraduationCap,
   Mail,
@@ -36,19 +35,17 @@ const researchLines = computed(() =>
 const toolIconMap = {
   members: UsersRound,
   outputs: FileText,
-  site: DatabaseZap,
 }
 
 const toolLinkMap = {
   members: '/tools/members',
   outputs: '/tools/outputs',
-  site: '/tools/outputs',
 }
 
 const tools = computed(() =>
-  store.state.site.toolCards.map((tool) => ({
+  store.state.site.toolCards.filter((tool) => tool.key !== 'site').map((tool) => ({
     ...tool,
-    icon: toolIconMap[tool.key] || DatabaseZap,
+    icon: toolIconMap[tool.key] || FileText,
     to: toolLinkMap[tool.key] || '/tools/outputs',
   })),
 )
@@ -169,10 +166,21 @@ function openPaperLink() {
   window.open(link, '_blank', 'noopener,noreferrer')
 }
 
-function downloadAwardImage() {
-  const item = selectedOutput.value
+function openPublication(item) {
+  const link = item?.paper_link?.trim()
+  if (link) {
+    window.open(link, '_blank', 'noopener,noreferrer')
+    return
+  }
+  openOutput(item, 'publication')
+}
+
+function downloadAwardImage(item = selectedOutput.value) {
   const source = item?.image_data || item?.image_url
-  if (!source) return
+  if (!source) {
+    window.alert('该获奖成果还没有上传图片')
+    return
+  }
   const link = document.createElement('a')
   link.href = source
   link.download = item.image_name || 'award-image'
@@ -297,8 +305,8 @@ function downloadAwardImage() {
           class="output-item output-item-interactive"
           tabindex="0"
           role="button"
-          @click="openOutput(item, 'publication')"
-          @keydown.enter.prevent="openOutput(item, 'publication')"
+          @click="openPublication(item)"
+          @keydown.enter.prevent="openPublication(item)"
         >
           <span>{{ item.pub_type }}</span>
           <div>
@@ -317,8 +325,8 @@ function downloadAwardImage() {
           class="output-item output-item-interactive"
           tabindex="0"
           role="button"
-          @click="openOutput(item, 'award')"
-          @keydown.enter.prevent="openOutput(item, 'award')"
+          @click="downloadAwardImage(item)"
+          @keydown.enter.prevent="downloadAwardImage(item)"
         >
           <span>{{ store.state.site.awardTypeLabel }}</span>
           <div>

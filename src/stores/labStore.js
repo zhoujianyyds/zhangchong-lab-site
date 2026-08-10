@@ -55,7 +55,6 @@ function defaultSiteContent() {
     toolCards: [
       { key: 'members', title: '成员管理', text: '管理实验室成员信息与权限。' },
       { key: 'outputs', title: '成果管理', text: '管理论文、专利、科研项目和获奖信息。' },
-      { key: 'site', title: '站点内容', text: '修改首页标题、研究方向、联系邮箱和各区说明。' },
     ],
     contactSectionLabel: '联系',
     contactSectionTitle: 'Contact',
@@ -388,6 +387,10 @@ function migrateData(data) {
     if (!member.password) member.password = isAdminMember ? ADMIN_PASSWORD : '123456'
     normalizeMemberProfile(member)
     normalizeStudyInfo(member)
+  }
+  data.members = data.members.filter((member) => member.staff_id !== 'test' && member.name !== 'test')
+  if (Array.isArray(data.site.toolCards)) {
+    data.site.toolCards = data.site.toolCards.filter((tool) => tool.key !== 'site')
   }
   normalizeOutputVisibility(data.publications)
   normalizeOutputVisibility(data.awards)
