@@ -125,6 +125,36 @@ function normalizeStudyInfo(member) {
   member.direction = ''
 }
 
+function hasBrokenQuestionMarks(value) {
+  return typeof value === 'string' && /\?{2,}/.test(value)
+}
+
+function normalizeOutputAssets(data, seeded) {
+  const seededAwards = new Map(seeded.awards.map((item) => [item.id, item]))
+
+  for (const item of data.publications) {
+    item.paper_link = typeof item.paper_link === 'string' ? item.paper_link.trim() : ''
+    if (hasBrokenQuestionMarks(item.title)) item.title = ''
+    for (const field of ['authors', 'journal', 'volume_issue', 'pages', 'doi', 'note']) {
+      if (hasBrokenQuestionMarks(item[field])) item[field] = ''
+    }
+  }
+
+  for (const item of data.awards) {
+    item.image_data = typeof item.image_data === 'string' ? item.image_data : ''
+    item.image_url = typeof item.image_url === 'string' ? item.image_url.trim() : ''
+    item.image_name = typeof item.image_name === 'string' ? item.image_name : ''
+    if (hasBrokenQuestionMarks(item.title)) item.title = seededAwards.get(item.id)?.title || ''
+    if (hasBrokenQuestionMarks(item.winner)) item.winner = seededAwards.get(item.id)?.winner || ''
+  }
+
+  for (const [field, fallback] of Object.entries(seeded.site)) {
+    if (typeof fallback === 'string' && hasBrokenQuestionMarks(data.site[field])) {
+      data.site[field] = fallback
+    }
+  }
+}
+
 function memberProfileDefaults(member = {}) {
   return {
     phone: member.phone || '',
@@ -362,6 +392,7 @@ function migrateData(data) {
   normalizeOutputVisibility(data.publications)
   normalizeOutputVisibility(data.awards)
   removeTemplateOutputs(data)
+  normalizeOutputAssets(data, seeded)
   enforceCoreMemberIdentities(data)
   if (needsUpgrade) {
     const systemAdmin = data.members.find((item) => item.id === 'm-admin' || item.staff_id === 'system-admin')
@@ -919,6 +950,14 @@ export function useLabStore() {
     if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
     const list = state[kind]
     if (!Array.isArray(list)) return { ok: false, message: '数据类型不存在' }
+    if (kind === 'publications') {
+      payload.paper_link = payload.paper_link?.trim() || ''
+    }
+    if (kind === 'awards') {
+      payload.image_data = payload.image_data || ''
+      payload.image_url = payload.image_url?.trim() || ''
+      payload.image_name = payload.image_name?.trim() || ''
+    }
     const existing = list.find((item) => item.id === payload.id)
     if (existing) {
       if (payload.sort_order === undefined) delete payload.sort_order

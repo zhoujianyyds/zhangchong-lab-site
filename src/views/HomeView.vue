@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import {
   ArrowUpRight,
@@ -10,6 +10,9 @@ import {
   GraduationCap,
   Mail,
   Network,
+  Download,
+  ExternalLink,
+  X,
   UsersRound,
 } from 'lucide-vue-next'
 import heroImage from '../assets/hero.png'
@@ -66,6 +69,7 @@ const outputCount = computed(
   () => store.homePublications.value.length + store.homeAwards.value.length,
 )
 const contactHref = computed(() => `mailto:${store.state.site.contactEmail}`)
+const selectedOutput = ref(null)
 
 function editableClass() {
   return { editable: store.isSuperAdmin() }
@@ -149,6 +153,33 @@ function editAward(item, field, label) {
     ...JSON.parse(JSON.stringify(item)),
     [field]: next,
   }))
+}
+
+function openOutput(item, kind) {
+  selectedOutput.value = { ...item, kind }
+}
+
+function closeOutputDialog() {
+  selectedOutput.value = null
+}
+
+function openPaperLink() {
+  const link = selectedOutput.value?.paper_link?.trim()
+  if (!link) return
+  window.open(link, '_blank', 'noopener,noreferrer')
+}
+
+function downloadAwardImage() {
+  const item = selectedOutput.value
+  const source = item?.image_data || item?.image_url
+  if (!source) return
+  const link = document.createElement('a')
+  link.href = source
+  link.download = item.image_name || 'award-image'
+  link.target = '_blank'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
 }
 </script>
 
@@ -260,26 +291,42 @@ function editAward(item, field, label) {
       </div>
 
       <div class="output-list">
-        <article v-for="item in store.homePublications.value" :key="item.id" class="output-item">
+        <article
+          v-for="item in store.homePublications.value"
+          :key="item.id"
+          class="output-item output-item-interactive"
+          tabindex="0"
+          role="button"
+          @click="openOutput(item, 'publication')"
+          @keydown.enter.prevent="openOutput(item, 'publication')"
+        >
           <span>{{ item.pub_type }}</span>
           <div>
-            <h3 :class="editableClass()" @dblclick="editPublication(item, 'title', '论文标题')">{{ item.title }}</h3>
+            <h3>{{ item.title }}</h3>
             <p>
-              <span :class="editableClass()" @dblclick="editPublication(item, 'journal', '期刊/会议')">{{ item.journal }}</span>
+              <span>{{ item.journal }}</span>
               ·
-              <span :class="editableClass()" @dblclick="editPublication(item, 'pub_year', '年份')">{{ item.pub_year || '待录入' }}</span>
+              <span>{{ item.pub_year || '待录入' }}</span>
             </p>
-            <small :class="editableClass()" @dblclick="editPublication(item, 'authors', '作者')">{{ item.authors }}</small>
+            <small>{{ item.authors }}</small>
           </div>
         </article>
-        <article v-for="item in store.homeAwards.value" :key="item.id" class="output-item">
-          <span :class="editableClass()" @dblclick="editSiteField('awardTypeLabel', '获奖标签')">{{ store.state.site.awardTypeLabel }}</span>
+        <article
+          v-for="item in store.homeAwards.value"
+          :key="item.id"
+          class="output-item output-item-interactive"
+          tabindex="0"
+          role="button"
+          @click="openOutput(item, 'award')"
+          @keydown.enter.prevent="openOutput(item, 'award')"
+        >
+          <span>{{ store.state.site.awardTypeLabel }}</span>
           <div>
-            <h3 :class="editableClass()" @dblclick="editAward(item, 'title', '获奖标题')">{{ item.title }}</h3>
-            <p :class="editableClass()" @dblclick="editAward(item, 'winner', '获奖人')">
+            <h3>{{ item.title }}</h3>
+            <p>
               {{ store.state.site.awardWinnerPrefix }}{{ item.winner || store.state.site.awardEmptyWinner }}
             </p>
-            <small :class="editableClass()" @dblclick="editSiteField('awardNote', '获奖说明')">{{ store.state.site.awardNote }}</small>
+            <small>{{ store.state.site.awardNote }}</small>
           </div>
         </article>
       </div>
@@ -317,4 +364,42 @@ function editAward(item, field, label) {
   <footer class="footer">
     <span :class="editableClass()" @dblclick="editSiteField('groupName', '网站名称')">© 2026 {{ store.state.site.groupName }}</span>
   </footer>
+
+  <div v-if="selectedOutput" class="modal-overlay output-detail-overlay" role="presentation">
+    <section class="modal-panel output-detail-modal" role="dialog" aria-modal="true" :aria-label="selectedOutput.title">
+      <div class="modal-head">
+        <h2>{{ selectedOutput.kind === 'award' ? '获奖成果' : '论文成果' }}</h2>
+        <button class="modal-close" type="button" title="关闭" @click="closeOutputDialog">
+          <X :size="18" />
+        </button>
+      </div>
+
+      <div v-if="selectedOutput.kind === 'award'" class="output-detail-content">
+        <h3>{{ selectedOutput.title }}</h3>
+        <p v-if="selectedOutput.winner">{{ store.state.site.awardWinnerPrefix }}{{ selectedOutput.winner }}</p>
+        <img
+          v-if="selectedOutput.image_data || selectedOutput.image_url"
+          class="award-detail-image"
+          :src="selectedOutput.image_data || selectedOutput.image_url"
+          :alt="selectedOutput.title"
+        />
+        <div v-else class="asset-empty-state">管理员尚未上传该获奖图片</div>
+        <button v-if="selectedOutput.image_data || selectedOutput.image_url" class="button button-dark" type="button" @click="downloadAwardImage">
+          <Download :size="16" />
+          下载图片
+        </button>
+      </div>
+
+      <div v-else class="output-detail-content">
+        <h3>{{ selectedOutput.title }}</h3>
+        <p>{{ [selectedOutput.authors, selectedOutput.journal, selectedOutput.pub_year].filter(Boolean).join(' · ') || '论文信息待补充' }}</p>
+        <p v-if="selectedOutput.note" class="output-detail-note">{{ selectedOutput.note }}</p>
+        <button v-if="selectedOutput.paper_link" class="button button-dark" type="button" @click="openPaperLink">
+          <ExternalLink :size="16" />
+          打开论文链接
+        </button>
+        <div v-else class="asset-empty-state">管理员尚未添加论文链接</div>
+      </div>
+    </section>
+  </div>
 </template>

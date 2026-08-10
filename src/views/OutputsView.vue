@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { Pencil, Plus, Trash2 } from 'lucide-vue-next'
+import { Download, ImagePlus, Pencil, Plus, Trash2, X } from 'lucide-vue-next'
 import AuthGate from '../components/AuthGate.vue'
 import { useLabStore } from '../stores/labStore'
 
@@ -34,9 +34,13 @@ function createEmptyForm() {
     volume_issue: '',
     pages: '',
     doi: '',
+    paper_link: '',
     pub_type: '论文',
     note: '',
     winner: '',
+    image_data: '',
+    image_url: '',
+    image_name: '',
     visible_on_home: true,
   }
 }
@@ -69,6 +73,7 @@ async function submitOutput() {
       volume_issue: form.volume_issue.trim(),
       pages: form.pages.trim(),
       doi: form.doi.trim(),
+      paper_link: form.paper_link.trim(),
       pub_type: form.pub_type,
       note: form.note.trim(),
       visible_on_home: form.visible_on_home,
@@ -80,6 +85,9 @@ async function submitOutput() {
       id: editingId.value,
       title: form.title.trim(),
       winner: form.winner.trim(),
+      image_data: form.image_data,
+      image_url: form.image_url.trim(),
+      image_name: form.image_name.trim(),
       visible_on_home: form.visible_on_home,
       sort_order: activeList.value.find((item) => item.id === editingId.value)?.sort_order,
     })
@@ -139,8 +147,10 @@ function tabCount(tabKey) {
 }
 
 function itemMeta(item) {
-  if (activeTab.value === 'publications') return [item.authors, item.journal, item.pub_year, item.note].filter(Boolean).join(' · ')
-  return item.winner ? `获奖人：${item.winner}` : '获奖情况'
+  if (activeTab.value === 'publications') {
+    return [item.authors, item.journal, item.pub_year, item.note].filter(Boolean).join(' · ') || '论文信息'
+  }
+  return item.winner ? `获奖人：${item.winner}` : '获奖信息'
 }
 
 async function toggleHomeVisibility(kind, item) {
@@ -149,6 +159,44 @@ async function toggleHomeVisibility(kind, item) {
     visible_on_home: item.visible_on_home === false,
   })
   if (!result.ok) window.alert(result.message || '保存失败')
+}
+
+function removeAwardImage() {
+  form.image_data = ''
+  form.image_url = ''
+  form.image_name = ''
+}
+
+function downloadAwardImage() {
+  const source = form.image_data || form.image_url
+  if (!source) return
+  const link = document.createElement('a')
+  link.href = source
+  link.download = form.image_name || 'award-image'
+  link.target = '_blank'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
+
+function chooseAwardImage() {
+  document.getElementById('award-image-upload')?.click()
+}
+
+function handleAwardImage(event) {
+  const [file] = event.target.files || []
+  event.target.value = ''
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    window.alert('请上传图片文件')
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = () => {
+    form.image_data = String(reader.result || '')
+    form.image_name = file.name
+  }
+  reader.readAsDataURL(file)
 }
 </script>
 
@@ -509,12 +557,63 @@ async function toggleHomeVisibility(kind, item) {
             <input id="note" v-model="form.note" type="text" placeholder="SCI一区，一作" />
           </div>
         </div>
+        <div class="form-field">
+          <label for="paper-link">论文链接</label>
+          <input
+            id="paper-link"
+            v-model="form.paper_link"
+            type="url"
+            inputmode="url"
+            placeholder="https://..."
+          />
+        </div>
       </template>
 
-      <div v-if="activeTab === 'awards'" class="form-field">
-        <label for="winner">获奖人（可选）</label>
-        <input id="winner" v-model="form.winner" type="text" placeholder="研究小组" />
-      </div>
+      <template v-if="activeTab === 'awards'">
+        <div class="form-field">
+          <label for="winner">获奖人（可选）</label>
+          <input id="winner" v-model="form.winner" type="text" placeholder="研究小组" />
+        </div>
+        <div class="form-field">
+          <label>获奖图片</label>
+          <input
+            id="award-image-upload"
+            class="visually-hidden"
+            type="file"
+            accept="image/*"
+            @change="handleAwardImage"
+          />
+          <button class="button button-light award-upload-button" type="button" @click="chooseAwardImage">
+            <ImagePlus :size="16" />
+            上传获奖图片
+          </button>
+        </div>
+        <div v-if="form.image_data" class="award-upload-preview">
+          <img :src="form.image_data" :alt="form.title || '获奖图片预览'" />
+          <div class="award-upload-actions">
+            <span>{{ form.image_name || '已上传获奖图片' }}</span>
+            <button class="icon-btn" type="button" title="下载图片" @click="downloadAwardImage">
+              <Download :size="15" />
+            </button>
+            <button class="icon-btn icon-btn-danger" type="button" title="删除图片" @click="removeAwardImage">
+              <X :size="15" />
+            </button>
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="image-url">图片备份链接（可选）</label>
+          <input
+            id="image-url"
+            v-model="form.image_url"
+            type="text"
+            placeholder="可留空"
+          />
+        </div>
+        <div class="form-field">
+          <label for="image-name">图片文件名（可选）</label>
+          <input id="image-name" v-model="form.image_name" type="text" placeholder="award-2025-kjjb-1.jpg" />
+        </div>
+      </template>
 
       <button class="button button-dark" type="submit">{{ editingId ? '保存' : '添加' }}</button>
     </form>
@@ -525,6 +624,8 @@ async function toggleHomeVisibility(kind, item) {
           <strong>{{ item.title }}</strong>
           <div class="output-admin-meta">
             <span>{{ itemMeta(item) }}</span>
+            <span v-if="activeTab === 'awards' && (item.image_data || item.image_url)" class="asset-status">已关联图片</span>
+            <span v-if="activeTab === 'publications' && item.paper_link" class="asset-status">已添加链接</span>
             <span class="home-visibility-pill" :class="{ off: item.visible_on_home === false }">
               {{ item.visible_on_home === false ? '不在主页展示' : '主页展示' }}
             </span>
