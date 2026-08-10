@@ -206,11 +206,11 @@ function chooseAwardImage() {
 }
 
 function handleAwardImage(event) {
-  const [file] = event.target.files || []
-  event.target.value = ''
+  const file = event.target.files?.[0]
   if (!file) return
   if (!file.type.startsWith('image/')) {
     window.alert('请上传图片文件')
+    event.target.value = ''
     return
   }
   const reader = new FileReader()
@@ -219,6 +219,7 @@ function handleAwardImage(event) {
     form.image_name = file.name
   }
   reader.readAsDataURL(file)
+  event.target.value = ''
 }
 </script>
 
@@ -540,7 +541,7 @@ function handleAwardImage(event) {
             step="1"
             placeholder="1"
           />
-          <p class="field-hint">将按这个编号展示，保存后不会自动改成上移排序。</p>
+          <p class="field-hint">编号可独立填写；勾选主页展示后才会参与首页排序。</p>
         </div>
         <div class="form-field">
           <label for="output-title">标题 *</label>

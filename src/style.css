@@ -1811,21 +1811,31 @@ input[type='password']::-webkit-credentials-auto-fill-button {
 
 .output-groups {
   display: grid;
+  align-items: stretch;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
 
 .output-group {
-  display: grid;
-  gap: 12px;
+  display: flex;
+  min-height: 360px;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--border-weak);
+  background:
+    linear-gradient(135deg, rgba(0, 168, 143, 0.06), transparent 48%),
+    var(--paper);
+  box-shadow: 0 16px 40px rgba(30, 75, 112, 0.06);
 }
 
 .output-group-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  padding: 0 2px;
+  min-height: 34px;
+  padding: 0 2px 12px;
+  border-bottom: 1px solid var(--border-weak);
 }
 
 .output-group-head h3 {
@@ -1834,10 +1844,18 @@ input[type='password']::-webkit-credentials-auto-fill-button {
   font-size: 1.1rem;
 }
 
-.output-group-head span {
+.output-group .output-list {
+  flex: 1;
+  align-content: start;
+}
+
+.output-empty-state {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  border: 1px dashed var(--border-weak);
   color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 760;
+  font-size: 0.88rem;
 }
 
 .booking-list,

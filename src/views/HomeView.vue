@@ -302,7 +302,6 @@ function downloadAwardImage(item = selectedOutput.value) {
         <section class="output-group">
           <div class="output-group-head">
             <h3>论文</h3>
-            <span>{{ store.homePublications.value.length }}</span>
           </div>
           <div class="output-list">
             <article
@@ -325,13 +324,15 @@ function downloadAwardImage(item = selectedOutput.value) {
                 <small>{{ item.authors }}</small>
               </div>
             </article>
+            <div v-if="store.homePublications.value.length === 0" class="output-empty-state">
+              暂无公开论文成果
+            </div>
           </div>
         </section>
 
         <section class="output-group">
           <div class="output-group-head">
             <h3>获奖</h3>
-            <span>{{ store.homeAwards.value.length }}</span>
           </div>
           <div class="output-list">
             <article
@@ -352,6 +353,9 @@ function downloadAwardImage(item = selectedOutput.value) {
                 <small>{{ store.state.site.awardNote }}</small>
               </div>
             </article>
+            <div v-if="store.homeAwards.value.length === 0" class="output-empty-state">
+              暂无公开获奖成果
+            </div>
           </div>
         </section>
       </div>

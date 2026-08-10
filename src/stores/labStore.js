@@ -629,7 +629,26 @@ function setSession(memberId) {
 }
 
 function bySortOrder(a, b) {
-  return (a.sort_order || 0) - (b.sort_order || 0)
+  const orderDiff = (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0)
+  return orderDiff || String(a.id || '').localeCompare(String(b.id || ''))
+}
+
+function nextOutputOrder(list) {
+  return Math.max(0, ...list.map((item) => Number(item.sort_order) || 0)) + 1
+}
+
+function hasVisibleOutputOrderConflict(list, payload, existing) {
+  const targetOrder = Number(payload.sort_order)
+  if (payload.visible_on_home === false || !Number.isInteger(targetOrder) || targetOrder < 1) {
+    return false
+  }
+
+  return list.some(
+    (item) =>
+      item.id !== existing?.id &&
+      item.visible_on_home !== false &&
+      Number(item.sort_order) === targetOrder,
+  )
 }
 
 function normalizeOutputVisibility(list) {
@@ -672,21 +691,9 @@ export function useLabStore() {
     cloud.error = ''
     const result = await fetchSharedState()
     if (result.ok && result.data) {
-      const localSnapshot = cloneState()
       const remoteData = migrateData(result.data)
-      const localTime = stateUpdatedTime(localSnapshot)
-      const remoteTime = stateUpdatedTime(remoteData, result.updatedAt)
-      if (remoteTime > localTime) {
-        replaceState(remoteData)
-      } else if (localTime > remoteTime) {
-        const saveResult = await saveSharedState(localSnapshot)
-        if (saveResult.ok) {
-          cloud.error = ''
-          cloud.lastSavedAt = new Date().toISOString()
-        } else {
-          cloud.error = saveResult.message
-        }
-      }
+      replaceState(remoteData)
+      cloud.lastSavedAt = result.updatedAt || ''
     } else if (result.ok && !result.data) {
       if (!stateUpdatedTime(state)) writeLocalState()
       const seedResult = await saveSharedState(cloneState())
@@ -953,6 +960,20 @@ export function useLabStore() {
     if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
     const list = state[kind]
     if (!Array.isArray(list)) return { ok: false, message: '数据类型不存在' }
+    const existing = list.find((item) => item.id === payload.id)
+    const requestedOrder = payload.sort_order === undefined
+      ? existing?.sort_order ?? nextOutputOrder(list)
+      : Number(payload.sort_order)
+    if (!Number.isInteger(requestedOrder) || requestedOrder < 1) {
+      return { ok: false, message: '展示编号必须是正整数' }
+    }
+    payload.sort_order = requestedOrder
+    if (payload.visible_on_home === undefined && existing) {
+      payload.visible_on_home = existing.visible_on_home !== false
+    }
+    if (hasVisibleOutputOrderConflict(list, payload, existing)) {
+      return { ok: false, message: `主页展示编号 ${requestedOrder} 已被占用，请更换编号` }
+    }
     if (kind === 'publications') {
       payload.paper_link = payload.paper_link?.trim() || ''
     }
@@ -961,16 +982,13 @@ export function useLabStore() {
       payload.image_url = payload.image_url?.trim() || ''
       payload.image_name = payload.image_name?.trim() || ''
     }
-    const existing = list.find((item) => item.id === payload.id)
     if (existing) {
-      if (payload.sort_order === undefined) delete payload.sort_order
       Object.assign(existing, payload)
     } else {
       const savedId = uid(kind)
       list.push({
         ...payload,
         id: savedId,
-        sort_order: list.length + 1,
       })
       payload.id = savedId
     }
@@ -985,9 +1003,6 @@ export function useLabStore() {
     const index = list.findIndex((item) => item.id === id)
     if (index >= 0) {
       list.splice(index, 1)
-      list.forEach((item, order) => {
-        item.sort_order = order + 1
-      })
       const result = await saveImmediately()
       return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
     }
