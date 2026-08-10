@@ -1871,6 +1871,37 @@ input[type='password']::-webkit-credentials-auto-fill-button {
   font-size: 0.84rem;
 }
 
+.checkbox-line {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  gap: 8px;
+  color: var(--heading);
+  font-size: 0.9rem;
+  font-weight: 780;
+}
+
+.checkbox-line input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--cyan);
+}
+
+.home-visibility-pill {
+  border: 1px solid rgba(0, 168, 143, 0.34);
+  padding: 3px 8px;
+  color: var(--jade);
+  background: rgba(0, 168, 143, 0.08);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.home-visibility-pill.off {
+  border-color: var(--border-weak);
+  color: var(--muted);
+  background: var(--paper);
+}
+
 .booking-delete {
   display: inline-grid;
   width: 32px;

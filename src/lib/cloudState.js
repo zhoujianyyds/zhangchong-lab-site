@@ -3,8 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 const stateId = import.meta.env.VITE_SUPABASE_STATE_ID || 'main'
+const localPreviewOnly = import.meta.env.DEV && import.meta.env.VITE_LOCAL_PREVIEW_ONLY === 'true'
 
-export const sharedStateEnabled = Boolean(supabaseUrl && supabaseAnonKey)
+export const sharedStateEnabled = Boolean(supabaseUrl && supabaseAnonKey && !localPreviewOnly)
 
 const supabase = sharedStateEnabled ? createClient(supabaseUrl, supabaseAnonKey) : null
 

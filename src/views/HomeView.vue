@@ -54,16 +54,16 @@ const teachers = computed(() => store.siteMembers.value.filter((member) => membe
 const students = computed(() => store.siteMembers.value.filter((member) => member.role === 'student'))
 const gradeGroups = computed(() => [
   {
-    title: '研二研究成员',
+    title: '研二',
     members: students.value.filter((member) => member.grade === '研二'),
   },
   {
-    title: '研一空位',
+    title: '研一',
     members: students.value.filter((member) => member.grade === '研一'),
   },
 ])
 const outputCount = computed(
-  () => store.state.publications.length + store.state.projects.length + store.state.awards.length,
+  () => store.homePublications.value.length + store.homeAwards.value.length,
 )
 const contactHref = computed(() => `mailto:${store.state.site.contactEmail}`)
 
@@ -260,7 +260,7 @@ function editAward(item, field, label) {
       </div>
 
       <div class="output-list">
-        <article v-for="item in store.sortedPublications.value" :key="item.id" class="output-item">
+        <article v-for="item in store.homePublications.value" :key="item.id" class="output-item">
           <span>{{ item.pub_type }}</span>
           <div>
             <h3 :class="editableClass()" @dblclick="editPublication(item, 'title', '论文标题')">{{ item.title }}</h3>
@@ -272,15 +272,7 @@ function editAward(item, field, label) {
             <small :class="editableClass()" @dblclick="editPublication(item, 'authors', '作者')">{{ item.authors }}</small>
           </div>
         </article>
-        <article v-for="item in store.sortedProjects.value" :key="item.id" class="output-item">
-          <span :class="editableClass()" @dblclick="editSiteField('projectTypeLabel', '项目标签')">{{ store.state.site.projectTypeLabel }}</span>
-          <div>
-            <h3 :class="editableClass()" @dblclick="editProject(item, 'title', '项目标题')">{{ item.title }}</h3>
-            <p :class="editableClass()" @dblclick="editProject(item, 'category', '项目类别')">{{ item.category }}</p>
-            <small :class="editableClass()" @dblclick="editSiteField('projectNote', '项目说明')">{{ store.state.site.projectNote }}</small>
-          </div>
-        </article>
-        <article v-for="item in store.sortedAwards.value" :key="item.id" class="output-item">
+        <article v-for="item in store.homeAwards.value" :key="item.id" class="output-item">
           <span :class="editableClass()" @dblclick="editSiteField('awardTypeLabel', '获奖标签')">{{ store.state.site.awardTypeLabel }}</span>
           <div>
             <h3 :class="editableClass()" @dblclick="editAward(item, 'title', '获奖标题')">{{ item.title }}</h3>

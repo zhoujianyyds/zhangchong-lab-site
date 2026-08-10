@@ -242,34 +242,7 @@ function seedData() {
       studentMember('m-student-yanyi-06', '待定 06', '20250006', '研一', '待定'),
     ],
     pendingRegistrations: [],
-    publications: [
-      {
-        id: 'pub-1',
-        title: '工业视觉缺陷检测中的多尺度特征融合方法研究',
-        authors: '负责人姓名, 研三成员, 研二成员',
-        journal: 'Journal / Conference',
-        pub_year: 2026,
-        volume_issue: '12(3)',
-        pages: '101-118',
-        doi: '10.0000/demo.2026.001',
-        pub_type: '论文',
-        note: '代表性成果',
-        sort_order: 1,
-      },
-      {
-        id: 'pub-2',
-        title: '面向多源工业数据的联邦学习系统',
-        authors: '负责人姓名, 研二成员',
-        journal: 'Engineering AI',
-        pub_year: 2025,
-        volume_issue: '',
-        pages: '',
-        doi: '',
-        pub_type: '论文',
-        note: '在研方向',
-        sort_order: 2,
-      },
-    ],
+    publications: [],
     projects: [
       { id: 'proj-1', title: '面向能源现场的智能感知与预测系统', category: '纵向', sort_order: 1 },
       { id: 'proj-2', title: '工业设备视觉检测平台研发', category: '横向', sort_order: 2 },
@@ -279,42 +252,49 @@ function seedData() {
         id: 'award-2025-kjjb-1',
         title: '2025年度石油和化工自动化科学技术奖科技进步奖一等奖：隐蔽性储层定量表征与智能精细评价关键技术及应用（张翀排名第三）',
         winner: '张翀',
+        visible_on_home: true,
         sort_order: 1,
       },
       {
         id: 'award-2025-kjjb-2',
         title: '2025年度石油和化工自动化科学技术奖科技进步奖二等奖：低渗-低压油藏生产动态智能识别与优化关键技术及应用（张翀排名第9）',
         winner: '张翀',
+        visible_on_home: true,
         sort_order: 2,
       },
       {
         id: 'award-2025-fmzl',
         title: '第二十九届全国发明展览会银奖：南海西部注水油田开发数智化关键技术与应用',
         winner: '张翀等',
+        visible_on_home: true,
         sort_order: 3,
       },
       {
         id: 'award-2024-jsfm-2',
         title: '2024年度石油和化工自动化行业科学技术奖技术发明奖二等奖：油气工业物联网安全防御与数据智能分析关键技术及应用',
         winner: '张翀',
+        visible_on_home: true,
         sort_order: 4,
       },
       {
         id: 'award-2024-kjjb-2',
         title: '2024年度石油和化工自动化行业科学技术奖科技进步奖二等奖：致密储层智能动态评价与生产实时预警关键技术及应用',
         winner: '张翀',
+        visible_on_home: true,
         sort_order: 5,
       },
       {
         id: 'award-2023-jsfm-1',
         title: '2023年度石油和化工自动化科学技术奖技术发明奖一等奖：数字油气田数据安全智能协同防御关键技术与应用',
         winner: '张翀',
+        visible_on_home: true,
         sort_order: 6,
       },
       {
         id: 'award-2023-kjjb-2',
         title: '2023年度石油和化工自动化科学技术奖科技进步奖二等奖：基于信创技术体系的油气生产物联关键技术与应用',
         winner: '张翀',
+        visible_on_home: true,
         sort_order: 7,
       },
     ],
@@ -379,6 +359,9 @@ function migrateData(data) {
     normalizeMemberProfile(member)
     normalizeStudyInfo(member)
   }
+  normalizeOutputVisibility(data.publications)
+  normalizeOutputVisibility(data.awards)
+  removeTemplateOutputs(data)
   enforceCoreMemberIdentities(data)
   if (needsUpgrade) {
     const systemAdmin = data.members.find((item) => item.id === 'm-admin' || item.staff_id === 'system-admin')
@@ -615,6 +598,29 @@ function bySortOrder(a, b) {
   return (a.sort_order || 0) - (b.sort_order || 0)
 }
 
+function normalizeOutputVisibility(list) {
+  for (const item of list) {
+    if (typeof item.visible_on_home !== 'boolean') item.visible_on_home = true
+  }
+}
+
+function removeTemplateOutputs(data) {
+  const templatePublicationIds = new Set(['pub-1', 'pub-2'])
+  const templatePublicationTitles = new Set([
+    '工业视觉缺陷检测中的多尺度特征融合方法研究',
+    '面向多源工业数据的联邦学习系统',
+  ])
+  const templateAwardIds = new Set(['award-1'])
+  const templateAwardTitles = new Set(['研究生创新实践竞赛一等奖'])
+
+  data.publications = data.publications.filter(
+    (item) => !templatePublicationIds.has(item.id) && !templatePublicationTitles.has(item.title),
+  )
+  data.awards = data.awards.filter(
+    (item) => !templateAwardIds.has(item.id) && !templateAwardTitles.has(item.title),
+  )
+}
+
 export function useLabStore() {
   const currentMember = computed(() => state.members.find((item) => item.id === session.memberId) || null)
   const siteMembers = computed(() =>
@@ -623,6 +629,8 @@ export function useLabStore() {
   const sortedPublications = computed(() => [...state.publications].sort(bySortOrder))
   const sortedProjects = computed(() => [...state.projects].sort(bySortOrder))
   const sortedAwards = computed(() => [...state.awards].sort(bySortOrder))
+  const homePublications = computed(() => sortedPublications.value.filter((item) => item.visible_on_home !== false))
+  const homeAwards = computed(() => sortedAwards.value.filter((item) => item.visible_on_home !== false))
 
   async function syncSharedState() {
     if (!sharedStateEnabled || cloud.loading) return
@@ -994,11 +1002,13 @@ export function useLabStore() {
     cloud,
     toolIds,
     currentMember,
-    siteMembers,
-    sortedPublications,
-    sortedProjects,
-    sortedAwards,
-    syncSharedState,
+      siteMembers,
+      sortedPublications,
+      sortedProjects,
+      sortedAwards,
+      homePublications,
+      homeAwards,
+      syncSharedState,
     login,
     logout,
     changePassword,

@@ -8,9 +8,7 @@ const store = useLabStore()
 const activeTab = ref('publications')
 const editingId = ref('')
 const tabs = [
-  { key: 'site', label: '站点内容' },
-  { key: 'publications', label: '论文 / 专利' },
-  { key: 'projects', label: '科研项目' },
+  { key: 'publications', label: '论文' },
   { key: 'awards', label: '获奖' },
 ]
 
@@ -19,9 +17,7 @@ const siteForm = reactive(cloneSiteForm())
 const siteFeedback = ref('')
 
 const activeList = computed(() => {
-  if (activeTab.value === 'site') return []
   if (activeTab.value === 'publications') return store.sortedPublications.value
-  if (activeTab.value === 'projects') return store.sortedProjects.value
   return store.sortedAwards.value
 })
 
@@ -40,8 +36,8 @@ function createEmptyForm() {
     doi: '',
     pub_type: '论文',
     note: '',
-    category: '纵向',
     winner: '',
+    visible_on_home: true,
   }
 }
 
@@ -53,7 +49,6 @@ function resetForm() {
 function switchTab(tab) {
   activeTab.value = tab
   resetForm()
-  if (tab === 'site') resetSiteForm()
 }
 
 function editItem(item) {
@@ -76,14 +71,7 @@ async function submitOutput() {
       doi: form.doi.trim(),
       pub_type: form.pub_type,
       note: form.note.trim(),
-      sort_order: activeList.value.find((item) => item.id === editingId.value)?.sort_order,
-    })
-  }
-  if (activeTab.value === 'projects') {
-    result = await store.upsertOutput('projects', {
-      id: editingId.value,
-      title: form.title.trim(),
-      category: form.category,
+      visible_on_home: form.visible_on_home,
       sort_order: activeList.value.find((item) => item.id === editingId.value)?.sort_order,
     })
   }
@@ -92,6 +80,7 @@ async function submitOutput() {
       id: editingId.value,
       title: form.title.trim(),
       winner: form.winner.trim(),
+      visible_on_home: form.visible_on_home,
       sort_order: activeList.value.find((item) => item.id === editingId.value)?.sort_order,
     })
   }
@@ -146,19 +135,25 @@ function removeResearchLine(index) {
 }
 
 function tabCount(tabKey) {
-  if (tabKey === 'site') return siteForm.researchLines.length
   return store.state[tabKey].length
 }
 
 function itemMeta(item) {
   if (activeTab.value === 'publications') return [item.authors, item.journal, item.pub_year, item.note].filter(Boolean).join(' · ')
-  if (activeTab.value === 'projects') return item.category
   return item.winner ? `获奖人：${item.winner}` : '获奖情况'
+}
+
+async function toggleHomeVisibility(kind, item) {
+  const result = await store.upsertOutput(kind, {
+    ...JSON.parse(JSON.stringify(item)),
+    visible_on_home: item.visible_on_home === false,
+  })
+  if (!result.ok) window.alert(result.message || '保存失败')
 }
 </script>
 
 <template>
-  <AuthGate tool-id="outputs" title="成果管理" subtitle="管理论文、专利、科研项目和获奖信息，并同步到首页展示。">
+  <AuthGate tool-id="outputs" title="成果管理" subtitle="统一管理论文和获奖信息，可选择哪些展示到主页。">
     <div class="output-tabs">
       <button
         v-for="tab in tabs"
@@ -468,6 +463,10 @@ function itemMeta(item) {
         <label for="output-title">标题 *</label>
         <input id="output-title" v-model="form.title" type="text" placeholder="标题" />
       </div>
+      <label class="checkbox-line">
+        <input v-model="form.visible_on_home" type="checkbox" />
+        <span>在主页展示</span>
+      </label>
 
       <template v-if="activeTab === 'publications'">
         <div class="form-field">
@@ -487,8 +486,6 @@ function itemMeta(item) {
             <label for="pub-type">类型</label>
             <select id="pub-type" v-model="form.pub_type" class="filter-select">
               <option value="论文">论文</option>
-              <option value="专利">专利</option>
-              <option value="竞赛">竞赛</option>
             </select>
           </div>
         </div>
@@ -514,14 +511,6 @@ function itemMeta(item) {
         </div>
       </template>
 
-      <div v-if="activeTab === 'projects'" class="form-field">
-        <label for="category">类别</label>
-        <select id="category" v-model="form.category" class="filter-select">
-          <option value="纵向">纵向</option>
-          <option value="横向">横向</option>
-        </select>
-      </div>
-
       <div v-if="activeTab === 'awards'" class="form-field">
         <label for="winner">获奖人（可选）</label>
         <input id="winner" v-model="form.winner" type="text" placeholder="研究小组" />
@@ -536,9 +525,15 @@ function itemMeta(item) {
           <strong>{{ item.title }}</strong>
           <div class="output-admin-meta">
             <span>{{ itemMeta(item) }}</span>
+            <span class="home-visibility-pill" :class="{ off: item.visible_on_home === false }">
+              {{ item.visible_on_home === false ? '不在主页展示' : '主页展示' }}
+            </span>
           </div>
         </div>
         <div class="row-actions">
+          <button class="icon-btn" type="button" @click="toggleHomeVisibility(activeTab, item)">
+            {{ item.visible_on_home === false ? '展示到主页' : '取消主页' }}
+          </button>
           <button v-if="index > 0" class="icon-btn" type="button" @click="moveOutputUp(activeTab, item.id)">上移</button>
           <button class="icon-btn" type="button" @click="editItem(item)">
             <Pencil :size="14" />
