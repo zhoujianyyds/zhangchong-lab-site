@@ -1067,6 +1067,10 @@ img {
     grid-template-columns: 1fr;
   }
 
+  .output-groups {
+    grid-template-columns: 1fr;
+  }
+
   .research-card {
     min-height: 260px;
     border-right: 0;
@@ -1805,6 +1809,37 @@ input[type='password']::-webkit-credentials-auto-fill-button {
     var(--dark);
 }
 
+.output-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.output-group {
+  display: grid;
+  gap: 12px;
+}
+
+.output-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px;
+}
+
+.output-group-head h3 {
+  margin: 0;
+  color: var(--heading);
+  font-size: 1.1rem;
+}
+
+.output-group-head span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 760;
+}
+
 .booking-list,
 .reimbursement-list,
 .output-admin-list {
@@ -1824,6 +1859,10 @@ input[type='password']::-webkit-credentials-auto-fill-button {
   transition:
     transform 0.18s ease,
     box-shadow 0.18s ease;
+}
+
+.output-admin-item {
+  align-items: center;
 }
 
 .booking-item:hover,
@@ -1846,6 +1885,25 @@ input[type='password']::-webkit-credentials-auto-fill-button {
 .booking-time-sep {
   color: var(--muted);
   font-weight: 400;
+}
+
+.output-order-badge {
+  flex: 0 0 auto;
+  min-width: 72px;
+  padding: 7px 10px;
+  border: 1px solid rgba(37, 99, 235, 0.22);
+  color: var(--blueprint);
+  background: rgba(37, 99, 235, 0.05);
+  font-size: 0.78rem;
+  font-weight: 840;
+  text-align: center;
+}
+
+.field-hint {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
 }
 
 .booking-body,
@@ -1885,6 +1943,10 @@ input[type='password']::-webkit-credentials-auto-fill-button {
   width: 17px;
   height: 17px;
   accent-color: var(--cyan);
+}
+
+.compact-field {
+  max-width: 160px;
 }
 
 .home-visibility-pill {
@@ -1946,6 +2008,16 @@ input[type='password']::-webkit-credentials-auto-fill-button {
   align-items: center;
   gap: 8px;
   padding: 10px;
+}
+
+.save-notice-modal {
+  width: min(460px, calc(100vw - 32px));
+}
+
+.save-notice-text {
+  margin: 0 0 18px;
+  color: var(--muted);
+  line-height: 1.7;
 }
 
 .award-upload-actions span {
@@ -2409,6 +2481,15 @@ button.editable,
   .reimbursement-item,
   .output-admin-item {
     flex-wrap: wrap;
+  }
+
+  .output-admin-body {
+    min-width: 0;
+  }
+
+  .output-order-badge {
+    min-width: 62px;
+    padding: 6px 8px;
   }
 
   .filter-input,

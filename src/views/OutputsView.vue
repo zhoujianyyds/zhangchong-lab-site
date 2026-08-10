@@ -12,9 +12,14 @@ const tabs = [
   { key: 'awards', label: '获奖' },
 ]
 
-const form = reactive(createEmptyForm())
+const form = reactive(createEmptyForm(activeTab.value))
 const siteForm = reactive(cloneSiteForm())
 const siteFeedback = ref('')
+const saveNotice = reactive({
+  open: false,
+  title: '',
+  message: '',
+})
 
 const activeList = computed(() => {
   if (activeTab.value === 'publications') return store.sortedPublications.value
@@ -25,8 +30,15 @@ function cloneSiteForm() {
   return JSON.parse(JSON.stringify(store.state.site))
 }
 
-function createEmptyForm() {
+function nextSortOrder(tabKey = activeTab.value) {
+  const list = tabKey === 'publications' ? store.sortedPublications.value : store.sortedAwards.value
+  const maxOrder = Math.max(0, ...list.map((item) => Number(item.sort_order) || 0))
+  return maxOrder + 1
+}
+
+function createEmptyForm(tabKey = activeTab.value) {
   return {
+    sort_order: nextSortOrder(tabKey),
     title: '',
     authors: '',
     journal: '',
@@ -47,22 +59,35 @@ function createEmptyForm() {
 
 function resetForm() {
   editingId.value = ''
-  Object.assign(form, createEmptyForm())
+  Object.assign(form, createEmptyForm(activeTab.value))
 }
 
 function switchTab(tab) {
   activeTab.value = tab
+  saveNotice.open = false
   resetForm()
 }
 
 function editItem(item) {
   editingId.value = item.id
-  Object.assign(form, createEmptyForm(), JSON.parse(JSON.stringify(item)))
+  saveNotice.open = false
+  Object.assign(form, createEmptyForm(activeTab.value), JSON.parse(JSON.stringify(item)))
+}
+
+function openSaveNotice(kind, order) {
+  saveNotice.title = kind === 'awards' ? '获奖已保存' : '论文已保存'
+  saveNotice.message = `已经保存成功，当前将按第 ${String(order).padStart(2, '0')} 位展示。`
+  saveNotice.open = true
+}
+
+function closeSaveNotice() {
+  saveNotice.open = false
 }
 
 async function submitOutput() {
   if (!form.title.trim()) return
   let result = { ok: false, message: '保存失败' }
+  const displayOrder = Number(form.sort_order) || nextSortOrder(activeTab.value)
   if (activeTab.value === 'publications') {
     result = await store.upsertOutput('publications', {
       id: editingId.value,
@@ -77,7 +102,7 @@ async function submitOutput() {
       pub_type: form.pub_type,
       note: form.note.trim(),
       visible_on_home: form.visible_on_home,
-      sort_order: activeList.value.find((item) => item.id === editingId.value)?.sort_order,
+      sort_order: displayOrder,
     })
   }
   if (activeTab.value === 'awards') {
@@ -89,14 +114,16 @@ async function submitOutput() {
       image_url: form.image_url.trim(),
       image_name: form.image_name.trim(),
       visible_on_home: form.visible_on_home,
-      sort_order: activeList.value.find((item) => item.id === editingId.value)?.sort_order,
+      sort_order: displayOrder,
     })
   }
   if (!result.ok) {
     window.alert(result.message || '保存失败')
     return
   }
-  resetForm()
+  if (!editingId.value && result.id) editingId.value = result.id
+  form.sort_order = displayOrder
+  openSaveNotice(activeTab.value, displayOrder)
 }
 
 function resetSiteForm() {
@@ -111,11 +138,6 @@ async function submitSiteContent() {
   }
   siteFeedback.value = '保存成功'
   window.alert(siteFeedback.value)
-}
-
-async function moveOutputUp(kind, id) {
-  const result = await store.moveOutputUp(kind, id)
-  if (!result.ok) window.alert(result.message || '保存失败')
 }
 
 async function removeOutput(kind, id) {
@@ -507,9 +529,23 @@ function handleAwardImage(event) {
           新建
         </button>
       </div>
-      <div class="form-field">
-        <label for="output-title">标题 *</label>
-        <input id="output-title" v-model="form.title" type="text" placeholder="标题" />
+      <div class="form-row">
+        <div class="form-field compact-field">
+          <label for="output-sort-order">展示编号 *</label>
+          <input
+            id="output-sort-order"
+            v-model.number="form.sort_order"
+            type="number"
+            min="1"
+            step="1"
+            placeholder="1"
+          />
+          <p class="field-hint">将按这个编号展示，保存后不会自动改成上移排序。</p>
+        </div>
+        <div class="form-field">
+          <label for="output-title">标题 *</label>
+          <input id="output-title" v-model="form.title" type="text" placeholder="标题" />
+        </div>
       </div>
       <label class="checkbox-line">
         <input v-model="form.visible_on_home" type="checkbox" />
@@ -620,6 +656,7 @@ function handleAwardImage(event) {
 
     <div v-if="activeTab !== 'site'" class="output-admin-list">
       <article v-for="(item, index) in activeList" :key="item.id" class="output-admin-item">
+        <span class="output-order-badge">展示 #{{ String(item.sort_order || index + 1).padStart(2, '0') }}</span>
         <div class="output-admin-body">
           <strong>{{ item.title }}</strong>
           <div class="output-admin-meta">
@@ -635,7 +672,6 @@ function handleAwardImage(event) {
           <button class="icon-btn" type="button" @click="toggleHomeVisibility(activeTab, item)">
             {{ item.visible_on_home === false ? '展示到主页' : '取消主页' }}
           </button>
-          <button v-if="index > 0" class="icon-btn" type="button" @click="moveOutputUp(activeTab, item.id)">上移</button>
           <button class="icon-btn" type="button" @click="editItem(item)">
             <Pencil :size="14" />
           </button>
@@ -647,6 +683,19 @@ function handleAwardImage(event) {
       <div v-if="activeList.length === 0" class="tool-empty inline-empty">
         <p>暂无数据</p>
       </div>
+    </div>
+
+    <div v-if="saveNotice.open" class="modal-overlay save-notice-overlay" role="presentation">
+      <section class="modal-panel save-notice-modal" role="dialog" aria-modal="true" aria-label="保存成功">
+        <div class="modal-head">
+          <h2>{{ saveNotice.title }}</h2>
+          <button class="modal-close" type="button" title="关闭" @click="closeSaveNotice">
+            <X :size="18" />
+          </button>
+        </div>
+        <p class="save-notice-text">{{ saveNotice.message }}</p>
+        <button class="button button-dark" type="button" @click="closeSaveNotice">知道了</button>
+      </section>
     </div>
   </AuthGate>
 </template>

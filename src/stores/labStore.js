@@ -966,14 +966,16 @@ export function useLabStore() {
       if (payload.sort_order === undefined) delete payload.sort_order
       Object.assign(existing, payload)
     } else {
+      const savedId = uid(kind)
       list.push({
         ...payload,
-        id: uid(kind),
+        id: savedId,
         sort_order: list.length + 1,
       })
+      payload.id = savedId
     }
     const result = await saveImmediately()
-    return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
+    return result.ok ? { ok: true, id: payload.id || existing?.id || '' } : { ok: false, message: result.message || '保存失败' }
   }
 
   async function removeOutput(kind, id) {

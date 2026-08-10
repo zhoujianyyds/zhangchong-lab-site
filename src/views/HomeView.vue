@@ -298,45 +298,62 @@ function downloadAwardImage(item = selectedOutput.value) {
         <h2 :class="editableClass()" @dblclick="editSiteField('outputsSectionTitle', '栏目标题')">{{ store.state.site.outputsSectionTitle }}</h2>
       </div>
 
-      <div class="output-list">
-        <article
-          v-for="item in store.homePublications.value"
-          :key="item.id"
-          class="output-item output-item-interactive"
-          tabindex="0"
-          role="button"
-          @click="openPublication(item)"
-          @keydown.enter.prevent="openPublication(item)"
-        >
-          <span>{{ item.pub_type }}</span>
-          <div>
-            <h3>{{ item.title }}</h3>
-            <p>
-              <span>{{ item.journal }}</span>
-              ·
-              <span>{{ item.pub_year || '待录入' }}</span>
-            </p>
-            <small>{{ item.authors }}</small>
+      <div class="output-groups">
+        <section class="output-group">
+          <div class="output-group-head">
+            <h3>论文</h3>
+            <span>{{ store.homePublications.value.length }}</span>
           </div>
-        </article>
-        <article
-          v-for="item in store.homeAwards.value"
-          :key="item.id"
-          class="output-item output-item-interactive"
-          tabindex="0"
-          role="button"
-          @click="downloadAwardImage(item)"
-          @keydown.enter.prevent="downloadAwardImage(item)"
-        >
-          <span>{{ store.state.site.awardTypeLabel }}</span>
-          <div>
-            <h3>{{ item.title }}</h3>
-            <p>
-              {{ store.state.site.awardWinnerPrefix }}{{ item.winner || store.state.site.awardEmptyWinner }}
-            </p>
-            <small>{{ store.state.site.awardNote }}</small>
+          <div class="output-list">
+            <article
+              v-for="item in store.homePublications.value"
+              :key="item.id"
+              class="output-item output-item-interactive"
+              tabindex="0"
+              role="button"
+              @click="openPublication(item)"
+              @keydown.enter.prevent="openPublication(item)"
+            >
+              <span>{{ item.pub_type }}</span>
+              <div>
+                <h3>{{ item.title }}</h3>
+                <p>
+                  <span>{{ item.journal }}</span>
+                  ·
+                  <span>{{ item.pub_year || '待录入' }}</span>
+                </p>
+                <small>{{ item.authors }}</small>
+              </div>
+            </article>
           </div>
-        </article>
+        </section>
+
+        <section class="output-group">
+          <div class="output-group-head">
+            <h3>获奖</h3>
+            <span>{{ store.homeAwards.value.length }}</span>
+          </div>
+          <div class="output-list">
+            <article
+              v-for="item in store.homeAwards.value"
+              :key="item.id"
+              class="output-item output-item-interactive"
+              tabindex="0"
+              role="button"
+              @click="downloadAwardImage(item)"
+              @keydown.enter.prevent="downloadAwardImage(item)"
+            >
+              <span>{{ store.state.site.awardTypeLabel }}</span>
+              <div>
+                <h3>{{ item.title }}</h3>
+                <p>
+                  {{ store.state.site.awardWinnerPrefix }}{{ item.winner || store.state.site.awardEmptyWinner }}
+                </p>
+                <small>{{ store.state.site.awardNote }}</small>
+              </div>
+            </article>
+          </div>
+        </section>
       </div>
     </section>
 
