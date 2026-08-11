@@ -1401,6 +1401,11 @@ img {
   gap: 12px;
 }
 
+.output-editor-modal.is-submitting {
+  pointer-events: none;
+  opacity: 0.98;
+}
+
 .modal-head {
   display: flex;
   align-items: center;

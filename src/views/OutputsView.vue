@@ -15,8 +15,9 @@ const tabs = [
 const form = reactive(createEmptyForm(activeTab.value))
 const siteForm = reactive(cloneSiteForm())
 const siteFeedback = ref('')
-const outputFeedback = ref('')
 const editorOpen = ref(false)
+const submittingOutput = ref(false)
+let saveNoticeTimer = 0
 const saveNotice = reactive({
   open: false,
   title: '',
@@ -69,6 +70,7 @@ function resetForm() {
 }
 
 function closeOutputEditor() {
+  if (submittingOutput.value) return
   editorOpen.value = false
   saveNotice.open = false
   resetForm()
@@ -88,15 +90,20 @@ function openOutputEditor(tab = activeTab.value, item = null) {
 }
 
 function switchTab(tab) {
+  if (submittingOutput.value) return
   activeTab.value = tab
   closeOutputEditor()
 }
 
 function openSaveNotice(kind, order, action = '保存') {
+  window.clearTimeout(saveNoticeTimer)
   const label = kind === 'awards' ? '获奖' : '论文'
   saveNotice.title = `${label}${action}成功`
   saveNotice.message = `已经${action}成功，展示编号为 ${String(order).padStart(2, '0')}。`
   saveNotice.open = true
+  saveNoticeTimer = window.setTimeout(() => {
+    saveNotice.open = false
+  }, 1200)
 }
 
 function successText(kind, action = '保存') {
@@ -105,6 +112,7 @@ function successText(kind, action = '保存') {
 }
 
 function closeSaveNotice() {
+  window.clearTimeout(saveNoticeTimer)
   saveNotice.open = false
 }
 
@@ -113,54 +121,53 @@ async function submitOutput() {
     window.alert('请填写标题')
     return
   }
+  if (submittingOutput.value) return
+  submittingOutput.value = true
   let result = { ok: false, message: '保存失败' }
   const savingKind = activeTab.value
   const wasEditing = Boolean(editingId.value)
   const displayOrder = Number(form.sort_order) || nextSortOrder(activeTab.value)
-  if (savingKind === 'publications') {
-    result = await store.upsertOutput('publications', {
-      id: editingId.value,
-      title: form.title.trim(),
-      authors: form.authors.trim(),
-      journal: form.journal.trim(),
-      pub_year: form.pub_year ? Number(form.pub_year) : '',
-      volume_issue: form.volume_issue.trim(),
-      pages: form.pages.trim(),
-      doi: form.doi.trim(),
-      paper_link: form.paper_link.trim(),
-      pub_type: form.pub_type,
-      note: form.note.trim(),
-      visible_on_home: form.visible_on_home,
-      sort_order: displayOrder,
-    })
-  }
-  if (savingKind === 'awards') {
-    result = await store.upsertOutput('awards', {
-      id: editingId.value,
-      title: form.title.trim(),
-      winner: form.winner.trim(),
-      image_data: form.image_data,
-      image_url: form.image_url.trim(),
-      image_name: form.image_name.trim(),
-      visible_on_home: form.visible_on_home,
-      sort_order: displayOrder,
-    })
-  }
-  if (!result.ok) {
-    window.alert(result.message || '保存失败')
-    return
-  }
-  if (!editingId.value && result.id) editingId.value = result.id
-  form.sort_order = displayOrder
-  outputFeedback.value = successText(savingKind, wasEditing ? '保存' : '添加')
-  window.alert(outputFeedback.value)
-  closeOutputEditor()
-  openSaveNotice(savingKind, displayOrder, wasEditing ? '保存' : '添加')
-  window.setTimeout(() => {
-    if (outputFeedback.value === successText(savingKind, wasEditing ? '保存' : '添加')) {
-      outputFeedback.value = ''
+  try {
+    if (savingKind === 'publications') {
+      result = await store.upsertOutput('publications', {
+        id: editingId.value,
+        title: form.title.trim(),
+        authors: form.authors.trim(),
+        journal: form.journal.trim(),
+        pub_year: form.pub_year ? Number(form.pub_year) : '',
+        volume_issue: form.volume_issue.trim(),
+        pages: form.pages.trim(),
+        doi: form.doi.trim(),
+        paper_link: form.paper_link.trim(),
+        pub_type: form.pub_type,
+        note: form.note.trim(),
+        visible_on_home: form.visible_on_home,
+        sort_order: displayOrder,
+      })
     }
-  }, 3500)
+    if (savingKind === 'awards') {
+      result = await store.upsertOutput('awards', {
+        id: editingId.value,
+        title: form.title.trim(),
+        winner: form.winner.trim(),
+        image_data: form.image_data,
+        image_url: form.image_url.trim(),
+        image_name: form.image_name.trim(),
+        visible_on_home: form.visible_on_home,
+        sort_order: displayOrder,
+      })
+    }
+    if (!result.ok) {
+      window.alert(result.message || '保存失败')
+      return
+    }
+    if (!editingId.value && result.id) editingId.value = result.id
+    form.sort_order = displayOrder
+    closeOutputEditor()
+    openSaveNotice(savingKind, displayOrder, wasEditing ? '保存' : '添加')
+  } finally {
+    submittingOutput.value = false
+  }
 }
 
 function resetSiteForm() {
@@ -573,22 +580,21 @@ function handleAwardImage(event) {
           <h2 class="panel-title">{{ activeTabLabel }}管理</h2>
           <p class="field-hint">新增、编辑、排序和主页展示都在这里维护；展示编号可直接填写。</p>
         </div>
-        <button class="button button-dark" type="button" @click="openOutputEditor(activeTab)">
+        <button class="button button-dark" type="button" :disabled="submittingOutput" @click="openOutputEditor(activeTab)">
           <Plus :size="16" />
           新增{{ activeTabLabel }}
         </button>
       </div>
-      <div v-if="outputFeedback" class="form-success">{{ outputFeedback }}</div>
     </section>
 
     <div v-if="editorOpen && activeTab !== 'site'" class="modal-overlay output-editor-overlay" role="presentation">
-      <form class="tool-form modal-panel output-editor-modal" @submit.prevent="submitOutput">
+      <form class="tool-form modal-panel output-editor-modal" :class="{ 'is-submitting': submittingOutput }" @submit.prevent="submitOutput">
         <div class="tool-page-title-row output-editor-head">
           <div>
             <h2 class="panel-title">{{ editingId ? `编辑${activeTabLabel}` : `新增${activeTabLabel}` }}</h2>
             <p class="field-hint">点击右上角关闭才会退出编辑，点到弹窗外不会丢失已输入内容。</p>
           </div>
-          <button class="modal-close" type="button" title="关闭" @click="closeOutputEditor">
+          <button class="modal-close" type="button" title="关闭" :disabled="submittingOutput" @click="closeOutputEditor">
             <X :size="16" />
           </button>
         </div>
@@ -716,8 +722,8 @@ function handleAwardImage(event) {
         </template>
 
         <div class="output-editor-actions">
-          <button class="button button-light" type="button" @click="closeOutputEditor">取消</button>
-          <button class="button button-dark" type="submit">{{ editingId ? '保存' : '添加' }}</button>
+          <button class="button button-light" type="button" :disabled="submittingOutput" @click="closeOutputEditor">取消</button>
+          <button class="button button-dark" type="submit" :disabled="submittingOutput">{{ editingId ? '保存' : '添加' }}</button>
         </div>
       </form>
     </div>
@@ -737,13 +743,13 @@ function handleAwardImage(event) {
           </div>
         </div>
         <div class="row-actions">
-          <button class="icon-btn" type="button" @click="toggleHomeVisibility(activeTab, item)">
+          <button class="icon-btn" type="button" :disabled="submittingOutput" @click="toggleHomeVisibility(activeTab, item)">
             {{ item.visible_on_home === false ? '展示到主页' : '取消主页' }}
           </button>
-          <button class="icon-btn" type="button" @click="editItem(item)">
+          <button class="icon-btn" type="button" :disabled="submittingOutput" @click="editItem(item)">
             <Pencil :size="14" />
           </button>
-          <button class="icon-btn icon-btn-danger" type="button" @click="removeOutput(activeTab, item.id)">
+          <button class="icon-btn icon-btn-danger" type="button" :disabled="submittingOutput" @click="removeOutput(activeTab, item.id)">
             <Trash2 :size="14" />
           </button>
         </div>
