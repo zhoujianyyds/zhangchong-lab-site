@@ -590,6 +590,7 @@ const cloud = reactive({
 })
 
 let cloudSaveTimer = 0
+let cloudSaveInProgress = false
 
 function writeLocalState() {
   state.meta = {
@@ -609,14 +610,19 @@ async function saveImmediately() {
   writeLocalState()
   if (!sharedStateEnabled) return { ok: true }
   window.clearTimeout(cloudSaveTimer)
-  const result = await saveSharedState(cloneState())
-  if (result.ok) {
-    cloud.error = ''
-    cloud.lastSavedAt = new Date().toISOString()
-  } else {
-    cloud.error = result.message
+  cloudSaveInProgress = true
+  try {
+    const result = await saveSharedState(cloneState())
+    if (result.ok) {
+      cloud.error = ''
+      cloud.lastSavedAt = new Date().toISOString()
+    } else {
+      cloud.error = result.message
+    }
+    return result
+  } finally {
+    cloudSaveInProgress = false
   }
-  return result
 }
 
 function cloneState() {
@@ -641,12 +647,17 @@ function queueCloudSave() {
   if (!sharedStateEnabled) return
   window.clearTimeout(cloudSaveTimer)
   cloudSaveTimer = window.setTimeout(async () => {
-    const result = await saveSharedState(cloneState())
-    if (result.ok) {
-      cloud.error = ''
-      cloud.lastSavedAt = new Date().toISOString()
-    } else {
-      cloud.error = result.message
+    cloudSaveInProgress = true
+    try {
+      const result = await saveSharedState(cloneState())
+      if (result.ok) {
+        cloud.error = ''
+        cloud.lastSavedAt = new Date().toISOString()
+      } else {
+        cloud.error = result.message
+      }
+    } finally {
+      cloudSaveInProgress = false
     }
   }, 300)
 }
@@ -738,14 +749,18 @@ export function useLabStore() {
   const homeAwards = computed(() => sortedAwards.value.filter((item) => item.visible_on_home !== false))
 
   async function syncSharedState() {
-    if (!sharedStateEnabled || cloud.loading) return
+    if (!sharedStateEnabled || cloud.loading || cloudSaveInProgress) return
     cloud.loading = true
     cloud.error = ''
     const result = await fetchSharedState()
     if (result.ok && result.data) {
       const remoteData = migrateData(result.data)
-      replaceState(remoteData)
-      cloud.lastSavedAt = result.updatedAt || ''
+      const remoteUpdatedAt = stateUpdatedTime(remoteData, result.updatedAt)
+      const localUpdatedAt = stateUpdatedTime(state)
+      if (remoteUpdatedAt > localUpdatedAt) {
+        replaceState(remoteData)
+        cloud.lastSavedAt = result.updatedAt || remoteData.meta?.updatedAt || ''
+      }
     } else if (result.ok && !result.data) {
       if (!stateUpdatedTime(state)) writeLocalState()
       const seedResult = await saveSharedState(cloneState())
@@ -899,11 +914,12 @@ export function useLabStore() {
 
   async function deleteBooking(id) {
     const index = state.bookings.findIndex((item) => item.id === id)
-    if (index < 0) return
+    if (index < 0) return { ok: false, message: '预约不存在' }
     const item = state.bookings[index]
-    if (item.member_id !== currentMember.value?.id && !canDeleteOthers()) return
+    if (item.member_id !== currentMember.value?.id && !canDeleteOthers()) return { ok: false, message: '暂无权限' }
     state.bookings.splice(index, 1)
-    await saveImmediately()
+    const result = await saveImmediately()
+    return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
   }
 
   async function addReimbursement(payload) {
@@ -926,19 +942,22 @@ export function useLabStore() {
 
   async function updateReimbursementStatus(id, status) {
     const item = state.reimbursements.find((record) => record.id === id)
-    if (!item || !canViewAll()) return
+    if (!item) return { ok: false, message: '记录不存在' }
+    if (!canViewAll()) return { ok: false, message: '暂无权限' }
     item.status = status
     item.updated_at = new Date().toISOString()
-    await saveImmediately()
+    const result = await saveImmediately()
+    return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
   }
 
   async function deleteReimbursement(id) {
     const index = state.reimbursements.findIndex((item) => item.id === id)
-    if (index < 0) return
+    if (index < 0) return { ok: false, message: '记录不存在' }
     const item = state.reimbursements[index]
-    if (item.member_id !== currentMember.value?.id && !canDeleteOthers()) return
+    if (item.member_id !== currentMember.value?.id && !canDeleteOthers()) return { ok: false, message: '暂无权限' }
     state.reimbursements.splice(index, 1)
-    await saveImmediately()
+    const result = await saveImmediately()
+    return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
   }
 
   async function upsertMember(payload) {

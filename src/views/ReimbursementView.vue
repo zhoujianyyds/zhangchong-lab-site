@@ -31,8 +31,8 @@ function fileChanged(event) {
   form.files = Array.from(event.target.files || [])
 }
 
-function submitReimbursement() {
-  const result = store.addReimbursement({
+async function submitReimbursement() {
+  const result = await store.addReimbursement({
     amount: form.amount,
     reason: form.reason,
     file_names: form.files.map((file) => file.name),
@@ -42,6 +42,7 @@ function submitReimbursement() {
     form.amount = ''
     form.reason = ''
     form.files = []
+    window.alert('报销提交成功')
   }
 }
 
@@ -63,6 +64,17 @@ function exportCsv() {
   link.download = 'reimbursements.csv'
   link.click()
   URL.revokeObjectURL(url)
+}
+
+async function updateStatus(id, status) {
+  const result = await store.updateReimbursementStatus(id, status)
+  window.alert(result.ok ? '状态已更新' : result.message || '保存失败')
+}
+
+async function deleteReimbursement(id) {
+  if (!window.confirm('确定删除这条报销记录吗？')) return
+  const result = await store.deleteReimbursement(id)
+  window.alert(result.ok ? '报销记录已删除' : result.message || '删除失败')
 }
 </script>
 
@@ -120,13 +132,13 @@ function exportCsv() {
         <div class="reimb-meta">
           <span>{{ new Date(item.created_at).toLocaleString() }}</span>
           <div class="row-actions">
-            <button v-if="store.canViewAll()" class="icon-btn" type="button" @click="store.updateReimbursementStatus(item.id, 'approved')">
+            <button v-if="store.canViewAll()" class="icon-btn" type="button" @click="updateStatus(item.id, 'approved')">
               通过
             </button>
-            <button v-if="store.canViewAll()" class="icon-btn" type="button" @click="store.updateReimbursementStatus(item.id, 'rejected')">
+            <button v-if="store.canViewAll()" class="icon-btn" type="button" @click="updateStatus(item.id, 'rejected')">
               驳回
             </button>
-            <button class="icon-btn icon-btn-danger" type="button" @click="store.deleteReimbursement(item.id)">
+            <button class="icon-btn icon-btn-danger" type="button" @click="deleteReimbursement(item.id)">
               <Trash2 :size="14" />
             </button>
           </div>

@@ -98,6 +98,11 @@ function openSaveNotice(kind, order, action = '保存') {
   saveNotice.open = true
 }
 
+function successText(kind, action = '保存') {
+  const label = kind === 'awards' ? '获奖' : '论文'
+  return `${label}${action}成功`
+}
+
 function closeSaveNotice() {
   saveNotice.open = false
 }
@@ -146,6 +151,7 @@ async function submitOutput() {
   }
   if (!editingId.value && result.id) editingId.value = result.id
   form.sort_order = displayOrder
+  window.alert(successText(savingKind, wasEditing ? '保存' : '添加'))
   closeOutputEditor()
   openSaveNotice(savingKind, displayOrder, wasEditing ? '保存' : '添加')
 }

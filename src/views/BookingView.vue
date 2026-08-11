@@ -34,14 +34,23 @@ function shiftDay(step) {
   selectedDate.value = date.toISOString().slice(0, 10)
 }
 
-function submitBooking() {
-  const result = store.addBooking({
+async function submitBooking() {
+  const result = await store.addBooking({
     room_id: selectedRoom.value,
     date: selectedDate.value,
     ...form,
   })
   error.value = result.ok ? '' : result.message
-  if (result.ok) form.reason = ''
+  if (result.ok) {
+    form.reason = ''
+    window.alert('预约添加成功')
+  }
+}
+
+async function deleteBooking(id) {
+  if (!window.confirm('确定取消这个预约吗？')) return
+  const result = await store.deleteBooking(id)
+  window.alert(result.ok ? '预约已取消' : result.message || '取消失败')
 }
 </script>
 
@@ -105,7 +114,7 @@ function submitBooking() {
           <strong>{{ item.reason }}</strong>
           <span>{{ roomName(item.room_id) }} · 预约人：{{ memberName(item.member_id) }}</span>
         </div>
-        <button class="booking-delete" type="button" title="取消预约" @click="store.deleteBooking(item.id)">
+        <button class="booking-delete" type="button" title="取消预约" @click="deleteBooking(item.id)">
           <Trash2 :size="15" />
         </button>
       </article>

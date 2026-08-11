@@ -76,9 +76,9 @@ function editableClass() {
   return { editable: store.isSuperAdmin() }
 }
 
-async function saveEditResult(promise) {
+async function saveEditResult(promise, successMessage = '保存成功') {
   const result = await promise
-  if (!result.ok) window.alert(result.message || '保存失败')
+  window.alert(result.ok ? successMessage : result.message || '保存失败')
 }
 
 function editSiteField(field, label) {
@@ -89,7 +89,7 @@ function editSiteField(field, label) {
     ...store.state.site,
     [field]: next,
     researchLines: store.state.site.researchLines,
-  }))
+  }), '文字保存成功')
 }
 
 function editResearchLine(index, field, label) {
@@ -101,7 +101,7 @@ function editResearchLine(index, field, label) {
   saveEditResult(store.updateSiteContent({
     ...store.state.site,
     researchLines: lines,
-  }))
+  }), '研究方向保存成功')
 }
 
 function editToolCard(index, field, label) {
@@ -113,7 +113,7 @@ function editToolCard(index, field, label) {
   saveEditResult(store.updateSiteContent({
     ...store.state.site,
     toolCards,
-  }))
+  }), '工具文字保存成功')
 }
 
 function editMemberField(member, field, label) {
@@ -123,7 +123,7 @@ function editMemberField(member, field, label) {
   saveEditResult(store.upsertMember({
     ...JSON.parse(JSON.stringify(member)),
     [field]: next,
-  }))
+  }), '成员文字保存成功')
 }
 
 function editPublication(item, field, label) {
@@ -133,7 +133,7 @@ function editPublication(item, field, label) {
   saveEditResult(store.upsertOutput('publications', {
     ...JSON.parse(JSON.stringify(item)),
     [field]: field === 'pub_year' ? Number(next) || '' : next,
-  }))
+  }), '论文文字保存成功')
 }
 
 function editProject(item, field, label) {
@@ -143,7 +143,7 @@ function editProject(item, field, label) {
   saveEditResult(store.upsertOutput('projects', {
     ...JSON.parse(JSON.stringify(item)),
     [field]: next,
-  }))
+  }), '项目文字保存成功')
 }
 
 function editAward(item, field, label) {
@@ -153,7 +153,7 @@ function editAward(item, field, label) {
   saveEditResult(store.upsertOutput('awards', {
     ...JSON.parse(JSON.stringify(item)),
     [field]: next,
-  }))
+  }), '获奖文字保存成功')
 }
 
 function openOutput(item, kind) {

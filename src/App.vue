@@ -97,9 +97,9 @@ function editableClass() {
   return { editable: store.isSuperAdmin() }
 }
 
-async function saveEditResult(promise) {
+async function saveEditResult(promise, successMessage = '保存成功') {
   const result = await promise
-  if (!result.ok) window.alert(result.message || '保存失败')
+  window.alert(result.ok ? successMessage : result.message || '保存失败')
 }
 
 function editSiteField(field, label) {
@@ -109,7 +109,7 @@ function editSiteField(field, label) {
   saveEditResult(store.updateSiteContent({
     ...store.state.site,
     [field]: next,
-  }))
+  }), '文字保存成功')
 }
 
 function logout() {
