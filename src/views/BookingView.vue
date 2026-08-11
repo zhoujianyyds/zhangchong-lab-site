@@ -13,6 +13,7 @@ const form = reactive({
   reason: '',
 })
 const error = ref('')
+const bookingBusy = ref(false)
 
 const bookings = computed(() =>
   store.state.bookings
@@ -35,22 +36,34 @@ function shiftDay(step) {
 }
 
 async function submitBooking() {
-  const result = await store.addBooking({
-    room_id: selectedRoom.value,
-    date: selectedDate.value,
-    ...form,
-  })
-  error.value = result.ok ? '' : result.message
-  if (result.ok) {
-    form.reason = ''
-    window.alert('预约添加成功')
+  if (bookingBusy.value) return
+  bookingBusy.value = true
+  try {
+    const result = await store.addBooking({
+      room_id: selectedRoom.value,
+      date: selectedDate.value,
+      ...form,
+    })
+    error.value = result.ok ? '' : result.message
+    if (result.ok) {
+      form.reason = ''
+      window.alert('预约添加成功')
+    }
+  } finally {
+    bookingBusy.value = false
   }
 }
 
 async function deleteBooking(id) {
+  if (bookingBusy.value) return
   if (!(await window.appConfirm('确定取消这个预约吗？', '取消预约'))) return
-  const result = await store.deleteBooking(id)
-  window.alert(result.ok ? '预约已取消' : result.message || '取消失败')
+  bookingBusy.value = true
+  try {
+    const result = await store.deleteBooking(id)
+    window.alert(result.ok ? '预约已取消' : result.message || '取消失败')
+  } finally {
+    bookingBusy.value = false
+  }
 }
 </script>
 
@@ -97,7 +110,7 @@ async function deleteBooking(id) {
         <input id="booking-reason" v-model="form.reason" type="text" placeholder="简述使用事由" />
       </div>
       <div v-if="error" class="form-error">{{ error }}</div>
-      <button class="button button-dark" type="submit">
+      <button class="button button-dark" type="submit" :disabled="bookingBusy">
         <CalendarPlus :size="16" />
         确认预约
       </button>
@@ -114,7 +127,7 @@ async function deleteBooking(id) {
           <strong>{{ item.reason }}</strong>
           <span>{{ roomName(item.room_id) }} · 预约人：{{ memberName(item.member_id) }}</span>
         </div>
-        <button class="booking-delete" type="button" title="取消预约" @click="deleteBooking(item.id)">
+        <button class="booking-delete" type="button" title="取消预约" :disabled="bookingBusy" @click="deleteBooking(item.id)">
           <Trash2 :size="15" />
         </button>
       </article>

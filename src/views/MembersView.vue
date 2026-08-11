@@ -10,6 +10,7 @@ const keyword = ref('')
 const feedback = ref('')
 const profileFeedback = ref('')
 const memberFormOpen = ref(false)
+const memberBusy = ref(false)
 const toolLabels = {
   members: '成员管理',
   outputs: '成果管理',
@@ -143,58 +144,70 @@ function editMember(member) {
 }
 
 async function submitMember() {
+  if (memberBusy.value) return
   if (!form.name.trim() || !form.staff_id.trim()) return
+  memberBusy.value = true
   const isEditing = Boolean(editingId.value)
-  if (isLockedStudyInfo.value) {
-    form.grade = ''
-    form.direction = ''
-  }
-  if (form.staff_id === 'admin') form.role = 'superadmin'
-  if (form.staff_id === 'zhangchong') form.role = 'teacher'
-  if (form.staff_id === '202522000755' || form.name === '周健') form.role = 'student'
-  if (form.staff_id === 'admin') {
-    form.permissions.tool_access = [...store.toolIds]
-    form.permissions.password_required_tools = [...store.toolIds]
-    form.permissions.can_view_all = true
-    form.permissions.can_export = true
-    form.permissions.can_delete_others = true
-    form.permissions.can_manage_members = true
-  } else {
-    form.permissions = {
-      can_manage_members: false,
-      can_view_all: false,
-      can_export: false,
-      can_delete_others: false,
-      tool_access: [],
-      password_required_tools: [],
+  try {
+    if (isLockedStudyInfo.value) {
+      form.grade = ''
+      form.direction = ''
     }
+    if (form.staff_id === 'admin') form.role = 'superadmin'
+    if (form.staff_id === 'zhangchong') form.role = 'teacher'
+    if (form.staff_id === '202522000755' || form.name === '周健') form.role = 'student'
+    if (form.staff_id === 'admin') {
+      form.permissions.tool_access = [...store.toolIds]
+      form.permissions.password_required_tools = [...store.toolIds]
+      form.permissions.can_view_all = true
+      form.permissions.can_export = true
+      form.permissions.can_delete_others = true
+      form.permissions.can_manage_members = true
+    } else {
+      form.permissions = {
+        can_manage_members: false,
+        can_view_all: false,
+        can_export: false,
+        can_delete_others: false,
+        tool_access: [],
+        password_required_tools: [],
+      }
+    }
+    const result = await store.upsertMember({
+      id: editingId.value,
+      ...JSON.parse(JSON.stringify(form)),
+    })
+    if (!result.ok) {
+      window.alert(result.message || '保存失败')
+      return
+    }
+    resetForm()
+    memberFormOpen.value = false
+    feedback.value = isEditing ? '修改成功' : '添加成功'
+    window.alert(feedback.value)
+  } finally {
+    memberBusy.value = false
   }
-  const result = await store.upsertMember({
-    id: editingId.value,
-    ...JSON.parse(JSON.stringify(form)),
-  })
-  if (!result.ok) {
-    window.alert(result.message || '保存失败')
-    return
-  }
-  resetForm()
-  memberFormOpen.value = false
-  feedback.value = isEditing ? '修改成功' : '添加成功'
-  window.alert(feedback.value)
 }
 
 async function toggleMemberVisibility(member) {
+  if (memberBusy.value) return
   if (member.staff_id === 'admin') return
-  const result = await store.upsertMember({
-    ...JSON.parse(JSON.stringify(member)),
-    visible_on_site: !member.visible_on_site,
-  })
-  if (!result.ok) {
-    window.alert(result.message || '保存失败')
-    return
+  memberBusy.value = true
+  try {
+    const result = await store.upsertMember({
+      ...JSON.parse(JSON.stringify(member)),
+      visible_on_site: !member.visible_on_site,
+    })
+    if (!result.ok) {
+      window.alert(result.message || '保存失败')
+      return
+    }
+    feedback.value = '修改成功'
+    window.alert(feedback.value)
+  } finally {
+    memberBusy.value = false
   }
-  feedback.value = '修改成功'
-  window.alert(feedback.value)
 }
 
 function toggleArrayValue(list, value) {
@@ -219,7 +232,9 @@ function setPhotoFromFile(event, target) {
   event.target.value = ''
 }
 
-function clearPhoto(target) {
+async function clearPhoto(target) {
+  if (memberBusy.value) return
+  if (!(await window.appConfirm('确定移除这张照片吗？保存后才会正式生效。', '移除照片'))) return
   target.photo = ''
 }
 
@@ -237,54 +252,79 @@ function gradeLabel(grade) {
 }
 
 async function approveRegistration(record) {
-  const result = await store.approveRegistration(record.id)
-  if (result.ok) {
-    window.alert('审批通过，注册成功')
-  } else {
-    window.alert(result.message)
+  if (memberBusy.value) return
+  memberBusy.value = true
+  try {
+    const result = await store.approveRegistration(record.id)
+    if (result.ok) {
+      window.alert('审批通过，注册成功')
+    } else {
+      window.alert(result.message)
+    }
+  } finally {
+    memberBusy.value = false
   }
 }
 
 async function rejectRegistration(record) {
-  const result = await store.rejectRegistration(record.id)
-  if (!result.ok) {
-    window.alert(result.message || '保存失败')
-    return
+  if (memberBusy.value) return
+  if (!(await window.appConfirm(`确定拒绝「${record.name}」的注册申请吗？`, '拒绝注册'))) return
+  memberBusy.value = true
+  try {
+    const result = await store.rejectRegistration(record.id)
+    if (!result.ok) {
+      window.alert(result.message || '保存失败')
+      return
+    }
+    window.alert('已拒绝注册申请')
+  } finally {
+    memberBusy.value = false
   }
-  window.alert('已拒绝注册申请')
 }
 
 async function removeMember(member) {
+  if (memberBusy.value) return
   if (!(await window.appConfirm(`确定删除「${member.name}」吗？删除后无法恢复。`, '删除成员'))) return
-  const result = await store.removeMember(member.id)
-  if (!result.ok) {
-    window.alert(result.message || '保存失败')
-    return
+  memberBusy.value = true
+  try {
+    const result = await store.removeMember(member.id)
+    if (!result.ok) {
+      window.alert(result.message || '保存失败')
+      return
+    }
+    window.alert('删除成功')
+  } finally {
+    memberBusy.value = false
   }
-  window.alert('删除成功')
 }
 
 async function submitProfile() {
+  if (memberBusy.value) return
   const member = store.currentMember.value
   if (!member || store.isSuperAdmin()) return
-  const result = await store.upsertMember({
-    ...JSON.parse(JSON.stringify(member)),
-    name: profileForm.name.trim(),
-    grade: profileForm.grade,
-    direction: profileForm.direction,
-    phone: profileForm.phone,
-    email: profileForm.email,
-    wechat: profileForm.wechat,
-    qq: profileForm.qq,
-    photo: profileForm.photo,
-    bio: profileForm.bio,
-  })
-  if (!result.ok) {
-    window.alert(result.message || '保存失败')
-    return
+  memberBusy.value = true
+  try {
+    const result = await store.upsertMember({
+      ...JSON.parse(JSON.stringify(member)),
+      name: profileForm.name.trim(),
+      grade: profileForm.grade,
+      direction: profileForm.direction,
+      phone: profileForm.phone,
+      email: profileForm.email,
+      wechat: profileForm.wechat,
+      qq: profileForm.qq,
+      photo: profileForm.photo,
+      bio: profileForm.bio,
+    })
+    if (!result.ok) {
+      window.alert(result.message || '保存失败')
+      return
+    }
+    profileFeedback.value = '修改成功'
+    window.alert(profileFeedback.value)
+  } finally {
+    memberBusy.value = false
   }
-  profileFeedback.value = '修改成功'
-  window.alert(profileFeedback.value)
 }
 </script>
 
@@ -309,7 +349,7 @@ async function submitProfile() {
             上传照片
             <input class="photo-input" type="file" accept="image/*" @change="setPhotoFromFile($event, profileForm)" />
           </label>
-          <button class="button button-light" type="button" @click="clearPhoto(profileForm)">移除照片</button>
+          <button class="button button-light" type="button" :disabled="memberBusy" @click="clearPhoto(profileForm)">移除照片</button>
         </div>
       </div>
       <div class="form-row">
@@ -369,7 +409,7 @@ async function submitProfile() {
         <label for="profile-bio">个人简介</label>
         <textarea id="profile-bio" v-model="profileForm.bio" rows="4"></textarea>
       </div>
-      <button class="button button-dark" type="button" @click="submitProfile">保存个人信息</button>
+      <button class="button button-dark" type="button" :disabled="memberBusy" @click="submitProfile">保存个人信息</button>
     </form>
 
     <template v-else>
@@ -418,10 +458,10 @@ async function submitProfile() {
               <td>{{ record.direction }}</td>
               <td>
                 <div class="row-actions">
-                  <button class="icon-btn vis-on" type="button" title="通过" @click="approveRegistration(record)">
+                  <button class="icon-btn vis-on" type="button" title="通过" :disabled="memberBusy" @click="approveRegistration(record)">
                     <Check :size="14" />
                   </button>
-                  <button class="icon-btn icon-btn-danger" type="button" title="拒绝" @click="rejectRegistration(record)">
+                  <button class="icon-btn icon-btn-danger" type="button" title="拒绝" :disabled="memberBusy" @click="rejectRegistration(record)">
                     <X :size="14" />
                   </button>
                 </div>
@@ -437,11 +477,11 @@ async function submitProfile() {
     <form class="tool-form modal-panel member-modal member-edit-form" @submit.prevent>
       <div class="tool-page-title-row">
         <h2 class="panel-title">{{ editingId ? '编辑成员' : '添加成员' }}</h2>
-        <button class="button button-light" type="button" @click="resetForm">
+        <button class="button button-light" type="button" :disabled="memberBusy" @click="resetForm">
           <Plus :size="16" />
           新建
         </button>
-        <button class="modal-close" type="button" @click="closeMemberForm">
+        <button class="modal-close" type="button" :disabled="memberBusy" @click="closeMemberForm">
           <X :size="16" />
         </button>
       </div>
@@ -456,7 +496,7 @@ async function submitProfile() {
             上传照片
             <input class="photo-input" type="file" accept="image/*" @change="setPhotoFromFile($event, form)" />
           </label>
-          <button class="button button-light" type="button" @click="clearPhoto(form)">移除照片</button>
+          <button class="button button-light" type="button" :disabled="memberBusy" @click="clearPhoto(form)">移除照片</button>
         </div>
       </div>
       <div class="form-row">
@@ -586,14 +626,14 @@ async function submitProfile() {
         </label>
       </div>
 
-      <button class="button button-dark" type="button" @click="submitMember">{{ editingId ? '保存' : '添加成员' }}</button>
+      <button class="button button-dark" type="button" :disabled="memberBusy" @click="submitMember">{{ editingId ? '保存' : '添加成员' }}</button>
       </form>
     </div>
 
     <div class="filter-bar member-list-filter">
       <h2 class="panel-title">所有成员</h2>
       <input v-model="keyword" class="filter-input" type="search" placeholder="按姓名、工号、方向筛选" />
-      <button class="button button-dark" type="button" @click="openCreateForm">
+      <button class="button button-dark" type="button" :disabled="memberBusy" @click="openCreateForm">
         <Plus :size="16" />
         添加成员
       </button>
@@ -629,7 +669,7 @@ async function submitProfile() {
                 class="vis-btn"
                 :class="member.visible_on_site ? 'vis-on' : 'vis-off'"
                 type="button"
-                :disabled="member.staff_id === 'admin'"
+                :disabled="memberBusy || member.staff_id === 'admin'"
                 @click="toggleMemberVisibility(member)"
               >
                 <Eye v-if="member.visible_on_site" :size="14" />
@@ -639,10 +679,10 @@ async function submitProfile() {
             </td>
             <td>
               <div class="row-actions">
-                <button class="icon-btn" type="button" @click="editMember(member)">
+                <button class="icon-btn" type="button" :disabled="memberBusy" @click="editMember(member)">
                   <Pencil :size="14" />
                 </button>
-                <button class="icon-btn icon-btn-danger" type="button" @click="removeMember(member)">
+                <button class="icon-btn icon-btn-danger" type="button" :disabled="memberBusy" @click="removeMember(member)">
                   <Trash2 :size="14" />
                 </button>
               </div>

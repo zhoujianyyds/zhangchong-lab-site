@@ -6,6 +6,7 @@ import { useLabStore } from '../stores/labStore'
 
 const store = useLabStore()
 const feedback = ref('')
+const profileBusy = ref(false)
 const directionOptions = ['油气井', '嵌入式', 'Agent']
 const form = reactive({
   name: '',
@@ -62,33 +63,41 @@ function setPhotoFromFile(event) {
   event.target.value = ''
 }
 
-function clearPhoto() {
+async function clearPhoto() {
+  if (profileBusy.value) return
+  if (!(await window.appConfirm('确定移除这张照片吗？保存后才会正式生效。', '移除照片'))) return
   form.photo = ''
 }
 
 async function submitProfile() {
+  if (profileBusy.value) return
   const member = currentMember.value
   if (!member || isSystemAdmin.value) return
   const nextGrade = lockStudyInfo.value ? '' : form.grade
   const nextDirection = lockStudyInfo.value ? '' : form.direction
-  const result = await store.upsertMember({
-    ...JSON.parse(JSON.stringify(member)),
-    name: form.name.trim(),
-    grade: nextGrade,
-    direction: nextDirection,
-    phone: form.phone,
-    email: form.email,
-    wechat: form.wechat,
-    qq: form.qq,
-    photo: form.photo,
-    bio: form.bio,
-  })
-  if (!result.ok) {
-    window.alert(result.message || '保存失败')
-    return
+  profileBusy.value = true
+  try {
+    const result = await store.upsertMember({
+      ...JSON.parse(JSON.stringify(member)),
+      name: form.name.trim(),
+      grade: nextGrade,
+      direction: nextDirection,
+      phone: form.phone,
+      email: form.email,
+      wechat: form.wechat,
+      qq: form.qq,
+      photo: form.photo,
+      bio: form.bio,
+    })
+    if (!result.ok) {
+      window.alert(result.message || '保存失败')
+      return
+    }
+    feedback.value = '修改成功'
+    window.alert(feedback.value)
+  } finally {
+    profileBusy.value = false
   }
-  feedback.value = '修改成功'
-  window.alert(feedback.value)
 }
 </script>
 
@@ -121,7 +130,7 @@ async function submitProfile() {
             上传照片
             <input class="photo-input" type="file" accept="image/*" @change="setPhotoFromFile" />
           </label>
-          <button class="button button-light" type="button" @click="clearPhoto">
+          <button class="button button-light" type="button" :disabled="profileBusy" @click="clearPhoto">
             <RefreshCw :size="16" />
             移除照片
           </button>
@@ -191,7 +200,7 @@ async function submitProfile() {
         <textarea id="space-bio" v-model="form.bio" rows="5"></textarea>
       </div>
 
-      <button class="button button-dark" type="button" @click="submitProfile">
+      <button class="button button-dark" type="button" :disabled="profileBusy" @click="submitProfile">
         <Save :size="16" />
         保存个人空间
       </button>

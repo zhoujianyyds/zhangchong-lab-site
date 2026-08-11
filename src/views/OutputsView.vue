@@ -191,8 +191,10 @@ function addResearchLine() {
   })
 }
 
-function removeResearchLine(index) {
+async function removeResearchLine(index) {
+  if (outputBusy.value) return
   if (siteForm.researchLines.length <= 1) return
+  if (!(await window.appConfirm('确定删除这个研究方向吗？保存站点内容后才会正式生效。', '删除方向'))) return
   siteForm.researchLines.splice(index, 1)
 }
 
@@ -225,7 +227,9 @@ async function toggleHomeVisibility(kind, item) {
   }
 }
 
-function removeAwardImage() {
+async function removeAwardImage() {
+  if (outputBusy.value) return
+  if (!(await window.appConfirm('确定删除这张获奖图片吗？保存成果后才会正式生效。', '删除图片'))) return
   form.image_data = ''
   form.image_url = ''
   form.image_name = ''
@@ -554,7 +558,7 @@ function handleAwardImage(event) {
             <label :for="`research-text-${index}`">说明</label>
             <textarea :id="`research-text-${index}`" v-model="line.text"></textarea>
           </div>
-          <button class="icon-btn icon-btn-danger" type="button" @click="removeResearchLine(index)">
+          <button class="icon-btn icon-btn-danger" type="button" :disabled="outputBusy" @click="removeResearchLine(index)">
             <Trash2 :size="14" />
             删除方向
           </button>
@@ -691,7 +695,7 @@ function handleAwardImage(event) {
               <button class="icon-btn" type="button" title="下载图片" @click="downloadAwardImage">
                 <Download :size="15" />
               </button>
-              <button class="icon-btn icon-btn-danger" type="button" title="删除图片" @click="removeAwardImage">
+              <button class="icon-btn icon-btn-danger" type="button" title="删除图片" :disabled="outputBusy" @click="removeAwardImage">
                 <X :size="15" />
               </button>
             </div>

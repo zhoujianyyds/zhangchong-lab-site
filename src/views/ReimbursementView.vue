@@ -8,6 +8,7 @@ const store = useLabStore()
 const form = reactive({ amount: '', reason: '', files: [] })
 const statusFilter = ref('all')
 const error = ref('')
+const reimbursementBusy = ref(false)
 
 const visibleRecords = computed(() => {
   let records = store.canViewAll()
@@ -32,17 +33,23 @@ function fileChanged(event) {
 }
 
 async function submitReimbursement() {
-  const result = await store.addReimbursement({
-    amount: form.amount,
-    reason: form.reason,
-    file_names: form.files.map((file) => file.name),
-  })
-  error.value = result.ok ? '' : result.message
-  if (result.ok) {
-    form.amount = ''
-    form.reason = ''
-    form.files = []
-    window.alert('报销提交成功')
+  if (reimbursementBusy.value) return
+  reimbursementBusy.value = true
+  try {
+    const result = await store.addReimbursement({
+      amount: form.amount,
+      reason: form.reason,
+      file_names: form.files.map((file) => file.name),
+    })
+    error.value = result.ok ? '' : result.message
+    if (result.ok) {
+      form.amount = ''
+      form.reason = ''
+      form.files = []
+      window.alert('报销提交成功')
+    }
+  } finally {
+    reimbursementBusy.value = false
   }
 }
 
@@ -67,14 +74,26 @@ function exportCsv() {
 }
 
 async function updateStatus(id, status) {
-  const result = await store.updateReimbursementStatus(id, status)
-  window.alert(result.ok ? '状态已更新' : result.message || '保存失败')
+  if (reimbursementBusy.value) return
+  reimbursementBusy.value = true
+  try {
+    const result = await store.updateReimbursementStatus(id, status)
+    window.alert(result.ok ? '状态已更新' : result.message || '保存失败')
+  } finally {
+    reimbursementBusy.value = false
+  }
 }
 
 async function deleteReimbursement(id) {
+  if (reimbursementBusy.value) return
   if (!(await window.appConfirm('确定删除这条报销记录吗？', '删除确认'))) return
-  const result = await store.deleteReimbursement(id)
-  window.alert(result.ok ? '报销记录已删除' : result.message || '删除失败')
+  reimbursementBusy.value = true
+  try {
+    const result = await store.deleteReimbursement(id)
+    window.alert(result.ok ? '报销记录已删除' : result.message || '删除失败')
+  } finally {
+    reimbursementBusy.value = false
+  }
 }
 </script>
 
@@ -97,7 +116,7 @@ async function deleteReimbursement(id) {
       </div>
       <p class="form-note">前端演示版只保存文件名；正式上线时文件应上传到后端或对象存储。</p>
       <div v-if="error" class="form-error">{{ error }}</div>
-      <button class="button button-dark" type="submit">
+      <button class="button button-dark" type="submit" :disabled="reimbursementBusy">
         <ReceiptText :size="16" />
         提交报销
       </button>
@@ -132,13 +151,13 @@ async function deleteReimbursement(id) {
         <div class="reimb-meta">
           <span>{{ new Date(item.created_at).toLocaleString() }}</span>
           <div class="row-actions">
-            <button v-if="store.canViewAll()" class="icon-btn" type="button" @click="updateStatus(item.id, 'approved')">
+            <button v-if="store.canViewAll()" class="icon-btn" type="button" :disabled="reimbursementBusy" @click="updateStatus(item.id, 'approved')">
               通过
             </button>
-            <button v-if="store.canViewAll()" class="icon-btn" type="button" @click="updateStatus(item.id, 'rejected')">
+            <button v-if="store.canViewAll()" class="icon-btn" type="button" :disabled="reimbursementBusy" @click="updateStatus(item.id, 'rejected')">
               驳回
             </button>
-            <button class="icon-btn icon-btn-danger" type="button" @click="deleteReimbursement(item.id)">
+            <button class="icon-btn icon-btn-danger" type="button" :disabled="reimbursementBusy" @click="deleteReimbursement(item.id)">
               <Trash2 :size="14" />
             </button>
           </div>
