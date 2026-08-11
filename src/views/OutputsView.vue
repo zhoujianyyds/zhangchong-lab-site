@@ -15,6 +15,7 @@ const tabs = [
 const form = reactive(createEmptyForm(activeTab.value))
 const siteForm = reactive(cloneSiteForm())
 const siteFeedback = ref('')
+const outputFeedback = ref('')
 const editorOpen = ref(false)
 const saveNotice = reactive({
   open: false,
@@ -151,9 +152,15 @@ async function submitOutput() {
   }
   if (!editingId.value && result.id) editingId.value = result.id
   form.sort_order = displayOrder
-  window.alert(successText(savingKind, wasEditing ? '保存' : '添加'))
+  outputFeedback.value = successText(savingKind, wasEditing ? '保存' : '添加')
+  window.alert(outputFeedback.value)
   closeOutputEditor()
   openSaveNotice(savingKind, displayOrder, wasEditing ? '保存' : '添加')
+  window.setTimeout(() => {
+    if (outputFeedback.value === successText(savingKind, wasEditing ? '保存' : '添加')) {
+      outputFeedback.value = ''
+    }
+  }, 3500)
 }
 
 function resetSiteForm() {
@@ -571,6 +578,7 @@ function handleAwardImage(event) {
           新增{{ activeTabLabel }}
         </button>
       </div>
+      <div v-if="outputFeedback" class="form-success">{{ outputFeedback }}</div>
     </section>
 
     <div v-if="editorOpen && activeTab !== 'site'" class="modal-overlay output-editor-overlay" role="presentation">
