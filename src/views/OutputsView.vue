@@ -17,6 +17,7 @@ const siteForm = reactive(cloneSiteForm())
 const siteFeedback = ref('')
 const editorOpen = ref(false)
 const submittingOutput = ref(false)
+const outputBusy = computed(() => submittingOutput.value)
 let saveNoticeTimer = 0
 const saveNotice = reactive({
   open: false,
@@ -69,14 +70,15 @@ function resetForm() {
   Object.assign(form, createEmptyForm(activeTab.value))
 }
 
-function closeOutputEditor() {
-  if (submittingOutput.value) return
+function closeOutputEditor(force = false) {
+  if (submittingOutput.value && !force) return
   editorOpen.value = false
   saveNotice.open = false
   resetForm()
 }
 
 function openOutputEditor(tab = activeTab.value, item = null) {
+  if (outputBusy.value) return
   activeTab.value = tab
   saveNotice.open = false
   if (item) {
@@ -163,7 +165,7 @@ async function submitOutput() {
     }
     if (!editingId.value && result.id) editingId.value = result.id
     form.sort_order = displayOrder
-    closeOutputEditor()
+    closeOutputEditor(true)
     openSaveNotice(savingKind, displayOrder, wasEditing ? '保存' : '添加')
   } finally {
     submittingOutput.value = false
@@ -185,16 +187,22 @@ async function submitSiteContent() {
 }
 
 async function removeOutput(kind, id) {
+  if (outputBusy.value) return
   const item = store.state[kind]?.find((record) => record.id === id)
   const label = kind === 'awards' ? '获奖' : '论文'
   const name = item?.title ? `「${item.title}」` : `该${label}`
   if (!window.confirm(`确定删除${name}吗？删除后无法恢复。`)) return
-  const result = await store.removeOutput(kind, id)
-  if (!result.ok) {
-    window.alert(result.message || '保存失败')
-    return
+  submittingOutput.value = true
+  try {
+    const result = await store.removeOutput(kind, id)
+    if (!result.ok) {
+      window.alert(result.message || '保存失败')
+      return
+    }
+    window.alert(`${label}删除成功`)
+  } finally {
+    submittingOutput.value = false
   }
-  window.alert(`${label}删除成功`)
 }
 
 function addResearchLine() {
@@ -228,11 +236,17 @@ function editItem(item) {
 }
 
 async function toggleHomeVisibility(kind, item) {
-  const result = await store.upsertOutput(kind, {
-    ...JSON.parse(JSON.stringify(item)),
-    visible_on_home: item.visible_on_home === false,
-  })
-  if (!result.ok) window.alert(result.message || '保存失败')
+  if (outputBusy.value) return
+  submittingOutput.value = true
+  try {
+    const result = await store.upsertOutput(kind, {
+      ...JSON.parse(JSON.stringify(item)),
+      visible_on_home: item.visible_on_home === false,
+    })
+    if (!result.ok) window.alert(result.message || '保存失败')
+  } finally {
+    submittingOutput.value = false
+  }
 }
 
 function removeAwardImage() {
@@ -580,7 +594,7 @@ function handleAwardImage(event) {
           <h2 class="panel-title">{{ activeTabLabel }}管理</h2>
           <p class="field-hint">新增、编辑、排序和主页展示都在这里维护；展示编号可直接填写。</p>
         </div>
-        <button class="button button-dark" type="button" :disabled="submittingOutput" @click="openOutputEditor(activeTab)">
+        <button class="button button-dark" type="button" :disabled="outputBusy" @click="openOutputEditor(activeTab)">
           <Plus :size="16" />
           新增{{ activeTabLabel }}
         </button>
@@ -588,13 +602,13 @@ function handleAwardImage(event) {
     </section>
 
     <div v-if="editorOpen && activeTab !== 'site'" class="modal-overlay output-editor-overlay" role="presentation">
-      <form class="tool-form modal-panel output-editor-modal" :class="{ 'is-submitting': submittingOutput }" @submit.prevent="submitOutput">
+      <form class="tool-form modal-panel output-editor-modal" :class="{ 'is-submitting': outputBusy }" @submit.prevent="submitOutput">
         <div class="tool-page-title-row output-editor-head">
           <div>
             <h2 class="panel-title">{{ editingId ? `编辑${activeTabLabel}` : `新增${activeTabLabel}` }}</h2>
             <p class="field-hint">点击右上角关闭才会退出编辑，点到弹窗外不会丢失已输入内容。</p>
           </div>
-          <button class="modal-close" type="button" title="关闭" :disabled="submittingOutput" @click="closeOutputEditor">
+          <button class="modal-close" type="button" title="关闭" :disabled="outputBusy" @click="closeOutputEditor">
             <X :size="16" />
           </button>
         </div>
@@ -722,8 +736,8 @@ function handleAwardImage(event) {
         </template>
 
         <div class="output-editor-actions">
-          <button class="button button-light" type="button" :disabled="submittingOutput" @click="closeOutputEditor">取消</button>
-          <button class="button button-dark" type="submit" :disabled="submittingOutput">{{ editingId ? '保存' : '添加' }}</button>
+          <button class="button button-light" type="button" :disabled="outputBusy" @click="closeOutputEditor">取消</button>
+          <button class="button button-dark" type="submit" :disabled="outputBusy">{{ editingId ? '保存' : '添加' }}</button>
         </div>
       </form>
     </div>
@@ -743,13 +757,13 @@ function handleAwardImage(event) {
           </div>
         </div>
         <div class="row-actions">
-          <button class="icon-btn" type="button" :disabled="submittingOutput" @click="toggleHomeVisibility(activeTab, item)">
+          <button class="icon-btn" type="button" :disabled="outputBusy" @click="toggleHomeVisibility(activeTab, item)">
             {{ item.visible_on_home === false ? '展示到主页' : '取消主页' }}
           </button>
-          <button class="icon-btn" type="button" :disabled="submittingOutput" @click="editItem(item)">
+          <button class="icon-btn" type="button" :disabled="outputBusy" @click="editItem(item)">
             <Pencil :size="14" />
           </button>
-          <button class="icon-btn icon-btn-danger" type="button" :disabled="submittingOutput" @click="removeOutput(activeTab, item.id)">
+          <button class="icon-btn icon-btn-danger" type="button" :disabled="outputBusy" @click="removeOutput(activeTab, item.id)">
             <Trash2 :size="14" />
           </button>
         </div>
