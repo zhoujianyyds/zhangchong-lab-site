@@ -18,12 +18,6 @@ const siteFeedback = ref('')
 const editorOpen = ref(false)
 const submittingOutput = ref(false)
 const outputBusy = computed(() => submittingOutput.value)
-let saveNoticeTimer = 0
-const saveNotice = reactive({
-  open: false,
-  title: '',
-  message: '',
-})
 
 const activeList = computed(() => {
   if (activeTab.value === 'publications') return store.sortedPublications.value
@@ -73,14 +67,12 @@ function resetForm() {
 function closeOutputEditor(force = false) {
   if (submittingOutput.value && !force) return
   editorOpen.value = false
-  saveNotice.open = false
   resetForm()
 }
 
 function openOutputEditor(tab = activeTab.value, item = null) {
   if (outputBusy.value) return
   activeTab.value = tab
-  saveNotice.open = false
   if (item) {
     editingId.value = item.id
     Object.assign(form, createEmptyForm(tab), JSON.parse(JSON.stringify(item)))
@@ -97,25 +89,9 @@ function switchTab(tab) {
   closeOutputEditor()
 }
 
-function openSaveNotice(kind, order, action = '保存') {
-  window.clearTimeout(saveNoticeTimer)
-  const label = kind === 'awards' ? '获奖' : '论文'
-  saveNotice.title = `${label}${action}成功`
-  saveNotice.message = `已经${action}成功，展示编号为 ${String(order).padStart(2, '0')}。`
-  saveNotice.open = true
-  saveNoticeTimer = window.setTimeout(() => {
-    saveNotice.open = false
-  }, 3000)
-}
-
 function successText(kind, action = '保存') {
   const label = kind === 'awards' ? '获奖' : '论文'
   return `${label}${action}成功`
-}
-
-function closeSaveNotice() {
-  window.clearTimeout(saveNoticeTimer)
-  saveNotice.open = false
 }
 
 async function submitOutput() {
@@ -166,7 +142,7 @@ async function submitOutput() {
     if (!editingId.value && result.id) editingId.value = result.id
     form.sort_order = displayOrder
     closeOutputEditor(true)
-    openSaveNotice(savingKind, displayOrder, wasEditing ? '保存' : '添加')
+    window.alert(`${successText(savingKind, wasEditing ? '保存' : '添加')}，展示编号为 ${String(displayOrder).padStart(2, '0')}`)
   } finally {
     submittingOutput.value = false
   }
@@ -191,7 +167,7 @@ async function removeOutput(kind, id) {
   const item = store.state[kind]?.find((record) => record.id === id)
   const label = kind === 'awards' ? '获奖' : '论文'
   const name = item?.title ? `「${item.title}」` : `该${label}`
-  if (!window.confirm(`确定删除${name}吗？删除后无法恢复。`)) return
+  if (!(await window.appConfirm(`确定删除${name}吗？删除后无法恢复。`, '删除确认'))) return
   submittingOutput.value = true
   try {
     const result = await store.removeOutput(kind, id)
@@ -771,19 +747,6 @@ function handleAwardImage(event) {
       <div v-if="activeList.length === 0" class="tool-empty inline-empty">
         <p>暂无数据</p>
       </div>
-    </div>
-
-    <div v-if="saveNotice.open" class="modal-overlay save-notice-overlay" role="presentation">
-      <section class="modal-panel save-notice-modal" role="dialog" aria-modal="true" aria-label="保存成功">
-        <div class="modal-head">
-          <h2>{{ saveNotice.title }}</h2>
-          <button class="modal-close" type="button" title="关闭" @click="closeSaveNotice">
-            <X :size="18" />
-          </button>
-        </div>
-        <p class="save-notice-text">{{ saveNotice.message }}</p>
-        <button class="button button-dark" type="button" @click="closeSaveNotice">知道了</button>
-      </section>
     </div>
   </AuthGate>
 </template>

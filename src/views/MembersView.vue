@@ -255,6 +255,7 @@ async function rejectRegistration(record) {
 }
 
 async function removeMember(member) {
+  if (!(await window.appConfirm(`确定删除「${member.name}」吗？删除后无法恢复。`, '删除成员'))) return
   const result = await store.removeMember(member.id)
   if (!result.ok) {
     window.alert(result.message || '保存失败')

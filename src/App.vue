@@ -27,7 +27,46 @@ const passwordCaptchaCode = ref(createCaptcha())
 const showOldPassword = ref(false)
 const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
+const globalDialog = reactive({
+  open: false,
+  type: 'alert',
+  title: '',
+  message: '',
+  resolve: null,
+})
 let sharedSyncTimer = 0
+let globalDialogTimer = 0
+let nativeAlert = null
+
+function closeGlobalDialog(value = false) {
+  window.clearTimeout(globalDialogTimer)
+  const resolve = globalDialog.resolve
+  globalDialog.open = false
+  globalDialog.resolve = null
+  if (resolve) resolve(value)
+}
+
+function showGlobalAlert(message, title = '提示') {
+  window.clearTimeout(globalDialogTimer)
+  globalDialog.type = 'alert'
+  globalDialog.title = title
+  globalDialog.message = String(message || '')
+  globalDialog.open = true
+  globalDialog.resolve = null
+  globalDialogTimer = window.setTimeout(() => closeGlobalDialog(true), 3000)
+}
+
+function showGlobalConfirm(message, title = '确认操作') {
+  window.clearTimeout(globalDialogTimer)
+  globalDialog.type = 'confirm'
+  globalDialog.title = title
+  globalDialog.message = String(message || '')
+  globalDialog.open = true
+  return new Promise((resolve) => {
+    globalDialog.resolve = resolve
+    globalDialogTimer = window.setTimeout(() => closeGlobalDialog(false), 3000)
+  })
+}
 
 function createCaptcha() {
   return String(Math.floor(1000 + Math.random() * 9000))
@@ -137,6 +176,9 @@ function refreshSharedStateWhenVisible() {
 }
 
 onMounted(() => {
+  nativeAlert = window.alert
+  window.alert = (message) => showGlobalAlert(message)
+  window.appConfirm = (message, title) => showGlobalConfirm(message, title)
   setTheme('light')
   refreshSharedState()
   sharedSyncTimer = window.setInterval(refreshSharedState, 8000)
@@ -146,6 +188,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.clearInterval(sharedSyncTimer)
+  window.clearTimeout(globalDialogTimer)
+  if (nativeAlert) window.alert = nativeAlert
+  delete window.appConfirm
   window.removeEventListener('focus', refreshSharedState)
   document.removeEventListener('visibilitychange', refreshSharedStateWhenVisible)
 })
@@ -308,5 +353,28 @@ onBeforeUnmount(() => {
     </div>
 
     <RouterView />
+
+    <div v-if="globalDialog.open" class="modal-overlay global-dialog-overlay" role="presentation">
+      <section class="modal-panel global-dialog-modal" role="dialog" aria-modal="true" :aria-label="globalDialog.title">
+        <div class="modal-head global-dialog-head">
+          <h2>{{ globalDialog.title }}</h2>
+          <button class="modal-close" type="button" title="关闭" @click="closeGlobalDialog(false)">×</button>
+        </div>
+        <p class="global-dialog-text">{{ globalDialog.message }}</p>
+        <div class="global-dialog-actions">
+          <button
+            v-if="globalDialog.type === 'confirm'"
+            class="button button-light"
+            type="button"
+            @click="closeGlobalDialog(false)"
+          >
+            取消
+          </button>
+          <button class="button button-dark" type="button" @click="closeGlobalDialog(true)">
+            确认
+          </button>
+        </div>
+      </section>
+    </div>
   </div>
 </template>

@@ -72,7 +72,7 @@ async function updateStatus(id, status) {
 }
 
 async function deleteReimbursement(id) {
-  if (!window.confirm('确定删除这条报销记录吗？')) return
+  if (!(await window.appConfirm('确定删除这条报销记录吗？', '删除确认'))) return
   const result = await store.deleteReimbursement(id)
   window.alert(result.ok ? '报销记录已删除' : result.message || '删除失败')
 }

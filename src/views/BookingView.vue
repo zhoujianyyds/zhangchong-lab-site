@@ -48,7 +48,7 @@ async function submitBooking() {
 }
 
 async function deleteBooking(id) {
-  if (!window.confirm('确定取消这个预约吗？')) return
+  if (!(await window.appConfirm('确定取消这个预约吗？', '取消预约'))) return
   const result = await store.deleteBooking(id)
   window.alert(result.ok ? '预约已取消' : result.message || '取消失败')
 }

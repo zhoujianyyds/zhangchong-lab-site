@@ -2057,40 +2057,47 @@ input[type='password']::-webkit-credentials-auto-fill-button {
   padding: 10px;
 }
 
-.save-notice-modal {
-  width: min(560px, calc(100vw - 32px));
-  padding: 22px 24px 24px;
+.global-dialog-modal {
+  width: min(580px, calc(100vw - 32px));
+  padding: 26px 28px 28px;
   text-align: center;
 }
 
-.save-notice-modal .modal-head {
+.global-dialog-head {
   justify-content: center;
-  padding: 6px 44px 12px;
+  padding: 6px 44px 14px;
   text-align: center;
 }
 
-.save-notice-modal .modal-head h2 {
+.global-dialog-head h2 {
   width: 100%;
-  font-size: 1.38rem;
+  font-size: 1.42rem;
 }
 
-.save-notice-modal .modal-close {
+.global-dialog-head .modal-close {
   position: absolute;
   top: 16px;
   right: 16px;
 }
 
-.save-notice-text {
-  margin: 0 auto 22px;
-  max-width: 420px;
+.global-dialog-text {
+  max-width: 440px;
+  margin: 0 auto 24px;
   color: var(--muted);
-  line-height: 1.7;
+  font-size: 1rem;
+  line-height: 1.8;
   text-align: center;
+  white-space: pre-line;
 }
 
-.save-notice-modal .button {
+.global-dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.global-dialog-actions .button {
   min-width: 150px;
-  margin: 0 auto;
 }
 
 .award-upload-actions span {
