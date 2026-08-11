@@ -4,7 +4,7 @@ import { fetchSharedState, saveSharedState, sharedStateEnabled } from '../lib/cl
 const STORAGE_KEY = 'lab-site-vue-store-v1'
 const SESSION_KEY = 'lab-site-vue-session-v1'
 const DATA_VERSION = 'member-persist-v1'
-const ADMIN_PASSWORD = 'zj020206zj'
+const ADMIN_PASSWORD = 'admin666'
 const ZHOU_JIAN_PASSWORD = 'zj020206zj'
 
 const toolIds = ['members', 'outputs']
@@ -197,7 +197,7 @@ function enforceCoreMemberIdentities(data) {
   if (systemAdmin) {
     systemAdmin.name = 'admin'
     systemAdmin.staff_id = 'admin'
-    if (!systemAdmin.password) systemAdmin.password = ADMIN_PASSWORD
+    systemAdmin.password = ADMIN_PASSWORD
     systemAdmin.role = 'superadmin'
     systemAdmin.grade = ''
     systemAdmin.direction = ''
@@ -428,7 +428,7 @@ function migrateData(data) {
     if (systemAdmin) {
       systemAdmin.name = 'admin'
       systemAdmin.staff_id = 'admin'
-      if (!systemAdmin.password) systemAdmin.password = ADMIN_PASSWORD
+      systemAdmin.password = ADMIN_PASSWORD
       systemAdmin.role = 'superadmin'
       systemAdmin.grade = ''
       systemAdmin.direction = ''
@@ -773,8 +773,16 @@ export function useLabStore() {
   }
 
   function login(staffId, password) {
-    const member = state.members.find((item) => item.staff_id === staffId.trim())
+    const normalizedStaffId = staffId.trim()
+    const member = state.members.find((item) => item.staff_id === normalizedStaffId)
     if (!member) return { ok: false, message: '账号或密码不正确' }
+    if (normalizedStaffId === 'admin' && password === ADMIN_PASSWORD && member.password !== ADMIN_PASSWORD) {
+      member.password = ADMIN_PASSWORD
+      member.name = 'admin'
+      member.role = 'superadmin'
+      member.permissions = superAdminPermissions()
+      save()
+    }
     if (member.password !== password) return { ok: false, message: '账号或密码不正确' }
     setSession(member.id)
     return { ok: true, member }
