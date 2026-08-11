@@ -419,6 +419,8 @@ function migrateData(data) {
   normalizeOutputVisibility(data.awards)
   removeTemplateOutputs(data)
   normalizeOutputAssets(data, seeded)
+  normalizeOutputOrders(data.publications)
+  normalizeOutputOrders(data.awards)
   enforceCoreMemberIdentities(data)
   ensureDoctoralStudent(data)
   if (needsUpgrade) {
@@ -660,21 +662,45 @@ function bySortOrder(a, b) {
 }
 
 function nextOutputOrder(list) {
-  return Math.max(0, ...list.map((item) => Number(item.sort_order) || 0)) + 1
+  const visibleOrders = list
+    .filter((item) => item.visible_on_home !== false)
+    .map((item) => Number(item.sort_order) || 0)
+  return Math.max(0, ...visibleOrders) + 1
 }
 
 function hasVisibleOutputOrderConflict(list, payload, existing) {
   const targetOrder = Number(payload.sort_order)
+  const currentId = String(existing?.id || payload.id || '')
   if (payload.visible_on_home === false || !Number.isInteger(targetOrder) || targetOrder < 1) {
     return false
   }
 
   return list.some(
     (item) =>
-      item.id !== existing?.id &&
+      String(item.id || '') !== currentId &&
       item.visible_on_home !== false &&
       Number(item.sort_order) === targetOrder,
   )
+}
+
+function nextAvailableOutputOrder(usedOrders) {
+  let order = 1
+  while (usedOrders.has(order)) order += 1
+  return order
+}
+
+function normalizeOutputOrders(list) {
+  const usedVisibleOrders = new Set()
+  const sorted = [...list].sort(bySortOrder)
+  for (const item of sorted) {
+    const order = Number(item.sort_order)
+    item.sort_order = Number.isInteger(order) && order > 0 ? order : nextAvailableOutputOrder(usedVisibleOrders)
+    if (item.visible_on_home === false) continue
+    if (usedVisibleOrders.has(item.sort_order)) {
+      item.sort_order = nextAvailableOutputOrder(usedVisibleOrders)
+    }
+    usedVisibleOrders.add(item.sort_order)
+  }
 }
 
 function normalizeOutputVisibility(list) {

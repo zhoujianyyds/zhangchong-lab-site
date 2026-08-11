@@ -34,7 +34,10 @@ function cloneSiteForm() {
 
 function nextSortOrder(tabKey = activeTab.value) {
   const list = tabKey === 'publications' ? store.sortedPublications.value : store.sortedAwards.value
-  const maxOrder = Math.max(0, ...list.map((item) => Number(item.sort_order) || 0))
+  const maxOrder = Math.max(
+    0,
+    ...list.filter((item) => item.visible_on_home !== false).map((item) => Number(item.sort_order) || 0),
+  )
   return maxOrder + 1
 }
 
@@ -88,9 +91,10 @@ function switchTab(tab) {
   closeOutputEditor()
 }
 
-function openSaveNotice(kind, order) {
-  saveNotice.title = kind === 'awards' ? '获奖已保存' : '论文已保存'
-  saveNotice.message = `已经保存成功，展示编号为 ${String(order).padStart(2, '0')}。`
+function openSaveNotice(kind, order, action = '保存') {
+  const label = kind === 'awards' ? '获奖' : '论文'
+  saveNotice.title = `${label}${action}成功`
+  saveNotice.message = `已经${action}成功，展示编号为 ${String(order).padStart(2, '0')}。`
   saveNotice.open = true
 }
 
@@ -104,8 +108,10 @@ async function submitOutput() {
     return
   }
   let result = { ok: false, message: '保存失败' }
+  const savingKind = activeTab.value
+  const wasEditing = Boolean(editingId.value)
   const displayOrder = Number(form.sort_order) || nextSortOrder(activeTab.value)
-  if (activeTab.value === 'publications') {
+  if (savingKind === 'publications') {
     result = await store.upsertOutput('publications', {
       id: editingId.value,
       title: form.title.trim(),
@@ -122,7 +128,7 @@ async function submitOutput() {
       sort_order: displayOrder,
     })
   }
-  if (activeTab.value === 'awards') {
+  if (savingKind === 'awards') {
     result = await store.upsertOutput('awards', {
       id: editingId.value,
       title: form.title.trim(),
@@ -141,7 +147,7 @@ async function submitOutput() {
   if (!editingId.value && result.id) editingId.value = result.id
   form.sort_order = displayOrder
   closeOutputEditor()
-  openSaveNotice(activeTab.value, displayOrder)
+  openSaveNotice(savingKind, displayOrder, wasEditing ? '保存' : '添加')
 }
 
 function resetSiteForm() {
@@ -159,12 +165,16 @@ async function submitSiteContent() {
 }
 
 async function removeOutput(kind, id) {
+  const item = store.state[kind]?.find((record) => record.id === id)
+  const label = kind === 'awards' ? '获奖' : '论文'
+  const name = item?.title ? `「${item.title}」` : `该${label}`
+  if (!window.confirm(`确定删除${name}吗？删除后无法恢复。`)) return
   const result = await store.removeOutput(kind, id)
   if (!result.ok) {
     window.alert(result.message || '保存失败')
     return
   }
-  window.alert('删除成功')
+  window.alert(`${label}删除成功`)
 }
 
 function addResearchLine() {
