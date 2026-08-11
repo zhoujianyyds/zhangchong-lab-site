@@ -22,6 +22,7 @@ const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const passwordInputRef = ref(null)
 const confirmPasswordInputRef = ref(null)
+const registerBusy = ref(false)
 
 function createCaptcha() {
   return String(Math.floor(1000 + Math.random() * 9000))
@@ -39,6 +40,7 @@ function clearSensitiveFields() {
 }
 
 async function submitRegister() {
+  if (registerBusy.value) return
   message.value = ''
   if (!form.name.trim() || !form.staffId.trim() || !form.password || !form.confirmPassword || !form.grade || !form.direction) {
     message.value = '请填写完整信息'
@@ -55,25 +57,32 @@ async function submitRegister() {
     clearSensitiveFields()
     return
   }
-  const result = await store.registerMember({
-    name: form.name,
-    staff_id: form.staffId,
-    password: form.password,
-    grade: form.grade,
-    direction: form.direction,
-  })
-  if (!result.ok) {
-    message.value = result.message
+  registerBusy.value = true
+  const release = window.appFreeze?.('正在提交注册申请，请稍候')
+  try {
+    const result = await store.registerMember({
+      name: form.name,
+      staff_id: form.staffId,
+      password: form.password,
+      grade: form.grade,
+      direction: form.direction,
+    })
+    if (!result.ok) {
+      message.value = result.message
+      clearSensitiveFields()
+      return
+    }
+    window.alert('注册申请已提交，等待管理员审批')
     clearSensitiveFields()
-    return
+    form.name = ''
+    form.staffId = ''
+    form.grade = ''
+    form.direction = ''
+    router.push('/tools/members')
+  } finally {
+    release?.()
+    registerBusy.value = false
   }
-  window.alert('注册申请已提交，等待管理员审批')
-  clearSensitiveFields()
-  form.name = ''
-  form.staffId = ''
-  form.grade = ''
-  form.direction = ''
-  router.push('/tools/members')
 }
 
 function toggleRegisterPasswordVisibility(field) {
@@ -201,7 +210,7 @@ function toggleRegisterPasswordVisibility(field) {
         </div>
       </div>
       <div v-if="message" class="form-error">{{ message }}</div>
-      <button class="button button-dark" type="submit">
+      <button class="button button-dark" type="submit" :disabled="registerBusy">
         <UserPlus :size="16" />
         注册
       </button>

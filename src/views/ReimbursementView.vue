@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { Download, ReceiptText, Trash2 } from 'lucide-vue-next'
 import AuthGate from '../components/AuthGate.vue'
 import { useLabStore } from '../stores/labStore'
@@ -9,6 +9,21 @@ const form = reactive({ amount: '', reason: '', files: [] })
 const statusFilter = ref('all')
 const error = ref('')
 const reimbursementBusy = ref(false)
+let releaseReimbursementFreeze = null
+
+watch(
+  reimbursementBusy,
+  (busy) => {
+    if (busy && !releaseReimbursementFreeze) {
+      releaseReimbursementFreeze = window.appFreeze?.('正在处理报销信息，请稍候') || null
+    }
+    if (!busy && releaseReimbursementFreeze) {
+      releaseReimbursementFreeze()
+      releaseReimbursementFreeze = null
+    }
+  },
+  { flush: 'sync' },
+)
 
 const visibleRecords = computed(() => {
   let records = store.canViewAll()

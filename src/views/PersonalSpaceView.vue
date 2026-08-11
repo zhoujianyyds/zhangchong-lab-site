@@ -7,6 +7,7 @@ import { useLabStore } from '../stores/labStore'
 const store = useLabStore()
 const feedback = ref('')
 const profileBusy = ref(false)
+let releaseProfileFreeze = null
 const directionOptions = ['油气井', '嵌入式', 'Agent']
 const form = reactive({
   name: '',
@@ -29,6 +30,20 @@ const identityText = computed(() => {
   const base = member.staff_id === 'zhangchong' || member.role === 'teacher' ? '教师' : '学生'
   return store.isSuperAdmin(member) ? `${base}兼超管` : base
 })
+
+watch(
+  profileBusy,
+  (busy) => {
+    if (busy && !releaseProfileFreeze) {
+      releaseProfileFreeze = window.appFreeze?.('正在保存个人信息，请稍候') || null
+    }
+    if (!busy && releaseProfileFreeze) {
+      releaseProfileFreeze()
+      releaseProfileFreeze = null
+    }
+  },
+  { flush: 'sync' },
+)
 
 watch(
   currentMember,

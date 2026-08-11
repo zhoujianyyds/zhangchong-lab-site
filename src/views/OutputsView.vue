@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { Download, ImagePlus, Pencil, Plus, Trash2, X } from 'lucide-vue-next'
 import AuthGate from '../components/AuthGate.vue'
 import { useLabStore } from '../stores/labStore'
@@ -18,6 +18,21 @@ const siteFeedback = ref('')
 const editorOpen = ref(false)
 const submittingOutput = ref(false)
 const outputBusy = computed(() => submittingOutput.value)
+let releaseOutputFreeze = null
+
+watch(
+  outputBusy,
+  (busy) => {
+    if (busy && !releaseOutputFreeze) {
+      releaseOutputFreeze = window.appFreeze?.('正在保存成果信息，请稍候') || null
+    }
+    if (!busy && releaseOutputFreeze) {
+      releaseOutputFreeze()
+      releaseOutputFreeze = null
+    }
+  },
+  { flush: 'sync' },
+)
 
 const activeList = computed(() => {
   if (activeTab.value === 'publications') return store.sortedPublications.value
@@ -153,13 +168,19 @@ function resetSiteForm() {
 }
 
 async function submitSiteContent() {
-  const result = await store.updateSiteContent(JSON.parse(JSON.stringify(siteForm)))
-  if (!result.ok) {
-    window.alert(result.message || '保存失败')
-    return
+  if (outputBusy.value) return
+  submittingOutput.value = true
+  try {
+    const result = await store.updateSiteContent(JSON.parse(JSON.stringify(siteForm)))
+    if (!result.ok) {
+      window.alert(result.message || '保存失败')
+      return
+    }
+    siteFeedback.value = '保存成功'
+    window.alert(siteFeedback.value)
+  } finally {
+    submittingOutput.value = false
   }
-  siteFeedback.value = '保存成功'
-  window.alert(siteFeedback.value)
 }
 
 async function removeOutput(kind, id) {
@@ -288,7 +309,7 @@ function handleAwardImage(event) {
     <form v-if="activeTab === 'site'" class="tool-form" @submit.prevent="submitSiteContent">
       <div class="tool-page-title-row">
         <h2 class="panel-title">站点内容</h2>
-        <button class="button button-light" type="button" @click="resetSiteForm">撤销修改</button>
+        <button class="button button-light" type="button" :disabled="outputBusy" @click="resetSiteForm">撤销修改</button>
       </div>
       <div v-if="siteFeedback" class="form-success">{{ siteFeedback }}</div>
 
@@ -518,7 +539,7 @@ function handleAwardImage(event) {
             <strong>研究方向</strong>
             <p>首页研究方向卡片会按这里的顺序显示。</p>
           </div>
-          <button class="button button-light" type="button" @click="addResearchLine">
+          <button class="button button-light" type="button" :disabled="outputBusy" @click="addResearchLine">
             <Plus :size="16" />
             添加方向
           </button>
@@ -565,7 +586,7 @@ function handleAwardImage(event) {
         </article>
       </div>
 
-      <button class="button button-dark" type="submit">保存站点内容</button>
+      <button class="button button-dark" type="submit" :disabled="outputBusy">保存站点内容</button>
     </form>
 
     <section v-else class="tool-form output-admin-toolbar">

@@ -77,7 +77,7 @@ function editableClass() {
 }
 
 async function saveEditResult(promise, successMessage = '保存成功') {
-  const result = await promise
+  const result = await (window.appRunBusy?.(() => promise, '正在保存文字，请稍候') || promise)
   window.alert(result.ok ? successMessage : result.message || '保存失败')
 }
 

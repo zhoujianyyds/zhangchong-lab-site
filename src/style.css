@@ -2100,6 +2100,56 @@ input[type='password']::-webkit-credentials-auto-fill-button {
   min-width: 150px;
 }
 
+.global-busy-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(0, 168, 143, 0.16), transparent 34%),
+    rgba(229, 244, 244, 0.66);
+  backdrop-filter: blur(10px) saturate(1.08);
+  cursor: wait;
+  pointer-events: all;
+}
+
+.global-busy-card {
+  display: grid;
+  min-width: min(360px, calc(100vw - 48px));
+  justify-items: center;
+  gap: 14px;
+  padding: 28px 30px;
+  border: 1px solid rgba(0, 168, 143, 0.24);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(235, 247, 246, 0.82)),
+    rgba(255, 255, 255, 0.88);
+  box-shadow: 0 26px 80px rgba(13, 55, 72, 0.2);
+  color: var(--heading);
+  text-align: center;
+}
+
+.global-busy-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(0, 168, 143, 0.18);
+  border-top-color: var(--jade);
+  border-radius: 999px;
+  animation: global-busy-spin 0.8s linear infinite;
+}
+
+.global-busy-card strong {
+  font-size: 1.05rem;
+}
+
+@keyframes global-busy-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .award-upload-actions span {
   flex: 1;
   min-width: 0;

@@ -34,9 +34,34 @@ const globalDialog = reactive({
   message: '',
   resolve: null,
 })
+const globalBusy = reactive({
+  count: 0,
+  message: '',
+})
 let sharedSyncTimer = 0
 let globalDialogTimer = 0
 let nativeAlert = null
+
+function beginGlobalBusy(message = '正在处理，请稍候') {
+  let released = false
+  globalBusy.count += 1
+  globalBusy.message = message
+  return () => {
+    if (released) return
+    released = true
+    globalBusy.count = Math.max(0, globalBusy.count - 1)
+    if (globalBusy.count === 0) globalBusy.message = ''
+  }
+}
+
+async function runWithGlobalBusy(action, message) {
+  const release = beginGlobalBusy(message)
+  try {
+    return await action()
+  } finally {
+    release()
+  }
+}
 
 function closeGlobalDialog(value = false) {
   window.clearTimeout(globalDialogTimer)
@@ -89,7 +114,10 @@ async function submitPassword() {
     refreshPasswordCaptcha()
     return
   }
-  const result = await store.changePassword(passwordForm.oldPassword, passwordForm.newPassword)
+  const result = await runWithGlobalBusy(
+    () => store.changePassword(passwordForm.oldPassword, passwordForm.newPassword),
+    '正在修改密码，请稍候',
+  )
   passwordMessage.value = result.ok ? '密码已更新' : result.message
   if (result.ok) {
     window.alert('密码修改成功，请重新登录')
@@ -137,7 +165,7 @@ function editableClass() {
 }
 
 async function saveEditResult(promise, successMessage = '保存成功') {
-  const result = await promise
+  const result = await runWithGlobalBusy(() => promise, '正在保存文字，请稍候')
   window.alert(result.ok ? successMessage : result.message || '保存失败')
 }
 
@@ -179,6 +207,8 @@ onMounted(() => {
   nativeAlert = window.alert
   window.alert = (message) => showGlobalAlert(message)
   window.appConfirm = (message, title) => showGlobalConfirm(message, title)
+  window.appFreeze = (message) => beginGlobalBusy(message)
+  window.appRunBusy = (action, message) => runWithGlobalBusy(action, message)
   setTheme('light')
   refreshSharedState()
   sharedSyncTimer = window.setInterval(refreshSharedState, 8000)
@@ -191,6 +221,8 @@ onBeforeUnmount(() => {
   window.clearTimeout(globalDialogTimer)
   if (nativeAlert) window.alert = nativeAlert
   delete window.appConfirm
+  delete window.appFreeze
+  delete window.appRunBusy
   window.removeEventListener('focus', refreshSharedState)
   document.removeEventListener('visibilitychange', refreshSharedStateWhenVisible)
 })
@@ -353,6 +385,13 @@ onBeforeUnmount(() => {
     </div>
 
     <RouterView />
+
+    <div v-if="globalBusy.count > 0" class="global-busy-overlay" role="status" aria-live="polite">
+      <div class="global-busy-card">
+        <span class="global-busy-spinner"></span>
+        <strong>{{ globalBusy.message || '正在处理，请稍候' }}</strong>
+      </div>
+    </div>
 
     <div v-if="globalDialog.open" class="modal-overlay global-dialog-overlay" role="presentation">
       <section class="modal-panel global-dialog-modal" role="dialog" aria-modal="true" :aria-label="globalDialog.title">

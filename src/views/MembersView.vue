@@ -11,6 +11,7 @@ const feedback = ref('')
 const profileFeedback = ref('')
 const memberFormOpen = ref(false)
 const memberBusy = ref(false)
+let releaseMemberFreeze = null
 const toolLabels = {
   members: '成员管理',
   outputs: '成果管理',
@@ -38,6 +39,20 @@ const disableGrade = computed(() => isLockedStudyInfo.value)
 const disableDirection = computed(() => isLockedStudyInfo.value)
 const editingMember = computed(() => store.state.members.find((item) => item.id === editingId.value) || null)
 const canSetMemberPassword = computed(() => store.currentMember.value?.staff_id === 'admin')
+
+watch(
+  memberBusy,
+  (busy) => {
+    if (busy && !releaseMemberFreeze) {
+      releaseMemberFreeze = window.appFreeze?.('正在保存成员信息，请稍候') || null
+    }
+    if (!busy && releaseMemberFreeze) {
+      releaseMemberFreeze()
+      releaseMemberFreeze = null
+    }
+  },
+  { flush: 'sync' },
+)
 
 watch(
   () => store.currentMember.value,

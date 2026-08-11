@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { CalendarPlus, ChevronLeft, ChevronRight, Trash2 } from 'lucide-vue-next'
 import AuthGate from '../components/AuthGate.vue'
 import { useLabStore } from '../stores/labStore'
@@ -14,6 +14,21 @@ const form = reactive({
 })
 const error = ref('')
 const bookingBusy = ref(false)
+let releaseBookingFreeze = null
+
+watch(
+  bookingBusy,
+  (busy) => {
+    if (busy && !releaseBookingFreeze) {
+      releaseBookingFreeze = window.appFreeze?.('正在处理预约，请稍候') || null
+    }
+    if (!busy && releaseBookingFreeze) {
+      releaseBookingFreeze()
+      releaseBookingFreeze = null
+    }
+  },
+  { flush: 'sync' },
+)
 
 const bookings = computed(() =>
   store.state.bookings
