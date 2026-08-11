@@ -1372,6 +1372,35 @@ img {
   flex: 0 0 auto;
 }
 
+.output-editor-modal {
+  width: min(860px, calc(100vw - 32px));
+  max-height: min(820px, calc(100vh - 48px));
+  overflow: auto;
+  padding: 28px;
+}
+
+.output-editor-head {
+  position: sticky;
+  top: -28px;
+  z-index: 2;
+  margin: -28px -28px 4px;
+  padding: 20px 28px 16px;
+  background:
+    linear-gradient(145deg, rgba(0, 168, 143, 0.12), rgba(37, 99, 235, 0.08)),
+    var(--paper);
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.output-admin-toolbar .tool-page-title-row {
+  align-items: center;
+}
+
+.output-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
 .modal-head {
   display: flex;
   align-items: center;
@@ -2981,6 +3010,23 @@ button.editable,
   .member-modal .modal-close {
     width: 34px;
     height: 34px;
+  }
+
+  .output-editor-modal {
+    width: calc(100vw - 20px);
+    max-height: calc(100svh - 20px);
+    padding: 16px;
+  }
+
+  .output-editor-head {
+    top: -16px;
+    margin: -16px -16px 4px;
+    padding: 14px 16px 12px;
+  }
+
+  .output-editor-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .user-password-modal {

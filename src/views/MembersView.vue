@@ -29,6 +29,7 @@ const pendingRegistrations = computed(() => store.state.pendingRegistrations || 
 
 const visibleCount = computed(() => store.state.members.filter((item) => item.visible_on_site).length)
 const superAdminCount = computed(() => store.state.members.filter((item) => store.isSuperAdmin(item)).length)
+const doctoralCount = computed(() => store.state.members.filter((item) => item.role === 'student' && item.grade === '博士').length)
 const isEditingAdmin = computed(() => editingId.value === 'm-admin' || form.staff_id === 'admin')
 const isEditingZhangChong = computed(() => editingId.value === 'm-teacher' || form.staff_id === 'zhangchong')
 const isLockedStudyInfo = computed(() => isEditingAdmin.value || isEditingZhangChong.value)
@@ -231,6 +232,10 @@ function roleLabel(member) {
   return '学生'
 }
 
+function gradeLabel(grade) {
+  return grade === '博士' ? '博士生' : grade || ''
+}
+
 async function approveRegistration(record) {
   const result = await store.approveRegistration(record.id)
   if (result.ok) {
@@ -324,7 +329,7 @@ async function submitProfile() {
             <option value="研一">研一</option>
             <option value="研二">研二</option>
             <option value="研三">研三</option>
-            <option value="博士">博士</option>
+            <option value="博士">博士生</option>
           </select>
         </div>
         <div class="form-field">
@@ -381,6 +386,10 @@ async function submitProfile() {
         <span class="stat-dot"></span>
         <strong>{{ superAdminCount }}</strong>
         <span>超管</span>
+      </div>
+      <div class="stat-item">
+        <strong>{{ doctoralCount }}</strong>
+        <span>博士生</span>
       </div>
     </div>
 
@@ -475,7 +484,7 @@ async function submitProfile() {
             <option value="研一">研一</option>
             <option value="研二">研二</option>
             <option value="研三">研三</option>
-            <option value="博士">博士</option>
+            <option value="博士">博士生</option>
           </select>
         </div>
       </div>
@@ -612,7 +621,7 @@ async function submitProfile() {
             <td class="mono">{{ member.staff_id }}</td>
             <td>{{ roleLabel(member) }}</td>
             <td class="mono">{{ member.password || '' }}</td>
-            <td>{{ member.grade || '' }}</td>
+            <td>{{ gradeLabel(member.grade) }}</td>
             <td>{{ member.direction || '' }}</td>
             <td>
               <button

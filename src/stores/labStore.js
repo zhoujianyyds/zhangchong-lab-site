@@ -38,7 +38,7 @@ function defaultSiteContent() {
     researchIntro: '',
     peopleSectionLabel: '团队成员',
     peopleSectionTitle: 'People',
-    peopleIntro: '张翀老师负责指导，研究成员共 12 人；研二 6 人已确定，研一 6 个名额暂时保留。',
+    peopleIntro: '张翀老师负责指导，研究成员共 12 人；研二 6 人、博士 1 人、研一 5 个名额暂时保留。',
     piLabel: '导师',
     piIntro: '张翀老师负责研究小组，围绕油气井、嵌入式系统和 Agent 智能体方向开展研究与工程实践。',
     outputsSectionLabel: '代表成果',
@@ -169,6 +169,29 @@ function normalizeMemberProfile(member) {
   Object.assign(member, memberProfileDefaults(member))
 }
 
+function ensureDoctoralStudent(data) {
+  const doctoralMembers = data.members.filter((member) => member.grade === '博士')
+  if (doctoralMembers.length > 1) {
+    for (const member of doctoralMembers.slice(1)) {
+      member.grade = '研一'
+    }
+  }
+  if (doctoralMembers.length > 0) return
+  const candidate =
+    data.members.find((member) => member.id === 'm-student-yanyi-01') ||
+    data.members.find((member) => member.staff_id === '20250001') ||
+    data.members.find((member) => member.name === '待定 01')
+  if (!candidate) return
+  candidate.name = candidate.name?.startsWith('待定') ? '博士生' : candidate.name || '博士生'
+  candidate.grade = '博士'
+  if (!candidate.direction) candidate.direction = '待定'
+}
+
+function hasDoctoralStudentConflict(members, memberId, grade) {
+  if (grade !== '博士') return false
+  return members.some((member) => member.id !== memberId && member.grade === '博士')
+}
+
 function enforceCoreMemberIdentities(data) {
   const systemAdmin = data.members.find((item) => item.id === 'm-admin' || item.staff_id === 'admin')
   if (systemAdmin) {
@@ -263,7 +286,7 @@ function seedData() {
       studentMember('m-student-xiangyufei', '向与飞', '20240004', '研二', '油气井'),
       studentMember('m-student-wulingna', '巫玲娜', '20240005', '研二', '嵌入式'),
       studentMember('m-student-lihaifeng', '李海峰', '20240006', '研二', 'Agent'),
-      studentMember('m-student-yanyi-01', '待定 01', '20250001', '研一', '待定'),
+      studentMember('m-student-yanyi-01', '博士生', '20250001', '博士', '待定'),
       studentMember('m-student-yanyi-02', '待定 02', '20250002', '研一', '待定'),
       studentMember('m-student-yanyi-03', '待定 03', '20250003', '研一', '待定'),
       studentMember('m-student-yanyi-04', '待定 04', '20250004', '研一', '待定'),
@@ -397,6 +420,7 @@ function migrateData(data) {
   removeTemplateOutputs(data)
   normalizeOutputAssets(data, seeded)
   enforceCoreMemberIdentities(data)
+  ensureDoctoralStudent(data)
   if (needsUpgrade) {
     const systemAdmin = data.members.find((item) => item.id === 'm-admin' || item.staff_id === 'system-admin')
     if (systemAdmin) {
@@ -457,6 +481,7 @@ function migrateData(data) {
     }
     if (
       data.site.peopleIntro === '教师及在读研究生按身份组织，成员状态和首页展示开关可在成员管理中维护。' ||
+      data.site.peopleIntro?.includes('研一 6 个名额暂时保留') ||
       data.site.peopleIntro?.startsWith('Led by Zhang Chong') ||
       !data.site.peopleIntro
     ) {
@@ -529,6 +554,7 @@ function migrateData(data) {
     }
   }
   enforceCoreMemberIdentities(data)
+  ensureDoctoralStudent(data)
   data.meta = {
     ...(data.meta || {}),
     dataVersion: DATA_VERSION,
@@ -733,6 +759,9 @@ export function useLabStore() {
     if (state.pendingRegistrations.some((item) => item.staff_id === staffId)) {
       return { ok: false, message: '该账号正在等待审批' }
     }
+    if (hasDoctoralStudentConflict(state.members, '', payload.grade || '')) {
+      return { ok: false, message: '博士生只能保留一个' }
+    }
     state.pendingRegistrations.push({
       id: uid('registration'),
       name: payload.name.trim(),
@@ -755,6 +784,9 @@ export function useLabStore() {
       state.pendingRegistrations.splice(index, 1)
       await saveImmediately()
       return { ok: false, message: '账号已存在' }
+    }
+    if (hasDoctoralStudentConflict(state.members, '', record.grade || '')) {
+      return { ok: false, message: '博士生只能保留一个' }
     }
     state.members.push({
       id: uid('member'),
@@ -889,9 +921,13 @@ export function useLabStore() {
     const isAdminEditing = isSuperAdmin()
     if (!isAdminEditing) {
       if (!existing || existing.id !== currentMember.value.id) return { ok: false, message: '暂无权限' }
+      const nextGrade = shouldKeepStudyInfoEmpty(existing) ? '' : payload.grade || ''
+      if (hasDoctoralStudentConflict(state.members, existing.id, nextGrade)) {
+        return { ok: false, message: '博士生只能保留一个' }
+      }
       existing.name = payload.name?.trim() || existing.name
       if (!shouldKeepStudyInfoEmpty(existing)) {
-        existing.grade = payload.grade || ''
+        existing.grade = nextGrade
         existing.direction = payload.direction?.trim() || ''
       }
       existing.phone = payload.phone?.trim() || ''
@@ -904,6 +940,9 @@ export function useLabStore() {
       return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
     }
     const emptyStudyInfo = shouldKeepStudyInfoEmpty(payload)
+    if (hasDoctoralStudentConflict(state.members, existing?.id || payload.id || '', emptyStudyInfo ? '' : payload.grade || '')) {
+      return { ok: false, message: '博士生只能保留一个' }
+    }
     const base = {
       name: payload.name.trim(),
       staff_id: payload.staff_id.trim(),

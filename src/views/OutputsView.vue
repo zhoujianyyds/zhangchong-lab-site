@@ -15,6 +15,7 @@ const tabs = [
 const form = reactive(createEmptyForm(activeTab.value))
 const siteForm = reactive(cloneSiteForm())
 const siteFeedback = ref('')
+const editorOpen = ref(false)
 const saveNotice = reactive({
   open: false,
   title: '',
@@ -25,6 +26,7 @@ const activeList = computed(() => {
   if (activeTab.value === 'publications') return store.sortedPublications.value
   return store.sortedAwards.value
 })
+const activeTabLabel = computed(() => tabs.find((tab) => tab.key === activeTab.value)?.label || '成果')
 
 function cloneSiteForm() {
   return JSON.parse(JSON.stringify(store.state.site))
@@ -62,21 +64,33 @@ function resetForm() {
   Object.assign(form, createEmptyForm(activeTab.value))
 }
 
-function switchTab(tab) {
-  activeTab.value = tab
+function closeOutputEditor() {
+  editorOpen.value = false
   saveNotice.open = false
   resetForm()
 }
 
-function editItem(item) {
-  editingId.value = item.id
+function openOutputEditor(tab = activeTab.value, item = null) {
+  activeTab.value = tab
   saveNotice.open = false
-  Object.assign(form, createEmptyForm(activeTab.value), JSON.parse(JSON.stringify(item)))
+  if (item) {
+    editingId.value = item.id
+    Object.assign(form, createEmptyForm(tab), JSON.parse(JSON.stringify(item)))
+  } else {
+    editingId.value = ''
+    Object.assign(form, createEmptyForm(tab))
+  }
+  editorOpen.value = true
+}
+
+function switchTab(tab) {
+  activeTab.value = tab
+  closeOutputEditor()
 }
 
 function openSaveNotice(kind, order) {
   saveNotice.title = kind === 'awards' ? '获奖已保存' : '论文已保存'
-  saveNotice.message = `已经保存成功，当前将按第 ${String(order).padStart(2, '0')} 位展示。`
+  saveNotice.message = `已经保存成功，展示编号为 ${String(order).padStart(2, '0')}。`
   saveNotice.open = true
 }
 
@@ -85,7 +99,10 @@ function closeSaveNotice() {
 }
 
 async function submitOutput() {
-  if (!form.title.trim()) return
+  if (!form.title.trim()) {
+    window.alert('请填写标题')
+    return
+  }
   let result = { ok: false, message: '保存失败' }
   const displayOrder = Number(form.sort_order) || nextSortOrder(activeTab.value)
   if (activeTab.value === 'publications') {
@@ -123,6 +140,7 @@ async function submitOutput() {
   }
   if (!editingId.value && result.id) editingId.value = result.id
   form.sort_order = displayOrder
+  closeOutputEditor()
   openSaveNotice(activeTab.value, displayOrder)
 }
 
@@ -173,6 +191,10 @@ function itemMeta(item) {
     return [item.authors, item.journal, item.pub_year, item.note].filter(Boolean).join(' · ') || '论文信息'
   }
   return item.winner ? `获奖人：${item.winner}` : '获奖信息'
+}
+
+function editItem(item) {
+  openOutputEditor(activeTab.value, item)
 }
 
 async function toggleHomeVisibility(kind, item) {
@@ -522,138 +544,159 @@ function handleAwardImage(event) {
       <button class="button button-dark" type="submit">保存站点内容</button>
     </form>
 
-    <form v-else class="tool-form" @submit.prevent="submitOutput">
+    <section v-else class="tool-form output-admin-toolbar">
       <div class="tool-page-title-row">
-        <h2 class="panel-title">{{ editingId ? '编辑' : '添加' }}</h2>
-        <button class="button button-light" type="button" @click="resetForm">
+        <div>
+          <h2 class="panel-title">{{ activeTabLabel }}管理</h2>
+          <p class="field-hint">新增、编辑、排序和主页展示都在这里维护；展示编号可直接填写。</p>
+        </div>
+        <button class="button button-dark" type="button" @click="openOutputEditor(activeTab)">
           <Plus :size="16" />
-          新建
+          新增{{ activeTabLabel }}
         </button>
       </div>
-      <div class="form-row">
-        <div class="form-field compact-field">
-          <label for="output-sort-order">展示编号 *</label>
-          <input
-            id="output-sort-order"
-            v-model.number="form.sort_order"
-            type="number"
-            min="1"
-            step="1"
-            placeholder="1"
-          />
-          <p class="field-hint">编号可独立填写；勾选主页展示后才会参与首页排序。</p>
-        </div>
-        <div class="form-field">
-          <label for="output-title">标题 *</label>
-          <input id="output-title" v-model="form.title" type="text" placeholder="标题" />
-        </div>
-      </div>
-      <label class="checkbox-line">
-        <input v-model="form.visible_on_home" type="checkbox" />
-        <span>在主页展示</span>
-      </label>
+    </section>
 
-      <template v-if="activeTab === 'publications'">
-        <div class="form-field">
-          <label for="authors">作者</label>
-          <input id="authors" v-model="form.authors" type="text" placeholder="Zhang A, Li B, et al." />
-        </div>
-        <div class="form-field">
-          <label for="journal">期刊/会议</label>
-          <input id="journal" v-model="form.journal" type="text" placeholder="Journal / Conference" />
-        </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label for="pub-year">年份</label>
-            <input id="pub-year" v-model="form.pub_year" type="number" placeholder="2026" />
+    <div v-if="editorOpen && activeTab !== 'site'" class="modal-overlay output-editor-overlay" role="presentation">
+      <form class="tool-form modal-panel output-editor-modal" @submit.prevent="submitOutput">
+        <div class="tool-page-title-row output-editor-head">
+          <div>
+            <h2 class="panel-title">{{ editingId ? `编辑${activeTabLabel}` : `新增${activeTabLabel}` }}</h2>
+            <p class="field-hint">点击右上角关闭才会退出编辑，点到弹窗外不会丢失已输入内容。</p>
           </div>
-          <div class="form-field">
-            <label for="pub-type">类型</label>
-            <select id="pub-type" v-model="form.pub_type" class="filter-select">
-              <option value="论文">论文</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label for="volume">卷/期</label>
-            <input id="volume" v-model="form.volume_issue" type="text" />
-          </div>
-          <div class="form-field">
-            <label for="pages">页码</label>
-            <input id="pages" v-model="form.pages" type="text" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label for="doi">DOI</label>
-            <input id="doi" v-model="form.doi" type="text" />
-          </div>
-          <div class="form-field">
-            <label for="note">备注</label>
-            <input id="note" v-model="form.note" type="text" placeholder="SCI一区，一作" />
-          </div>
-        </div>
-        <div class="form-field">
-          <label for="paper-link">论文链接</label>
-          <input
-            id="paper-link"
-            v-model="form.paper_link"
-            type="url"
-            inputmode="url"
-            placeholder="https://..."
-          />
-        </div>
-      </template>
-
-      <template v-if="activeTab === 'awards'">
-        <div class="form-field">
-          <label for="winner">获奖人（可选）</label>
-          <input id="winner" v-model="form.winner" type="text" placeholder="研究小组" />
-        </div>
-        <div class="form-field">
-          <label>获奖图片</label>
-          <input
-            id="award-image-upload"
-            class="visually-hidden"
-            type="file"
-            accept="image/*"
-            @change="handleAwardImage"
-          />
-          <button class="button button-light award-upload-button" type="button" @click="chooseAwardImage">
-            <ImagePlus :size="16" />
-            上传获奖图片
+          <button class="modal-close" type="button" title="关闭" @click="closeOutputEditor">
+            <X :size="16" />
           </button>
         </div>
-        <div v-if="form.image_data" class="award-upload-preview">
-          <img :src="form.image_data" :alt="form.title || '获奖图片预览'" />
-          <div class="award-upload-actions">
-            <span>{{ form.image_name || '已上传获奖图片' }}</span>
-            <button class="icon-btn" type="button" title="下载图片" @click="downloadAwardImage">
-              <Download :size="15" />
-            </button>
-            <button class="icon-btn icon-btn-danger" type="button" title="删除图片" @click="removeAwardImage">
-              <X :size="15" />
-            </button>
+
+        <div class="form-row">
+          <div class="form-field compact-field">
+            <label for="output-sort-order">展示编号 *</label>
+            <input
+              id="output-sort-order"
+              v-model.number="form.sort_order"
+              type="number"
+              min="1"
+              step="1"
+              placeholder="1"
+            />
+            <p class="field-hint">编号可独立填写；勾选主页展示后才会参与首页排序。</p>
+          </div>
+          <div class="form-field">
+            <label for="output-title">标题 *</label>
+            <input id="output-title" v-model="form.title" type="text" placeholder="标题" />
           </div>
         </div>
-        <div class="form-field">
-          <label for="image-url">图片备份链接（可选）</label>
-          <input
-            id="image-url"
-            v-model="form.image_url"
-            type="text"
-            placeholder="可留空"
-          />
-        </div>
-        <div class="form-field">
-          <label for="image-name">图片文件名（可选）</label>
-          <input id="image-name" v-model="form.image_name" type="text" placeholder="award-2025-kjjb-1.jpg" />
-        </div>
-      </template>
+        <label class="checkbox-line">
+          <input v-model="form.visible_on_home" type="checkbox" />
+          <span>在主页展示</span>
+        </label>
 
-      <button class="button button-dark" type="submit">{{ editingId ? '保存' : '添加' }}</button>
-    </form>
+        <template v-if="activeTab === 'publications'">
+          <div class="form-field">
+            <label for="authors">作者</label>
+            <input id="authors" v-model="form.authors" type="text" placeholder="Zhang A, Li B, et al." />
+          </div>
+          <div class="form-field">
+            <label for="journal">期刊/会议</label>
+            <input id="journal" v-model="form.journal" type="text" placeholder="Journal / Conference" />
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label for="pub-year">年份</label>
+              <input id="pub-year" v-model="form.pub_year" type="number" placeholder="2026" />
+            </div>
+            <div class="form-field">
+              <label for="pub-type">类型</label>
+              <select id="pub-type" v-model="form.pub_type" class="filter-select">
+                <option value="论文">论文</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label for="volume">卷/期</label>
+              <input id="volume" v-model="form.volume_issue" type="text" />
+            </div>
+            <div class="form-field">
+              <label for="pages">页码</label>
+              <input id="pages" v-model="form.pages" type="text" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label for="doi">DOI</label>
+              <input id="doi" v-model="form.doi" type="text" />
+            </div>
+            <div class="form-field">
+              <label for="note">备注</label>
+              <input id="note" v-model="form.note" type="text" placeholder="SCI一区，一作" />
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="paper-link">论文链接</label>
+            <input
+              id="paper-link"
+              v-model="form.paper_link"
+              type="url"
+              inputmode="url"
+              placeholder="https://..."
+            />
+          </div>
+        </template>
+
+        <template v-if="activeTab === 'awards'">
+          <div class="form-field">
+            <label for="winner">获奖人（可选）</label>
+            <input id="winner" v-model="form.winner" type="text" placeholder="研究小组" />
+          </div>
+          <div class="form-field">
+            <label>获奖图片</label>
+            <input
+              id="award-image-upload"
+              class="visually-hidden"
+              type="file"
+              accept="image/*"
+              @change="handleAwardImage"
+            />
+            <button class="button button-light award-upload-button" type="button" @click="chooseAwardImage">
+              <ImagePlus :size="16" />
+              上传获奖图片
+            </button>
+          </div>
+          <div v-if="form.image_data || form.image_url" class="award-upload-preview">
+            <img :src="form.image_data || form.image_url" :alt="form.title || '获奖图片预览'" />
+            <div class="award-upload-actions">
+              <span>{{ form.image_name || '已上传获奖图片' }}</span>
+              <button class="icon-btn" type="button" title="下载图片" @click="downloadAwardImage">
+                <Download :size="15" />
+              </button>
+              <button class="icon-btn icon-btn-danger" type="button" title="删除图片" @click="removeAwardImage">
+                <X :size="15" />
+              </button>
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="image-url">图片备份链接（可选）</label>
+            <input
+              id="image-url"
+              v-model="form.image_url"
+              type="text"
+              placeholder="可留空"
+            />
+          </div>
+          <div class="form-field">
+            <label for="image-name">图片文件名（可选）</label>
+            <input id="image-name" v-model="form.image_name" type="text" placeholder="award-2025-kjjb-1.jpg" />
+          </div>
+        </template>
+
+        <div class="output-editor-actions">
+          <button class="button button-light" type="button" @click="closeOutputEditor">取消</button>
+          <button class="button button-dark" type="submit">{{ editingId ? '保存' : '添加' }}</button>
+        </div>
+      </form>
+    </div>
 
     <div v-if="activeTab !== 'site'" class="output-admin-list">
       <article v-for="(item, index) in activeList" :key="item.id" class="output-admin-item">

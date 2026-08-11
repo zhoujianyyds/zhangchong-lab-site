@@ -54,6 +54,10 @@ const teachers = computed(() => store.siteMembers.value.filter((member) => membe
 const students = computed(() => store.siteMembers.value.filter((member) => member.role === 'student'))
 const gradeGroups = computed(() => [
   {
+    title: '博士生',
+    members: students.value.filter((member) => member.grade === '博士'),
+  },
+  {
     title: '研二',
     members: students.value.filter((member) => member.grade === '研二'),
   },
