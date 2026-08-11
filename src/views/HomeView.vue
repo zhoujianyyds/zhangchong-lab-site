@@ -317,7 +317,6 @@ function downloadAwardImage(item = selectedOutput.value) {
               @click="openPublication(item)"
               @keydown.enter.prevent="openPublication(item)"
             >
-              <span>{{ item.pub_type }}</span>
               <div>
                 <h3>{{ item.title }}</h3>
                 <p>
@@ -348,7 +347,6 @@ function downloadAwardImage(item = selectedOutput.value) {
               @click="downloadAwardImage(item)"
               @keydown.enter.prevent="downloadAwardImage(item)"
             >
-              <span>{{ store.state.site.awardTypeLabel }}</span>
               <div>
                 <h3>{{ item.title }}</h3>
                 <p>

@@ -896,7 +896,7 @@ img {
 
 .output-item {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: start;
   padding: 22px;
@@ -914,11 +914,6 @@ img {
   background:
     linear-gradient(135deg, rgba(85, 240, 207, 0.08), transparent),
     var(--paper);
-}
-
-.output-item > span {
-  color: var(--clay);
-  font-weight: 880;
 }
 
 .output-item h3 {
@@ -2063,13 +2058,39 @@ input[type='password']::-webkit-credentials-auto-fill-button {
 }
 
 .save-notice-modal {
-  width: min(460px, calc(100vw - 32px));
+  width: min(560px, calc(100vw - 32px));
+  padding: 22px 24px 24px;
+  text-align: center;
+}
+
+.save-notice-modal .modal-head {
+  justify-content: center;
+  padding: 6px 44px 12px;
+  text-align: center;
+}
+
+.save-notice-modal .modal-head h2 {
+  width: 100%;
+  font-size: 1.38rem;
+}
+
+.save-notice-modal .modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
 }
 
 .save-notice-text {
-  margin: 0 0 18px;
+  margin: 0 auto 22px;
+  max-width: 420px;
   color: var(--muted);
   line-height: 1.7;
+  text-align: center;
+}
+
+.save-notice-modal .button {
+  min-width: 150px;
+  margin: 0 auto;
 }
 
 .award-upload-actions span {

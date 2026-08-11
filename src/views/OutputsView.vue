@@ -105,7 +105,7 @@ function openSaveNotice(kind, order, action = '保存') {
   saveNotice.open = true
   saveNoticeTimer = window.setTimeout(() => {
     saveNotice.open = false
-  }, 1200)
+  }, 3000)
 }
 
 function successText(kind, action = '保存') {
