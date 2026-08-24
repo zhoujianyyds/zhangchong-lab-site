@@ -3,7 +3,7 @@ import { fetchSharedState, saveSharedState, sharedStateEnabled } from '../lib/cl
 
 const STORAGE_KEY = 'lab-site-vue-store-v1'
 const SESSION_KEY = 'lab-site-vue-session-v1'
-const DATA_VERSION = 'mentor-all-publications-v1'
+const DATA_VERSION = 'award-images-v1'
 const ADMIN_PASSWORD = 'admin666'
 const ZHOU_JIAN_PASSWORD = 'zj020206zj'
 
@@ -131,13 +131,13 @@ function hasBrokenQuestionMarks(value) {
 
 function defaultAwardImage(itemId) {
   const imageMap = {
-    'award-2025-kjjb-1': '/awards/award-2025-kjjb-1.jpg',
-    'award-2025-kjjb-2': '/awards/award-2025-kjjb-2.jpg',
-    'award-2025-fmzl': '/awards/award-2025-fmzl.jpg',
-    'award-2024-jsfm-2': '/awards/award-2024-jsfm-2.jpg',
-    'award-2024-kjjb-2': '/awards/award-2024-kjjb-2.jpg',
-    'award-2023-jsfm-1': '/awards/award-2023-jsfm-1.jpg',
-    'award-2023-kjjb-2': '/awards/award-2023-kjjb-2.jpg',
+    'award-2025-kjjb-1': '/awards/award-2025-kjjb-1.jpg?v=20260824',
+    'award-2025-kjjb-2': '/awards/award-2025-kjjb-2.jpg?v=20260824',
+    'award-2025-fmzl': '/awards/award-2025-fmzl.jpg?v=20260824',
+    'award-2024-jsfm-2': '/awards/award-2024-jsfm-2.jpg?v=20260824',
+    'award-2024-kjjb-2': '/awards/award-2024-kjjb-2.jpg?v=20260824',
+    'award-2023-jsfm-1': '/awards/award-2023-jsfm-1.jpg?v=20260824',
+    'award-2023-kjjb-2': '/awards/award-2023-kjjb-2.jpg?v=20260824',
   }
   return imageMap[itemId] || ''
 }
@@ -157,7 +157,13 @@ function normalizeOutputAssets(data, seeded) {
     item.image_data = typeof item.image_data === 'string' ? item.image_data : ''
     item.image_url = typeof item.image_url === 'string' ? item.image_url.trim() : ''
     item.image_name = typeof item.image_name === 'string' ? item.image_name : ''
-    if (!item.image_data && !item.image_url) item.image_url = defaultAwardImage(item.id)
+    const bundledImage = defaultAwardImage(item.id)
+    if (bundledImage) {
+      item.image_data = ''
+      item.image_url = bundledImage
+    } else if (!item.image_data && !item.image_url) {
+      item.image_url = bundledImage
+    }
     if (!item.image_name && item.image_url) item.image_name = `${item.id}.jpg`
     if (hasBrokenQuestionMarks(item.title)) item.title = seededAwards.get(item.id)?.title || ''
     if (hasBrokenQuestionMarks(item.winner)) item.winner = seededAwards.get(item.id)?.winner || ''
