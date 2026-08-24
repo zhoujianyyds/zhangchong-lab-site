@@ -18,11 +18,9 @@ const mentorName = computed(() => mentor.value?.name || '张翀')
 const mentorEmail = computed(() => mentor.value?.email || store.state.site.contactEmail)
 const mentorBio = computed(() => mentor.value?.bio || store.state.site.piIntro)
 const mentorPublications = computed(() => store.sortedPublications.value)
-const mentorAwards = computed(() =>
-  store.sortedAwards.value.filter((item) => {
-    const text = `${item.winner || ''} ${item.title || ''}`
-    return !item.winner || text.includes(mentorName.value) || text.includes('张翀')
-  }),
+const mentorAwards = computed(() => store.sortedAwards.value)
+const mentorPatents = computed(() =>
+  store.sortedProjects.value.filter((item) => item.category === '专利' || item.patent_no),
 )
 
 function editableClass() {
@@ -85,6 +83,20 @@ function editAward(item, field, label) {
       [field]: next.trim(),
     }),
     '获奖信息保存成功',
+  )
+}
+
+function editPatent(item, field, label) {
+  if (!store.isSuperAdmin()) return
+  const next = window.prompt(`修改${label}`, item[field] || '')
+  if (next === null) return
+  saveResult(
+    store.upsertOutput('projects', {
+      ...JSON.parse(JSON.stringify(item)),
+      category: '专利',
+      [field]: next.trim(),
+    }),
+    '专利信息保存成功',
   )
 }
 
@@ -187,15 +199,15 @@ function uploadMentorPhoto(event) {
         <span>获奖成果</span>
       </article>
       <article>
-        <strong>40+</strong>
-        <span>论文与专利</span>
+        <strong>{{ mentorPatents.length }}</strong>
+        <span>专利成果</span>
       </article>
     </section>
 
     <section class="mentor-content section">
       <div class="section-title title-center">
         <span>导师成果</span>
-        <h2>Publications & Awards</h2>
+        <h2>Publications · Awards · Patents</h2>
       </div>
 
       <div class="mentor-output-layout">
@@ -229,6 +241,20 @@ function uploadMentorPhoto(event) {
             </button>
             <button class="icon-button" type="button" title="下载获奖图片" @click="downloadAward(item)">
               <Download :size="16" />
+            </button>
+          </article>
+        </section>
+
+        <section class="mentor-output-panel">
+          <div class="mentor-output-head">
+            <Pencil :size="20" />
+            <h3>专利</h3>
+          </div>
+          <article v-for="item in mentorPatents" :key="item.id" class="mentor-output-item">
+            <button class="mentor-output-main" type="button">
+              <strong :class="editableClass()" @dblclick.stop="editPatent(item, 'title', '专利标题')">{{ item.title }}</strong>
+              <span :class="editableClass()" @dblclick.stop="editPatent(item, 'authors', '发明人')">{{ item.authors || '发明人待录入' }}</span>
+              <small :class="editableClass()" @dblclick.stop="editPatent(item, 'patent_no', '专利号')">{{ item.patent_no || '专利号待录入' }}</small>
             </button>
           </article>
         </section>

@@ -994,11 +994,12 @@ img {
 
 .mentor-output-layout {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 22px;
 }
 
 .mentor-output-panel {
+  min-width: 0;
   border: 1px solid var(--border-weak);
   background: var(--paper);
   box-shadow: var(--shadow);
@@ -1046,12 +1047,21 @@ img {
 .mentor-output-main strong {
   color: var(--heading);
   line-height: 1.46;
+  overflow-wrap: anywhere;
 }
 
 .mentor-output-main span,
 .mentor-output-main small {
   color: var(--muted);
   line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.mentor-stats article,
+.mentor-stats strong,
+.mentor-stats span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .member-groups {
