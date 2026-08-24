@@ -3,7 +3,7 @@ import { fetchSharedState, saveSharedState, sharedStateEnabled } from '../lib/cl
 
 const STORAGE_KEY = 'lab-site-vue-store-v1'
 const SESSION_KEY = 'lab-site-vue-session-v1'
-const DATA_VERSION = 'member-persist-v1'
+const DATA_VERSION = 'mentor-publications-v1'
 const ADMIN_PASSWORD = 'admin666'
 const ZHOU_JIAN_PASSWORD = 'zj020206zj'
 
@@ -242,6 +242,116 @@ function studentMember(id, name, staffId, grade, direction) {
   }
 }
 
+function defaultMentorPublications() {
+  return [
+    {
+      id: 'mentor-paper-ieee-tmc-2023',
+      title: 'LEGO: Empowering Chip-level Functionality Plug-and-play for Next-generation IoT devices',
+      authors: 'Chong Zhang, Songfan Li, Yihang Song, Qianhe Meng, Minghua Chen, YanXu Bai, Li Lu, Hongzi Zhu',
+      journal: 'IEEE Transactions on Mobile Computing',
+      pub_year: 2023,
+      volume_issue: '',
+      pages: '',
+      doi: '',
+      paper_link: 'https://ieeexplore.ieee.org/document/10360380',
+      pub_type: '论文',
+      note: '导师代表性论文',
+      visible_on_home: true,
+      sort_order: 1,
+    },
+    {
+      id: 'mentor-paper-lego-plus-2025',
+      title: 'LEGO+: Empowering Plug-and-play Millimeter-scale Wireless IoT Networks',
+      authors: 'Chong Zhang et al.',
+      journal: 'ACM MobiSys',
+      pub_year: 2025,
+      volume_issue: '',
+      pages: '',
+      doi: '10.1145/3711875.3729126',
+      paper_link: 'https://doi.org/10.1145/3711875.3729126',
+      pub_type: '论文',
+      note: '导师代表性论文',
+      visible_on_home: true,
+      sort_order: 2,
+    },
+    {
+      id: 'mentor-paper-sensors-2024-jensen',
+      title: 'Jensen-Shannon Divergence Assisted Modulation Classification for Smart Sensing Systems',
+      authors: 'Chong Zhang et al.',
+      journal: 'IEEE Sensors Journal',
+      pub_year: 2024,
+      volume_issue: '',
+      pages: '',
+      doi: '10.1109/JSEN.2024.3474678',
+      paper_link: 'https://doi.org/10.1109/JSEN.2024.3474678',
+      pub_type: '论文',
+      note: '导师代表性论文',
+      visible_on_home: true,
+      sort_order: 3,
+    },
+    {
+      id: 'mentor-paper-fast-sensors-2024',
+      title: 'FAST: Feature-Aware Signal Transformation for Intelligent Sensing',
+      authors: 'Chong Zhang et al.',
+      journal: 'IEEE Sensors Journal',
+      pub_year: 2024,
+      volume_issue: '',
+      pages: '',
+      doi: '10.1109/JSEN.2024.3499359',
+      paper_link: 'https://doi.org/10.1109/JSEN.2024.3499359',
+      pub_type: '论文',
+      note: '导师代表性论文',
+      visible_on_home: true,
+      sort_order: 4,
+    },
+    {
+      id: 'mentor-paper-biotouch-2022',
+      title: 'BioTouch: Touch Sensing and Authentication with Bioimpedance',
+      authors: 'Chong Zhang et al.',
+      journal: 'Sensors',
+      pub_year: 2022,
+      volume_issue: '',
+      pages: '',
+      doi: '10.3390/s22093583',
+      paper_link: 'https://doi.org/10.3390/s22093583',
+      pub_type: '论文',
+      note: '导师代表性论文',
+      visible_on_home: true,
+      sort_order: 5,
+    },
+    {
+      id: 'mentor-paper-eswa-2026',
+      title: 'Molecular Property Prediction Based on Deep Learning',
+      authors: 'Chong Zhang et al.',
+      journal: 'Expert Systems with Applications',
+      pub_year: 2026,
+      volume_issue: '',
+      pages: '',
+      doi: '10.1016/j.eswa.2026.132735',
+      paper_link: 'https://doi.org/10.1016/j.eswa.2026.132735',
+      pub_type: '论文',
+      note: '导师代表性论文',
+      visible_on_home: true,
+      sort_order: 6,
+    },
+    {
+      id: 'mentor-paper-jappgeo-2026',
+      title: 'Multi-task Learning Transformer for Reservoir Prediction',
+      authors: 'Chong Zhang et al.',
+      journal: 'Journal of Applied Geophysics',
+      pub_year: 2026,
+      volume_issue: '',
+      pages: '',
+      doi: '10.1016/j.jappgeo.2026.106236',
+      paper_link: 'https://doi.org/10.1016/j.jappgeo.2026.106236',
+      pub_type: '论文',
+      note: '导师代表性论文',
+      visible_on_home: true,
+      sort_order: 7,
+    },
+  ]
+}
+
 function seedData() {
   const data = {
     meta: {
@@ -294,7 +404,7 @@ function seedData() {
       studentMember('m-student-yanyi-06', '待定 06', '20250006', '研一', '待定'),
     ],
     pendingRegistrations: [],
-    publications: [],
+    publications: defaultMentorPublications(),
     projects: [
       { id: 'proj-1', title: '面向能源现场的智能感知与预测系统', category: '纵向', sort_order: 1 },
       { id: 'proj-2', title: '工业设备视觉检测平台研发', category: '横向', sort_order: 2 },
@@ -418,6 +528,7 @@ function migrateData(data) {
   normalizeOutputVisibility(data.publications)
   normalizeOutputVisibility(data.awards)
   removeTemplateOutputs(data)
+  ensureDefaultPublications(data, seeded, needsUpgrade)
   normalizeOutputAssets(data, seeded)
   normalizeOutputOrders(data.publications)
   normalizeOutputOrders(data.awards)
@@ -735,6 +846,17 @@ function removeTemplateOutputs(data) {
   data.awards = data.awards.filter(
     (item) => !templateAwardIds.has(item.id) && !templateAwardTitles.has(item.title),
   )
+}
+
+function ensureDefaultPublications(data, seeded, force = false) {
+  if (!force && data.publications.length > 0) return
+  const existingKeys = new Set(
+    data.publications.map((item) => item.id || item.title).filter(Boolean),
+  )
+  for (const publication of seeded.publications) {
+    if (existingKeys.has(publication.id) || existingKeys.has(publication.title)) continue
+    data.publications.push(JSON.parse(JSON.stringify(publication)))
+  }
 }
 
 export function useLabStore() {

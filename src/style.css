@@ -451,6 +451,17 @@ img {
     0 10px 24px rgba(30, 75, 112, 0.08);
 }
 
+.button-mentor {
+  border-color: rgba(184, 134, 11, 0.34);
+  color: var(--heading);
+  background:
+    linear-gradient(135deg, rgba(184, 134, 11, 0.16), rgba(0, 168, 143, 0.08)),
+    var(--paper);
+  box-shadow:
+    inset 0 0 18px rgba(184, 134, 11, 0.08),
+    0 10px 26px rgba(30, 75, 112, 0.08);
+}
+
 .hero-visual {
   position: relative;
   padding: 24px;
@@ -751,6 +762,7 @@ img {
   color: var(--gold);
   box-shadow: none;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .pi-avatar::after {
@@ -771,6 +783,11 @@ img {
 
 .pi-avatar svg {
   margin: 0;
+}
+
+.pi-avatar:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -6px;
 }
 
 .pi-copy {
@@ -797,6 +814,47 @@ img {
   margin: 0;
   color: color-mix(in srgb, var(--inverse-text) 78%, transparent);
   line-height: 1.76;
+}
+
+.mentor-detail-modal {
+  width: min(720px, calc(100vw - 32px));
+}
+
+.mentor-detail-content {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.mentor-detail-avatar {
+  display: grid;
+  min-height: 188px;
+  place-items: center;
+  border: 1px solid var(--border-weak);
+  background:
+    linear-gradient(135deg, rgba(0, 168, 143, 0.12), rgba(37, 99, 235, 0.08)),
+    var(--panel);
+  color: var(--gold);
+  overflow: hidden;
+}
+
+.mentor-detail-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mentor-detail-content h3 {
+  margin: 0 0 12px;
+  color: var(--heading);
+  font-size: 1.8rem;
+}
+
+.mentor-detail-content p {
+  margin: 0 0 10px;
+  color: var(--muted);
+  line-height: 1.78;
 }
 
 .member-groups {
