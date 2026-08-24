@@ -18,6 +18,7 @@ function defaultSiteContent() {
     groupName: '张翀研究小组',
     brandTagline: '油气井 · 嵌入式 · Agent',
     navResearchLabel: '研究方向',
+    navMentorLabel: '导师信息',
     navPeopleLabel: '成员',
     navOutputsLabel: '成果',
     navToolsLabel: '工具',
@@ -128,6 +129,19 @@ function hasBrokenQuestionMarks(value) {
   return typeof value === 'string' && /\?{2,}/.test(value)
 }
 
+function defaultAwardImage(itemId) {
+  const imageMap = {
+    'award-2025-kjjb-1': '/awards/award-2025-kjjb-1.jpg',
+    'award-2025-kjjb-2': '/awards/award-2025-kjjb-2.jpg',
+    'award-2025-fmzl': '/awards/award-2025-fmzl.jpg',
+    'award-2024-jsfm-2': '/awards/award-2024-jsfm-2.jpg',
+    'award-2024-kjjb-2': '/awards/award-2024-kjjb-2.jpg',
+    'award-2023-jsfm-1': '/awards/award-2023-jsfm-1.jpg',
+    'award-2023-kjjb-2': '/awards/award-2023-kjjb-2.jpg',
+  }
+  return imageMap[itemId] || ''
+}
+
 function normalizeOutputAssets(data, seeded) {
   const seededAwards = new Map(seeded.awards.map((item) => [item.id, item]))
 
@@ -143,6 +157,8 @@ function normalizeOutputAssets(data, seeded) {
     item.image_data = typeof item.image_data === 'string' ? item.image_data : ''
     item.image_url = typeof item.image_url === 'string' ? item.image_url.trim() : ''
     item.image_name = typeof item.image_name === 'string' ? item.image_name : ''
+    if (!item.image_data && !item.image_url) item.image_url = defaultAwardImage(item.id)
+    if (!item.image_name && item.image_url) item.image_name = `${item.id}.jpg`
     if (hasBrokenQuestionMarks(item.title)) item.title = seededAwards.get(item.id)?.title || ''
     if (hasBrokenQuestionMarks(item.winner)) item.winner = seededAwards.get(item.id)?.winner || ''
   }
@@ -213,6 +229,11 @@ function enforceCoreMemberIdentities(data) {
     zhangChong.role = 'teacher'
     zhangChong.grade = ''
     zhangChong.direction = ''
+    if (!zhangChong.email) zhangChong.email = 'zhsngchong92@swpu.edu.cn'
+    if (!zhangChong.bio) {
+      zhangChong.bio =
+        '西南石油大学计算机与软件学院特聘副研究员、硕士生导师，主要围绕油气井、嵌入式系统、智能感知与 Agent 智能体开展研究与工程实践。'
+    }
     zhangChong.permissions = studentPermissions()
   }
 
@@ -388,7 +409,10 @@ function seedData() {
         status: 'active',
         visible_on_site: true,
         permissions: studentPermissions(),
-        ...memberProfileDefaults(),
+        ...memberProfileDefaults({
+          email: 'zhsngchong92@swpu.edu.cn',
+          bio: '西南石油大学计算机与软件学院特聘副研究员、硕士生导师，主要围绕油气井、嵌入式系统、智能感知与 Agent 智能体开展研究与工程实践。',
+        }),
       },
       studentMember('m-student-zhoujian', '周健', '202522000755', '研二', '油气井'),
       studentMember('m-student-zhaodewei', '赵德伟', '20240002', '研二', '嵌入式'),
@@ -491,6 +515,10 @@ function seedData() {
     if (!zhouJian.password) zhouJian.password = ZHOU_JIAN_PASSWORD
     zhouJian.role = 'student'
     zhouJian.permissions = studentPermissions()
+  }
+  for (const award of data.awards) {
+    award.image_url = award.image_url || defaultAwardImage(award.id)
+    award.image_name = award.image_name || `${award.id}.jpg`
   }
   return data
 }

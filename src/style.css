@@ -857,6 +857,203 @@ img {
   line-height: 1.78;
 }
 
+.mentor-page {
+  padding-bottom: 96px;
+}
+
+.mentor-hero {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.38fr) minmax(0, 0.62fr);
+  gap: clamp(24px, 5vw, 64px);
+  align-items: stretch;
+  padding-top: clamp(42px, 8vw, 92px);
+}
+
+.mentor-portrait {
+  display: grid;
+  position: relative;
+  min-height: 520px;
+  border: 1px solid var(--border-weak);
+  background:
+    linear-gradient(135deg, rgba(0, 168, 143, 0.12), rgba(37, 99, 235, 0.08)),
+    var(--dark);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.mentor-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+}
+
+.mentor-portrait::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 52%, rgba(4, 17, 20, 0.72));
+  content: '';
+  pointer-events: none;
+}
+
+.mentor-photo-btn {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  padding: 10px 14px;
+  color: var(--inverse-text);
+  background: rgba(4, 17, 20, 0.64);
+  backdrop-filter: blur(14px);
+  cursor: pointer;
+}
+
+.mentor-hero-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.mentor-back {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  gap: 8px;
+  margin-bottom: 28px;
+  color: var(--muted);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.mentor-hero-copy h1 {
+  margin: 0;
+  color: var(--heading);
+  font-size: clamp(3.2rem, 9vw, 7.6rem);
+  line-height: 0.95;
+}
+
+.mentor-title {
+  margin: 18px 0 0;
+  color: var(--jade);
+  font-weight: 850;
+}
+
+.mentor-summary {
+  max-width: 760px;
+  margin: 24px 0 0;
+  color: var(--muted);
+  font-size: 1.04rem;
+  line-height: 1.88;
+}
+
+.mentor-contact-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.mentor-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding-top: 34px;
+}
+
+.mentor-stats article {
+  min-height: 116px;
+  border: 1px solid var(--border-weak);
+  padding: 22px;
+  background: var(--paper);
+  box-shadow: inset 0 0 24px rgba(0, 168, 143, 0.05);
+}
+
+.mentor-stats strong {
+  display: block;
+  color: var(--heading);
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.mentor-stats span {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+  font-weight: 780;
+}
+
+.mentor-content {
+  padding-top: 72px;
+}
+
+.mentor-output-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.mentor-output-panel {
+  border: 1px solid var(--border-weak);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.mentor-output-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--border-weak);
+  color: var(--heading);
+}
+
+.mentor-output-head h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.mentor-output-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  gap: 12px;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border-weak);
+}
+
+.mentor-output-item:last-child {
+  border-bottom: 0;
+}
+
+.mentor-output-main {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mentor-output-main strong {
+  color: var(--heading);
+  line-height: 1.46;
+}
+
+.mentor-output-main span,
+.mentor-output-main small {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .member-groups {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1124,6 +1321,19 @@ img {
     grid-template-columns: 1fr;
   }
 
+  .mentor-hero,
+  .mentor-output-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .mentor-portrait {
+    min-height: 420px;
+  }
+
+  .mentor-stats {
+    grid-template-columns: 1fr;
+  }
+
   .research-card {
     min-height: 260px;
     border-right: 0;
@@ -1247,6 +1457,11 @@ img {
   .output-item {
     grid-template-columns: 1fr;
     padding: 18px 0;
+  }
+
+  .mentor-contact-row,
+  .mentor-contact-row .button {
+    width: 100%;
   }
 
   .contact-band {

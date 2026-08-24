@@ -6,7 +6,6 @@ import {
   Bot,
   Cpu,
   FileText,
-  GraduationCap,
   Mail,
   Network,
   Download,
@@ -72,7 +71,6 @@ const outputCount = computed(
 )
 const contactHref = computed(() => `mailto:${store.state.site.contactEmail}`)
 const selectedOutput = ref(null)
-const selectedMentor = ref(null)
 
 function editableClass() {
   return { editable: store.isSuperAdmin() }
@@ -166,14 +164,6 @@ function closeOutputDialog() {
   selectedOutput.value = null
 }
 
-function openMentorDialog() {
-  selectedMentor.value = teachers.value[0] || null
-}
-
-function closeMentorDialog() {
-  selectedMentor.value = null
-}
-
 function openPaperLink() {
   const link = selectedOutput.value?.paper_link?.trim()
   if (!link) return
@@ -222,10 +212,10 @@ function downloadAwardImage(item = selectedOutput.value) {
             联系加入
             <Mail :size="17" />
           </a>
-          <a class="button button-mentor" href="#mentor">
+          <RouterLink class="button button-mentor" to="/mentor">
             导师信息
             <Info :size="17" />
-          </a>
+          </RouterLink>
         </div>
       </div>
 
@@ -278,10 +268,9 @@ function downloadAwardImage(item = selectedOutput.value) {
       </div>
 
       <article id="mentor" class="pi-panel">
-        <button class="pi-avatar" type="button" title="查看导师信息" @click="openMentorDialog">
-          <img v-if="teachers[0]?.photo" :src="teachers[0].photo" alt="导师照片" />
-          <GraduationCap v-else :size="30" />
-        </button>
+        <RouterLink class="pi-avatar" to="/mentor" title="查看导师信息">
+          <img :src="teachers[0]?.photo || heroImage" alt="导师照片" />
+        </RouterLink>
         <div class="pi-copy">
           <span :class="editableClass()" @dblclick="editSiteField('piLabel', '导师标签')">{{ store.state.site.piLabel }}</span>
           <h3 :class="editableClass()" @dblclick="teachers[0] && editMemberField(teachers[0], 'name', '导师姓名')">{{ teachers[0]?.name || '负责人姓名' }}</h3>
@@ -448,26 +437,4 @@ function downloadAwardImage(item = selectedOutput.value) {
     </section>
   </div>
 
-  <div v-if="selectedMentor" class="modal-overlay output-detail-overlay" role="presentation">
-    <section class="modal-panel mentor-detail-modal" role="dialog" aria-modal="true" aria-label="导师信息">
-      <div class="modal-head">
-        <h2>导师信息</h2>
-        <button class="modal-close" type="button" title="关闭" @click="closeMentorDialog">
-          <X :size="18" />
-        </button>
-      </div>
-      <div class="mentor-detail-content">
-        <div class="mentor-detail-avatar">
-          <img v-if="selectedMentor.photo" :src="selectedMentor.photo" alt="导师照片" />
-          <GraduationCap v-else :size="34" />
-        </div>
-        <div>
-          <h3>{{ selectedMentor.name }}</h3>
-          <p>{{ selectedMentor.bio || store.state.site.piIntro }}</p>
-          <p v-if="selectedMentor.email">邮箱：{{ selectedMentor.email }}</p>
-          <p v-if="selectedMentor.phone">电话：{{ selectedMentor.phone }}</p>
-        </div>
-      </div>
-    </section>
-  </div>
 </template>

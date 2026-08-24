@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import MentorView from '../views/MentorView.vue'
 import MembersView from '../views/MembersView.vue'
 import OutputsView from '../views/OutputsView.vue'
 import PersonalSpaceView from '../views/PersonalSpaceView.vue'
@@ -8,6 +9,7 @@ import { useLabStore } from '../stores/labStore'
 
 export const routes = [
   { path: '/', name: 'home', component: HomeView, alias: ['/402zhangchong', '/home'] },
+  { path: '/mentor', name: 'mentor', component: MentorView },
   { path: '/register', name: 'register', component: RegisterView, meta: { guestOnly: true } },
   { path: '/personal-space', name: 'personal-space', component: PersonalSpaceView, meta: { requiresAuth: true, toolId: 'profile' } },
   { path: '/tools/members', name: 'members', component: MembersView, meta: { toolId: 'members', allowLogin: true, adminOnly: true } },

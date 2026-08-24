@@ -12,6 +12,7 @@ const isDark = computed(() => theme.value === 'dark')
 const navItems = computed(() =>
   [
     { field: 'navResearchLabel', label: store.state.site.navResearchLabel, to: { path: '/', hash: '#research' } },
+    { field: 'navMentorLabel', label: store.state.site.navMentorLabel || '导师信息', to: { path: '/mentor' } },
     { field: 'navPeopleLabel', label: store.state.site.navPeopleLabel, to: { path: '/', hash: '#people' } },
     { field: 'navOutputsLabel', label: store.state.site.navOutputsLabel, to: { path: '/', hash: '#outputs' } },
     { field: 'navToolsLabel', label: store.state.site.navToolsLabel, to: { path: '/', hash: '#tools' }, adminOnly: true },
