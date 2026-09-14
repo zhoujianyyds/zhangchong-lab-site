@@ -160,7 +160,10 @@ function editMember(member) {
 
 async function submitMember() {
   if (memberBusy.value) return
-  if (!form.name.trim() || !form.staff_id.trim()) return
+  if (!form.name.trim() || !form.staff_id.trim()) {
+    window.alert('请先填写姓名和工号/学号')
+    return
+  }
   memberBusy.value = true
   const isEditing = Boolean(editingId.value)
   try {
@@ -492,10 +495,6 @@ async function submitProfile() {
     <form class="tool-form modal-panel member-modal member-edit-form" @submit.prevent>
       <div class="tool-page-title-row">
         <h2 class="panel-title">{{ editingId ? '编辑成员' : '添加成员' }}</h2>
-        <button class="button button-light" type="button" :disabled="memberBusy" @click="resetForm">
-          <Plus :size="16" />
-          新建
-        </button>
         <button class="modal-close" type="button" :disabled="memberBusy" @click="closeMemberForm">
           <X :size="16" />
         </button>
@@ -641,7 +640,7 @@ async function submitProfile() {
         </label>
       </div>
 
-      <button class="button button-dark" type="button" :disabled="memberBusy" @click="submitMember">{{ editingId ? '保存' : '添加成员' }}</button>
+      <button class="button button-dark" type="button" :disabled="memberBusy" @click="submitMember">{{ editingId ? '保存' : '确定添加' }}</button>
       </form>
     </div>
 
