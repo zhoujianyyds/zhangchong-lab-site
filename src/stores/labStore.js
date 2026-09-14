@@ -1071,6 +1071,23 @@ function migrateData(data) {
   normalizeOutputAssets(data, seeded)
   normalizeOutputOrders(data.publications)
   normalizeOutputOrders(data.awards)
+  const firstYearNames = ['向乐达', '彭遥影', '宾慧敏', '胡佳', '欧阳天舒', '郑松义']
+  const firstYearIds = ['m-student-yanyi-02', 'm-student-yanyi-03', 'm-student-yanyi-04', 'm-student-yanyi-05', 'm-student-yanyi-06', 'm-student-yanyi-07']
+  firstYearNames.forEach((name, index) => {
+    const id = firstYearIds[index]
+    let member = data.members.find((item) => item.id === id)
+    if (!member && index === 5) {
+      member = studentMember(id, name, '20250007', '研一', '待定')
+      data.members.push(member)
+    }
+    if (member) {
+      member.name = name
+      member.grade = '研一'
+      member.role = 'student'
+      member.visible_on_site = true
+      normalizeMemberProfile(member)
+    }
+  })
   enforceCoreMemberIdentities(data)
   ensureDoctoralStudent(data)
   if (needsUpgrade) {
