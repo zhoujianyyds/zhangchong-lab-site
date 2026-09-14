@@ -184,6 +184,16 @@ function memberProfileDefaults(member = {}) {
     qq: member.qq || '',
     photo: member.photo || '',
     bio: member.bio || '',
+    achievements: Array.isArray(member.achievements)
+      ? member.achievements.map((item) => ({
+          id: item.id || uid('achievement'),
+          title: item.title || '',
+          type: item.type || '',
+          year: item.year || '',
+          description: item.description || '',
+          link: item.link || '',
+        }))
+      : [],
   }
 }
 
@@ -1705,7 +1715,6 @@ export function useLabStore() {
       if (hasDoctoralStudentConflict(state.members, existing.id, nextGrade)) {
         return { ok: false, message: '博士生只能保留一个' }
       }
-      existing.name = payload.name?.trim() || existing.name
       if (!shouldKeepStudyInfoEmpty(existing)) {
         existing.grade = nextGrade
         existing.direction = payload.direction?.trim() || ''
@@ -1778,6 +1787,43 @@ export function useLabStore() {
       return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
     }
     return { ok: true }
+  }
+
+  async function upsertMemberAchievement(memberId, payload) {
+    const member = state.members.find((item) => item.id === memberId)
+    if (!member) return { ok: false, message: '成员不存在' }
+    if (!currentMember.value) return { ok: false, message: '请先登录' }
+    if (!isSuperAdmin() && currentMember.value.id !== memberId) return { ok: false, message: '暂无权限' }
+    const title = payload.title?.trim()
+    if (!title) return { ok: false, message: '请填写成果名称' }
+    if (!Array.isArray(member.achievements)) member.achievements = []
+    const existing = member.achievements.find((item) => item.id === payload.id)
+    const achievement = {
+      id: existing?.id || uid('achievement'),
+      title,
+      type: payload.type?.trim() || '',
+      year: payload.year?.trim() || '',
+      description: payload.description?.trim() || '',
+      link: payload.link?.trim() || '',
+    }
+    if (existing) Object.assign(existing, achievement)
+    else member.achievements.push(achievement)
+    const result = await saveImmediately()
+    return result.ok
+      ? { ok: true, id: achievement.id }
+      : { ok: false, message: result.message || '保存失败' }
+  }
+
+  async function removeMemberAchievement(memberId, achievementId) {
+    const member = state.members.find((item) => item.id === memberId)
+    if (!member) return { ok: false, message: '成员不存在' }
+    if (!currentMember.value) return { ok: false, message: '请先登录' }
+    if (!isSuperAdmin() && currentMember.value.id !== memberId) return { ok: false, message: '暂无权限' }
+    const index = (member.achievements || []).findIndex((item) => item.id === achievementId)
+    if (index < 0) return { ok: false, message: '成果不存在' }
+    member.achievements.splice(index, 1)
+    const result = await saveImmediately()
+    return result.ok ? { ok: true } : { ok: false, message: result.message || '删除失败' }
   }
 
   async function upsertOutput(kind, payload) {
@@ -1910,6 +1956,8 @@ export function useLabStore() {
     deleteReimbursement,
     upsertMember,
     removeMember,
+    upsertMemberAchievement,
+    removeMemberAchievement,
     upsertOutput,
     removeOutput,
     moveOutputUp,

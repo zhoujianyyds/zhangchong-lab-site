@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { Check, Eye, EyeOff, Pencil, Plus, Trash2, X } from 'lucide-vue-next'
+import { RouterLink } from 'vue-router'
 import AuthGate from '../components/AuthGate.vue'
 import { useLabStore } from '../stores/labStore'
 
@@ -707,6 +708,13 @@ async function submitProfile() {
             </td>
             <td>
               <div class="row-actions">
+                <RouterLink
+                  class="icon-btn"
+                  :to="{ name: 'member-profile', params: { id: member.id } }"
+                  title="查看并管理个人成果"
+                >
+                  成果
+                </RouterLink>
                 <button class="icon-btn" type="button" :disabled="memberBusy" @click="editMember(member)">
                   <Pencil :size="14" />
                 </button>

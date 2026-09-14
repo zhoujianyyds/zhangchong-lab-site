@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { RefreshCw, Save } from 'lucide-vue-next'
 import AuthGate from '../components/AuthGate.vue'
+import MemberAchievements from '../components/MemberAchievements.vue'
 import { useLabStore } from '../stores/labStore'
 
 const store = useLabStore()
@@ -101,7 +102,7 @@ async function submitProfile() {
   try {
     const result = await store.upsertMember({
       ...JSON.parse(JSON.stringify(member)),
-      name: form.name.trim(),
+      name: member.name,
       grade: nextGrade,
       direction: nextDirection,
       phone: form.phone,
@@ -162,11 +163,13 @@ async function submitProfile() {
       <div class="form-row">
         <div class="form-field">
           <label for="space-name">姓名</label>
-          <input id="space-name" v-model="form.name" type="text" />
+          <input id="space-name" :value="currentMember?.name" type="text" disabled />
+          <small class="field-hint">姓名仅管理员可以修改</small>
         </div>
         <div class="form-field">
           <label for="space-staff-id">账号</label>
           <input id="space-staff-id" :value="currentMember?.staff_id" type="text" disabled />
+          <small class="field-hint">账号仅管理员可以修改</small>
         </div>
       </div>
 
@@ -227,5 +230,10 @@ async function submitProfile() {
         保存个人空间
       </button>
     </form>
+    <MemberAchievements
+      v-if="currentMember && !isSystemAdmin"
+      :member="currentMember"
+      editable
+    />
   </AuthGate>
 </template>

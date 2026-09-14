@@ -23,6 +23,9 @@ const mentorAwards = computed(() => store.sortedAwards.value)
 const mentorPatents = computed(() =>
   store.sortedProjects.value.filter((item) => item.category === '专利' || item.patent_no),
 )
+const previewPublications = computed(() => mentorPublications.value.slice(0, 5))
+const previewAwards = computed(() => mentorAwards.value.slice(0, 5))
+const previewPatents = computed(() => mentorPatents.value.slice(0, 5))
 
 function editableClass() {
   return { editable: store.isSuperAdmin() }
@@ -45,20 +48,6 @@ function editMentorField(field, label) {
       [field]: next.trim(),
     }),
     '导师资料保存成功', `确定修改${label}吗？`,
-  )
-}
-
-function editSiteField(field, label) {
-  if (!store.isSuperAdmin()) return
-  const next = window.prompt(`修改${label}`, store.state.site[field] || '')
-  if (next === null) return
-  saveResult(
-    () => store.updateSiteContent({
-      ...store.state.site,
-      [field]: next,
-      researchLines: store.state.site.researchLines,
-    }),
-    '页面文字保存成功', `确定修改${label}吗？`,
   )
 }
 
@@ -171,9 +160,6 @@ function uploadMentorPhoto(event) {
           <ArrowLeft :size="16" />
           返回首页
         </RouterLink>
-        <p class="eyebrow" :class="editableClass()" @dblclick="editSiteField('piLabel', '导师标签')">
-          {{ store.state.site.piLabel || '导师' }}
-        </p>
         <h1 :class="editableClass()" @dblclick="editMentorField('name', '导师姓名')">{{ mentorName }}</h1>
         <p class="mentor-title">西南石油大学计算机与软件学院 · 特聘副研究员 / 硕士生导师</p>
         <p class="mentor-summary" :class="editableClass()" @dblclick="editMentorField('bio', '导师简介')">
@@ -223,7 +209,8 @@ function uploadMentorPhoto(event) {
             <FileText :size="20" />
             <h3>论文</h3>
           </div>
-          <article v-for="item in mentorPublications" :key="item.id" class="mentor-output-item">
+          <div class="mentor-output-items">
+          <article v-for="item in previewPublications" :key="item.id" class="mentor-output-item">
             <button class="mentor-output-main" type="button" @click="openPaper(item)">
               <strong :class="editableClass()" @dblclick.stop="editPublication(item, 'title', '论文标题')">{{ item.title }}</strong>
               <span>{{ [item.journal, item.pub_year].filter(Boolean).join(' · ') }}</span>
@@ -233,6 +220,8 @@ function uploadMentorPhoto(event) {
               <ExternalLink :size="16" />
             </button>
           </article>
+          </div>
+          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', hash: '#publications' }">查看更多论文 <ExternalLink :size="15" /></RouterLink>
         </section>
 
         <section class="mentor-output-panel">
@@ -240,7 +229,8 @@ function uploadMentorPhoto(event) {
             <Award :size="20" />
             <h3>获奖</h3>
           </div>
-          <article v-for="item in mentorAwards" :key="item.id" class="mentor-output-item">
+          <div class="mentor-output-items">
+          <article v-for="item in previewAwards" :key="item.id" class="mentor-output-item">
             <button class="mentor-output-main" type="button" @click="downloadAward(item)">
               <strong :class="editableClass()" @dblclick.stop="editAward(item, 'title', '获奖标题')">{{ item.title }}</strong>
               <span :class="editableClass()" @dblclick.stop="editAward(item, 'winner', '获奖人')">{{ item.winner || '待录入' }}</span>
@@ -250,6 +240,8 @@ function uploadMentorPhoto(event) {
               <Download :size="16" />
             </button>
           </article>
+          </div>
+          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', hash: '#awards' }">查看更多获奖 <ExternalLink :size="15" /></RouterLink>
         </section>
 
         <section class="mentor-output-panel">
@@ -257,13 +249,16 @@ function uploadMentorPhoto(event) {
             <Pencil :size="20" />
             <h3>专利</h3>
           </div>
-          <article v-for="item in mentorPatents" :key="item.id" class="mentor-output-item">
+          <div class="mentor-output-items">
+          <article v-for="item in previewPatents" :key="item.id" class="mentor-output-item">
             <button class="mentor-output-main" type="button">
               <strong :class="editableClass()" @dblclick.stop="editPatent(item, 'title', '专利标题')">{{ item.title }}</strong>
               <span :class="editableClass()" @dblclick.stop="editPatent(item, 'authors', '发明人')">{{ item.authors || '发明人待录入' }}</span>
               <small :class="editableClass()" @dblclick.stop="editPatent(item, 'patent_no', '专利号')">{{ item.patent_no || '专利号待录入' }}</small>
             </button>
           </article>
+          </div>
+          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', hash: '#patents' }">查看更多专利 <ExternalLink :size="15" /></RouterLink>
         </section>
       </div>
     </section>

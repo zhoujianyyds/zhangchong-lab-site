@@ -322,7 +322,7 @@ function downloadAwardImage(item = selectedOutput.value) {
         </RouterLink>
         <div class="pi-copy">
           <span :class="editableClass()" @dblclick="editSiteField('piLabel', '导师标签')">{{ store.state.site.piLabel }}</span>
-          <h3 :class="editableClass()" @dblclick="teachers[0] && editMemberField(teachers[0], 'name', '导师姓名')">{{ teachers[0]?.name || '负责人姓名' }}</h3>
+          <h3><RouterLink class="public-profile-link" to="/mentor" title="查看导师资料">{{ teachers[0]?.name || '负责人姓名' }}</RouterLink></h3>
           <p :class="editableClass()" @dblclick="editSiteField('piIntro', '导师简介')">{{ store.state.site.piIntro }}</p>
         </div>
       </article>
@@ -338,7 +338,13 @@ function downloadAwardImage(item = selectedOutput.value) {
               </div>
               <div class="member-row-copy">
                 <div class="member-row-head">
-                  <strong :class="editableClass()" @dblclick="editMemberField(member, 'name', '成员姓名')">{{ member.name }}</strong>
+                  <RouterLink
+                    class="public-profile-link"
+                    :to="{ name: 'member-profile', params: { id: member.id } }"
+                    :title="`查看${member.name}的个人资料`"
+                  >
+                    <strong>{{ member.name }}</strong>
+                  </RouterLink>
                 </div>
                 <p :class="editableClass()" @dblclick="editMemberField(member, 'direction', '研究方向')">{{ member.direction }}</p>
               </div>
@@ -358,6 +364,10 @@ function downloadAwardImage(item = selectedOutput.value) {
         <section class="output-group">
           <div class="output-group-head">
             <h3>论文</h3>
+            <RouterLink class="output-more-link" :to="{ name: 'public-outputs', hash: '#publications' }">
+              查看更多
+              <ArrowUpRight :size="15" />
+            </RouterLink>
           </div>
           <div class="output-list">
             <article
@@ -388,6 +398,10 @@ function downloadAwardImage(item = selectedOutput.value) {
         <section class="output-group">
           <div class="output-group-head">
             <h3>获奖</h3>
+            <RouterLink class="output-more-link" :to="{ name: 'public-outputs', hash: '#awards' }">
+              查看更多
+              <ArrowUpRight :size="15" />
+            </RouterLink>
           </div>
           <div class="output-list">
             <article
