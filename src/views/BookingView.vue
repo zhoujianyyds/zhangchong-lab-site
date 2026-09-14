@@ -52,6 +52,7 @@ function shiftDay(step) {
 
 async function submitBooking() {
   if (bookingBusy.value) return
+  if (!(await window.appConfirm(`确定预约 ${selectedDate.value} ${form.start_time}-${form.end_time} 吗？`, '确认预约'))) return
   bookingBusy.value = true
   try {
     const result = await store.addBooking({
@@ -63,6 +64,8 @@ async function submitBooking() {
     if (result.ok) {
       form.reason = ''
       window.alert('预约添加成功')
+    } else {
+      window.alert(result.message || '预约添加失败')
     }
   } finally {
     bookingBusy.value = false

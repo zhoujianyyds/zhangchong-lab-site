@@ -94,6 +94,7 @@ async function submitProfile() {
   if (profileBusy.value) return
   const member = currentMember.value
   if (!member || isSystemAdmin.value) return
+  if (!(await window.appConfirm('确定保存个人空间的全部修改吗？', '确认保存个人空间'))) return
   const nextGrade = lockStudyInfo.value ? '' : form.grade
   const nextDirection = lockStudyInfo.value ? '' : form.direction
   profileBusy.value = true

@@ -165,8 +165,12 @@ async function submitMember() {
     window.alert('请先填写姓名和工号/学号')
     return
   }
-  memberBusy.value = true
   const isEditing = Boolean(editingId.value)
+  if (!(await window.appConfirm(
+    isEditing ? `确定保存「${form.name.trim()}」的修改吗？` : `确定添加成员「${form.name.trim()}」吗？`,
+    isEditing ? '确认修改成员' : '确认添加成员',
+  ))) return
+  memberBusy.value = true
   try {
     if (isLockedStudyInfo.value) {
       form.grade = ''
@@ -212,6 +216,8 @@ async function submitMember() {
 async function toggleMemberVisibility(member) {
   if (memberBusy.value) return
   if (member.staff_id === 'admin') return
+  const action = member.visible_on_site ? '取消网站展示' : '在网站展示'
+  if (!(await window.appConfirm(`确定${action}「${member.name}」吗？`, '确认修改展示状态'))) return
   memberBusy.value = true
   try {
     const result = await store.upsertMember({
@@ -277,6 +283,7 @@ function gradeLabel(grade) {
 
 async function approveRegistration(record) {
   if (memberBusy.value) return
+  if (!(await window.appConfirm(`确定通过「${record.name}」的注册申请吗？`, '确认通过注册'))) return
   memberBusy.value = true
   try {
     const result = await store.approveRegistration(record.id)
@@ -326,6 +333,7 @@ async function submitProfile() {
   if (memberBusy.value) return
   const member = store.currentMember.value
   if (!member || store.isSuperAdmin()) return
+  if (!(await window.appConfirm('确定保存个人资料修改吗？', '确认保存个人资料'))) return
   memberBusy.value = true
   try {
     const result = await store.upsertMember({

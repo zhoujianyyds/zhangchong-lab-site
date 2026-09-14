@@ -78,8 +78,9 @@ function editableClass() {
   return { editable: store.isSuperAdmin() }
 }
 
-async function saveEditResult(promise, successMessage = '保存成功') {
-  const result = await (window.appRunBusy?.(() => promise, '正在保存文字，请稍候') || promise)
+async function saveEditResult(action, successMessage = '保存成功', confirmMessage = '确定保存这项修改吗？') {
+  if (confirmMessage && !(await window.appConfirm(confirmMessage, '确认保存'))) return
+  const result = await (window.appRunBusy?.(action, '正在保存文字，请稍候') || action())
   window.alert(result.ok ? successMessage : result.message || '保存失败')
 }
 
@@ -87,11 +88,11 @@ function editSiteField(field, label) {
   if (!store.isSuperAdmin()) return
   const next = window.prompt(`修改${label}`, store.state.site[field] || '')
   if (next === null) return
-  saveEditResult(store.updateSiteContent({
+  saveEditResult(() => store.updateSiteContent({
     ...store.state.site,
     [field]: next,
     researchLines: store.state.site.researchLines,
-  }), '文字保存成功')
+  }), '文字保存成功', `确定修改${label}吗？`)
 }
 
 function editResearchLine(index, field, label) {
@@ -100,10 +101,10 @@ function editResearchLine(index, field, label) {
   const next = window.prompt(`修改${label}`, lines[index][field] || '')
   if (next === null) return
   lines[index][field] = next
-  saveEditResult(store.updateSiteContent({
+  saveEditResult(() => store.updateSiteContent({
     ...store.state.site,
     researchLines: lines,
-  }), '研究方向保存成功')
+  }), '研究方向保存成功', `确定修改${label}吗？`)
 }
 
 function addResearchLine() {
@@ -117,10 +118,10 @@ function addResearchLine() {
     tone: tones[lines.length % tones.length],
     text: '双击文字填写该方向的研究说明。',
   })
-  saveEditResult(store.updateSiteContent({
+  saveEditResult(() => store.updateSiteContent({
     ...store.state.site,
     researchLines: lines,
-  }), '研究方向添加成功')
+  }), '研究方向添加成功', '确定添加一个新的研究方向吗？')
 }
 
 async function removeResearchLine(index) {
@@ -129,10 +130,10 @@ async function removeResearchLine(index) {
   if (!(await window.appConfirm(`确定删除“${line?.title || '该研究方向'}”吗？`, '删除研究方向'))) return
   const lines = JSON.parse(JSON.stringify(store.state.site.researchLines))
   lines.splice(index, 1)
-  saveEditResult(store.updateSiteContent({
+  saveEditResult(() => store.updateSiteContent({
     ...store.state.site,
     researchLines: lines,
-  }), '研究方向删除成功')
+  }), '研究方向删除成功', '')
 }
 
 function editToolCard(index, field, label) {
@@ -141,50 +142,50 @@ function editToolCard(index, field, label) {
   const next = window.prompt(`修改${label}`, toolCards[index][field] || '')
   if (next === null) return
   toolCards[index][field] = next
-  saveEditResult(store.updateSiteContent({
+  saveEditResult(() => store.updateSiteContent({
     ...store.state.site,
     toolCards,
-  }), '工具文字保存成功')
+  }), '工具文字保存成功', `确定修改${label}吗？`)
 }
 
 function editMemberField(member, field, label) {
   if (!store.isSuperAdmin()) return
   const next = window.prompt(`修改${label}`, member[field] || '')
   if (next === null) return
-  saveEditResult(store.upsertMember({
+  saveEditResult(() => store.upsertMember({
     ...JSON.parse(JSON.stringify(member)),
     [field]: next,
-  }), '成员文字保存成功')
+  }), '成员文字保存成功', `确定修改${label}吗？`)
 }
 
 function editPublication(item, field, label) {
   if (!store.isSuperAdmin()) return
   const next = window.prompt(`修改${label}`, item[field] || '')
   if (next === null) return
-  saveEditResult(store.upsertOutput('publications', {
+  saveEditResult(() => store.upsertOutput('publications', {
     ...JSON.parse(JSON.stringify(item)),
     [field]: field === 'pub_year' ? Number(next) || '' : next,
-  }), '论文文字保存成功')
+  }), '论文文字保存成功', `确定修改${label}吗？`)
 }
 
 function editProject(item, field, label) {
   if (!store.isSuperAdmin()) return
   const next = window.prompt(`修改${label}`, item[field] || '')
   if (next === null) return
-  saveEditResult(store.upsertOutput('projects', {
+  saveEditResult(() => store.upsertOutput('projects', {
     ...JSON.parse(JSON.stringify(item)),
     [field]: next,
-  }), '项目文字保存成功')
+  }), '项目文字保存成功', `确定修改${label}吗？`)
 }
 
 function editAward(item, field, label) {
   if (!store.isSuperAdmin()) return
   const next = window.prompt(`修改${label}`, item[field] || '')
   if (next === null) return
-  saveEditResult(store.upsertOutput('awards', {
+  saveEditResult(() => store.upsertOutput('awards', {
     ...JSON.parse(JSON.stringify(item)),
     [field]: next,
-  }), '获奖文字保存成功')
+  }), '获奖文字保存成功', `确定修改${label}吗？`)
 }
 
 function openOutput(item, kind) {

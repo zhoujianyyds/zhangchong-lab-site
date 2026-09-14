@@ -74,6 +74,8 @@ function closeGlobalDialog(value = false) {
 
 function showGlobalAlert(message, title = '提示') {
   window.clearTimeout(globalDialogTimer)
+  globalBusy.count = 0
+  globalBusy.message = ''
   globalDialog.type = 'alert'
   globalDialog.title = title
   globalDialog.message = String(message || '')
@@ -90,7 +92,6 @@ function showGlobalConfirm(message, title = '确认操作') {
   globalDialog.open = true
   return new Promise((resolve) => {
     globalDialog.resolve = resolve
-    globalDialogTimer = window.setTimeout(() => closeGlobalDialog(false), 3000)
   })
 }
 
@@ -115,6 +116,7 @@ async function submitPassword() {
     refreshPasswordCaptcha()
     return
   }
+  if (!(await showGlobalConfirm('确定修改当前账号密码吗？修改成功后需要重新登录。', '确认修改密码'))) return
   const result = await runWithGlobalBusy(
     () => store.changePassword(passwordForm.oldPassword, passwordForm.newPassword),
     '正在修改密码，请稍候',
@@ -129,6 +131,8 @@ async function submitPassword() {
     passwordModalOpen.value = false
     store.logout()
     router.push('/tools/members')
+  } else {
+    window.alert(result.message || '密码修改失败')
   }
 }
 
@@ -165,8 +169,9 @@ function editableClass() {
   return { editable: store.isSuperAdmin() }
 }
 
-async function saveEditResult(promise, successMessage = '保存成功') {
-  const result = await runWithGlobalBusy(() => promise, '正在保存文字，请稍候')
+async function saveEditResult(action, successMessage = '保存成功', confirmMessage = '确定保存这项修改吗？') {
+  if (!(await showGlobalConfirm(confirmMessage, '确认保存'))) return
+  const result = await runWithGlobalBusy(action, '正在保存文字，请稍候')
   window.alert(result.ok ? successMessage : result.message || '保存失败')
 }
 
@@ -174,10 +179,10 @@ function editSiteField(field, label) {
   if (!store.isSuperAdmin()) return
   const next = window.prompt(`修改${label}`, store.state.site[field] || '')
   if (next === null) return
-  saveEditResult(store.updateSiteContent({
+  saveEditResult(() => store.updateSiteContent({
     ...store.state.site,
     [field]: next,
-  }), '文字保存成功')
+  }), '文字保存成功', `确定修改${label}吗？`)
 }
 
 function logout() {

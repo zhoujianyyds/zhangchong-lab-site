@@ -1304,6 +1304,10 @@ async function saveImmediately() {
       replaceState(lastPersistedState)
     }
     return result
+  } catch (error) {
+    cloud.error = error?.message || '云端保存失败'
+    replaceState(lastPersistedState)
+    return { ok: false, message: cloud.error }
   } finally {
     cloudSaveInProgress = false
   }

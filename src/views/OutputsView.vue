@@ -115,10 +115,14 @@ async function submitOutput() {
     return
   }
   if (submittingOutput.value) return
+  const wasEditing = Boolean(editingId.value)
+  if (!(await window.appConfirm(
+    wasEditing ? `确定保存这条${activeTabLabel.value}的修改吗？` : `确定添加这条${activeTabLabel.value}吗？`,
+    wasEditing ? `确认修改${activeTabLabel.value}` : `确认添加${activeTabLabel.value}`,
+  ))) return
   submittingOutput.value = true
   let result = { ok: false, message: '保存失败' }
   const savingKind = activeTab.value
-  const wasEditing = Boolean(editingId.value)
   const displayOrder = Number(form.sort_order) || nextSortOrder(activeTab.value)
   try {
     if (savingKind === 'publications') {
@@ -169,6 +173,7 @@ function resetSiteForm() {
 
 async function submitSiteContent() {
   if (outputBusy.value) return
+  if (!(await window.appConfirm('确定保存全部站点内容修改吗？', '确认保存站点内容'))) return
   submittingOutput.value = true
   try {
     const result = await store.updateSiteContent(JSON.parse(JSON.stringify(siteForm)))
@@ -236,13 +241,16 @@ function editItem(item) {
 
 async function toggleHomeVisibility(kind, item) {
   if (outputBusy.value) return
+  const label = kind === 'awards' ? '获奖' : '论文'
+  const action = item.visible_on_home === false ? '展示到首页' : '从首页隐藏'
+  if (!(await window.appConfirm(`确定将${label}「${item.title || '未命名'}」${action}吗？`, '确认修改展示状态'))) return
   submittingOutput.value = true
   try {
     const result = await store.upsertOutput(kind, {
       ...JSON.parse(JSON.stringify(item)),
       visible_on_home: item.visible_on_home === false,
     })
-    if (!result.ok) window.alert(result.message || '保存失败')
+    window.alert(result.ok ? '展示状态修改成功' : result.message || '保存失败')
   } finally {
     submittingOutput.value = false
   }

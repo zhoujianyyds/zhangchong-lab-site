@@ -57,6 +57,7 @@ async function submitRegister() {
     clearSensitiveFields()
     return
   }
+  if (!(await window.appConfirm(`确定提交「${form.name.trim()}」的注册申请吗？`, '确认注册'))) return
   registerBusy.value = true
   const release = window.appFreeze?.('正在提交注册申请，请稍候')
   try {
@@ -69,6 +70,7 @@ async function submitRegister() {
     })
     if (!result.ok) {
       message.value = result.message
+      window.alert(result.message || '注册申请提交失败')
       clearSensitiveFields()
       return
     }

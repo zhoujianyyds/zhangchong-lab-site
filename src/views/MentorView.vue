@@ -28,8 +28,9 @@ function editableClass() {
   return { editable: store.isSuperAdmin() }
 }
 
-async function saveResult(promise, successMessage) {
-  const result = await (window.appRunBusy?.(() => promise, '正在保存导师信息，请稍候') || promise)
+async function saveResult(action, successMessage, confirmMessage = '确定保存这项修改吗？') {
+  if (!(await window.appConfirm(confirmMessage, '确认保存'))) return
+  const result = await (window.appRunBusy?.(action, '正在保存导师信息，请稍候') || action())
   window.alert(result.ok ? successMessage : result.message || '保存失败')
 }
 
@@ -39,11 +40,11 @@ function editMentorField(field, label) {
   const next = window.prompt(`修改${label}`, current)
   if (next === null) return
   saveResult(
-    store.upsertMember({
+    () => store.upsertMember({
       ...JSON.parse(JSON.stringify(mentor.value)),
       [field]: next.trim(),
     }),
-    '导师资料保存成功',
+    '导师资料保存成功', `确定修改${label}吗？`,
   )
 }
 
@@ -52,12 +53,12 @@ function editSiteField(field, label) {
   const next = window.prompt(`修改${label}`, store.state.site[field] || '')
   if (next === null) return
   saveResult(
-    store.updateSiteContent({
+    () => store.updateSiteContent({
       ...store.state.site,
       [field]: next,
       researchLines: store.state.site.researchLines,
     }),
-    '页面文字保存成功',
+    '页面文字保存成功', `确定修改${label}吗？`,
   )
 }
 
@@ -66,11 +67,11 @@ function editPublication(item, field, label) {
   const next = window.prompt(`修改${label}`, item[field] || '')
   if (next === null) return
   saveResult(
-    store.upsertOutput('publications', {
+    () => store.upsertOutput('publications', {
       ...JSON.parse(JSON.stringify(item)),
       [field]: field === 'pub_year' ? Number(next) || '' : next.trim(),
     }),
-    '论文信息保存成功',
+    '论文信息保存成功', `确定修改${label}吗？`,
   )
 }
 
@@ -79,11 +80,11 @@ function editAward(item, field, label) {
   const next = window.prompt(`修改${label}`, item[field] || '')
   if (next === null) return
   saveResult(
-    store.upsertOutput('awards', {
+    () => store.upsertOutput('awards', {
       ...JSON.parse(JSON.stringify(item)),
       [field]: next.trim(),
     }),
-    '获奖信息保存成功',
+    '获奖信息保存成功', `确定修改${label}吗？`,
   )
 }
 
@@ -92,12 +93,12 @@ function editPatent(item, field, label) {
   const next = window.prompt(`修改${label}`, item[field] || '')
   if (next === null) return
   saveResult(
-    store.upsertOutput('projects', {
+    () => store.upsertOutput('projects', {
       ...JSON.parse(JSON.stringify(item)),
       category: '专利',
       [field]: next.trim(),
     }),
-    '专利信息保存成功',
+    '专利信息保存成功', `确定修改${label}吗？`,
   )
 }
 
@@ -141,11 +142,11 @@ function uploadMentorPhoto(event) {
   const reader = new FileReader()
   reader.onload = () => {
     saveResult(
-      store.upsertMember({
+      () => store.upsertMember({
         ...JSON.parse(JSON.stringify(mentor.value)),
         photo: String(reader.result || ''),
       }),
-      '导师照片保存成功',
+      '导师照片保存成功', '确定上传并保存这张导师照片吗？',
     )
   }
   reader.readAsDataURL(file)

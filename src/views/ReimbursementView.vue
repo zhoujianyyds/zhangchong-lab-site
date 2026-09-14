@@ -49,6 +49,7 @@ function fileChanged(event) {
 
 async function submitReimbursement() {
   if (reimbursementBusy.value) return
+  if (!(await window.appConfirm(`确定提交金额为 ¥${form.amount || '0'} 的报销申请吗？`, '确认提交报销'))) return
   reimbursementBusy.value = true
   try {
     const result = await store.addReimbursement({
@@ -62,6 +63,8 @@ async function submitReimbursement() {
       form.reason = ''
       form.files = []
       window.alert('报销提交成功')
+    } else {
+      window.alert(result.message || '报销提交失败')
     }
   } finally {
     reimbursementBusy.value = false
@@ -90,6 +93,8 @@ function exportCsv() {
 
 async function updateStatus(id, status) {
   if (reimbursementBusy.value) return
+  const action = status === 'approved' ? '通过' : '驳回'
+  if (!(await window.appConfirm(`确定${action}这条报销记录吗？`, `确认${action}`))) return
   reimbursementBusy.value = true
   try {
     const result = await store.updateReimbursementStatus(id, status)
