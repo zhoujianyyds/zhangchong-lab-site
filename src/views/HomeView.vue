@@ -346,7 +346,6 @@ function downloadAwardImage(item = selectedOutput.value) {
                     <strong>{{ member.name }}</strong>
                   </RouterLink>
                 </div>
-                <p :class="editableClass()" @dblclick="editMemberField(member, 'direction', '研究方向')">{{ member.direction }}</p>
               </div>
             </div>
           </div>

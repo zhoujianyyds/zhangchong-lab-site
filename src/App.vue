@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { Eye, EyeOff, LogIn, LogOut, Moon, RefreshCw, Sun, User, UserPlus } from 'lucide-vue-next'
 import { useLabStore } from './stores/labStore'
+import TechEffects from './components/TechEffects.vue'
 
 const store = useLabStore()
 const router = useRouter()
@@ -236,6 +237,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="site-shell">
+    <TechEffects />
     <header class="topbar">
       <RouterLink class="brand" to="/" aria-label="回到首页">
         <span class="brand-mark">LAB</span>
@@ -390,7 +392,13 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <RouterView />
+    <RouterView v-slot="{ Component, route }">
+      <Transition name="tech-page" mode="out-in">
+        <div :key="route.path" class="tech-page-shell">
+          <component :is="Component" />
+        </div>
+      </Transition>
+    </RouterView>
 
     <div v-if="globalBusy.count > 0" class="global-busy-overlay" role="status" aria-live="polite">
       <div class="global-busy-card">
