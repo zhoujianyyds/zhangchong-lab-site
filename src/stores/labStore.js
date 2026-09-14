@@ -1189,6 +1189,9 @@ function migrateData(data) {
           member.grade = '研一'
         }
       })
+      if (!data.members.some((item) => item.id === 'm-student-yanyi-07')) {
+        data.members.push(studentMember('m-student-yanyi-07', '郑松义', '20250007', '研一', '待定'))
+      }
     }
     const visibleStudentCount = data.members.filter(
       (item) => item.role === 'student' && item.visible_on_site && item.status === 'active',
