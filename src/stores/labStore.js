@@ -933,11 +933,12 @@ function seedData() {
       studentMember('m-student-wulingna', '巫玲娜', '20240005', '研二', '嵌入式'),
       studentMember('m-student-lihaifeng', '李海峰', '20240006', '研二', 'Agent'),
       studentMember('m-student-yanyi-01', '博士生', '20250001', '博士', '待定'),
-      studentMember('m-student-yanyi-02', '待定 02', '20250002', '研一', '待定'),
-      studentMember('m-student-yanyi-03', '待定 03', '20250003', '研一', '待定'),
-      studentMember('m-student-yanyi-04', '待定 04', '20250004', '研一', '待定'),
-      studentMember('m-student-yanyi-05', '待定 05', '20250005', '研一', '待定'),
-      studentMember('m-student-yanyi-06', '待定 06', '20250006', '研一', '待定'),
+      studentMember('m-student-yanyi-02', '向乐达', '20250002', '研一', '待定'),
+      studentMember('m-student-yanyi-03', '彭遥影', '20250003', '研一', '待定'),
+      studentMember('m-student-yanyi-04', '宾慧敏', '20250004', '研一', '待定'),
+      studentMember('m-student-yanyi-05', '胡佳', '20250005', '研一', '待定'),
+      studentMember('m-student-yanyi-06', '欧阳天舒', '20250006', '研一', '待定'),
+      studentMember('m-student-yanyi-07', '郑松义', '20250007', '研一', '待定'),
     ],
     pendingRegistrations: [],
     publications: defaultMentorPublications(),
@@ -1177,6 +1178,18 @@ function migrateData(data) {
     }
     const targetNames = ['张翀', '周健', '赵德伟', '杨怀宇', '向与飞', '巫玲娜', '李海峰']
     const hasTargetMembers = targetNames.every((name) => data.members.some((item) => item.name === name))
+    const newFirstYearNames = ['向乐达', '彭遥影', '宾慧敏', '胡佳', '欧阳天舒', '郑松义']
+    const hasNewFirstYearMembers = newFirstYearNames.every((name) => data.members.some((item) => item.name === name))
+    if (!hasNewFirstYearMembers) {
+      const firstYearIds = ['m-student-yanyi-02', 'm-student-yanyi-03', 'm-student-yanyi-04', 'm-student-yanyi-05', 'm-student-yanyi-06', 'm-student-yanyi-07']
+      newFirstYearNames.forEach((name, index) => {
+        const member = data.members.find((item) => item.id === firstYearIds[index])
+        if (member) {
+          member.name = name
+          member.grade = '研一'
+        }
+      })
+    }
     const visibleStudentCount = data.members.filter(
       (item) => item.role === 'student' && item.visible_on_site && item.status === 'active',
     ).length
