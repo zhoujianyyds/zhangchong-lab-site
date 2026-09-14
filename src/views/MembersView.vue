@@ -11,6 +11,7 @@ const feedback = ref('')
 const profileFeedback = ref('')
 const memberFormOpen = ref(false)
 const memberBusy = ref(false)
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024
 let releaseMemberFreeze = null
 const toolLabels = {
   members: '成员管理',
@@ -239,6 +240,11 @@ function setPhotoFromFile(event, target) {
   if (!file) return
   if (!file.type.startsWith('image/')) {
     window.alert('请选择图片文件')
+    event.target.value = ''
+    return
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    window.alert('图片不能超过 2 MB，请压缩后重新上传')
     event.target.value = ''
     return
   }

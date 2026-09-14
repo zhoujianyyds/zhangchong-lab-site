@@ -280,6 +280,11 @@ function handleAwardImage(event) {
     event.target.value = ''
     return
   }
+  if (file.size > 2 * 1024 * 1024) {
+    window.alert('图片不能超过 2 MB，请压缩后重新上传')
+    event.target.value = ''
+    return
+  }
   const reader = new FileReader()
   reader.onload = () => {
     form.image_data = String(reader.result || '')

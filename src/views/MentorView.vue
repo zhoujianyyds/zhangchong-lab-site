@@ -6,6 +6,7 @@ import heroImage from '../assets/hero.png'
 import { useLabStore } from '../stores/labStore'
 
 const store = useLabStore()
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024
 
 const mentor = computed(
   () =>
@@ -129,6 +130,11 @@ function uploadMentorPhoto(event) {
   if (!file || !mentor.value) return
   if (!file.type.startsWith('image/')) {
     window.alert('请选择图片文件')
+    event.target.value = ''
+    return
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    window.alert('图片不能超过 2 MB，请压缩后重新上传')
     event.target.value = ''
     return
   }

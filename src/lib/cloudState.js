@@ -25,12 +25,13 @@ export async function fetchSharedState() {
 export async function saveSharedState(data) {
   if (!supabase) return { ok: false, message: 'Supabase is not configured' }
 
+  const updatedAt = new Date().toISOString()
   const { error } = await supabase.from('lab_site_state').upsert({
     id: stateId,
     data,
-    updated_at: new Date().toISOString(),
+    updated_at: updatedAt,
   })
 
   if (error) return { ok: false, message: error.message }
-  return { ok: true }
+  return { ok: true, updatedAt }
 }

@@ -11,6 +11,8 @@ import {
   Download,
   ExternalLink,
   Info,
+  Plus,
+  Trash2,
   X,
   UsersRound,
 } from 'lucide-vue-next'
@@ -102,6 +104,35 @@ function editResearchLine(index, field, label) {
     ...store.state.site,
     researchLines: lines,
   }), '研究方向保存成功')
+}
+
+function addResearchLine() {
+  if (!store.isSuperAdmin()) return
+  const lines = JSON.parse(JSON.stringify(store.state.site.researchLines))
+  const tones = ['jade', 'blue', 'moss', 'clay']
+  lines.push({
+    title: '新研究方向',
+    tag: '研究方向',
+    icon: 'network',
+    tone: tones[lines.length % tones.length],
+    text: '双击文字填写该方向的研究说明。',
+  })
+  saveEditResult(store.updateSiteContent({
+    ...store.state.site,
+    researchLines: lines,
+  }), '研究方向添加成功')
+}
+
+async function removeResearchLine(index) {
+  if (!store.isSuperAdmin()) return
+  const line = store.state.site.researchLines[index]
+  if (!(await window.appConfirm(`确定删除“${line?.title || '该研究方向'}”吗？`, '删除研究方向'))) return
+  const lines = JSON.parse(JSON.stringify(store.state.site.researchLines))
+  lines.splice(index, 1)
+  saveEditResult(store.updateSiteContent({
+    ...store.state.site,
+    researchLines: lines,
+  }), '研究方向删除成功')
 }
 
 function editToolCard(index, field, label) {
@@ -249,14 +280,31 @@ function downloadAwardImage(item = selectedOutput.value) {
         <h2 :class="editableClass()" @dblclick="editSiteField('researchSectionTitle', '栏目标题')">{{ store.state.site.researchSectionTitle }}</h2>
       </div>
 
+      <div v-if="store.isSuperAdmin()" class="research-admin-actions">
+        <button class="button button-light" type="button" @click="addResearchLine">
+          <Plus :size="16" />
+          新增研究方向
+        </button>
+      </div>
+
       <div class="research-grid">
-        <article v-for="(line, index) in researchLines" :key="line.title" class="research-card" :class="line.tone">
+        <article v-for="(line, index) in researchLines" :key="`${line.title}-${index}`" class="research-card" :class="line.tone">
+          <button
+            v-if="store.isSuperAdmin()"
+            class="research-card-remove"
+            type="button"
+            title="删除研究方向"
+            @click.stop="removeResearchLine(index)"
+          >
+            <Trash2 :size="16" />
+          </button>
           <div class="card-index">{{ String(index + 1).padStart(2, '0') }}</div>
           <component :is="line.icon" :size="30" />
           <p :class="editableClass()" @dblclick="editResearchLine(index, 'tag', '方向标签')">{{ line.tag }}</p>
           <h3 :class="editableClass()" @dblclick="editResearchLine(index, 'title', '方向名称')">{{ line.title }}</h3>
           <span :class="editableClass()" @dblclick="editResearchLine(index, 'text', '方向说明')">{{ line.text }}</span>
         </article>
+        <div v-if="researchLines.length === 0" class="research-empty">暂无研究方向</div>
       </div>
     </section>
 

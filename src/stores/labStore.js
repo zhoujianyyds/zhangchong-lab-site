@@ -1071,23 +1071,6 @@ function migrateData(data) {
   normalizeOutputAssets(data, seeded)
   normalizeOutputOrders(data.publications)
   normalizeOutputOrders(data.awards)
-  const firstYearNames = ['向乐达', '彭遥影', '宾慧敏', '胡佳', '欧阳天舒', '郑松义']
-  const firstYearIds = ['m-student-yanyi-02', 'm-student-yanyi-03', 'm-student-yanyi-04', 'm-student-yanyi-05', 'm-student-yanyi-06', 'm-student-yanyi-07']
-  firstYearNames.forEach((name, index) => {
-    const id = firstYearIds[index]
-    let member = data.members.find((item) => item.id === id)
-    if (!member && index === 5) {
-      member = studentMember(id, name, '20250007', '研一', '待定')
-      data.members.push(member)
-    }
-    if (member) {
-      member.name = name
-      member.grade = '研一'
-      member.role = 'student'
-      member.visible_on_site = true
-      normalizeMemberProfile(member)
-    }
-  })
   enforceCoreMemberIdentities(data)
   ensureDoctoralStudent(data)
   if (needsUpgrade) {
@@ -1273,6 +1256,8 @@ const cloud = reactive({
 
 let cloudSaveTimer = 0
 let cloudSaveInProgress = false
+let initialCloudSyncComplete = false
+let lastPersistedState = JSON.parse(JSON.stringify(state))
 
 function writeLocalState() {
   state.meta = {
@@ -1291,15 +1276,32 @@ function save() {
 async function saveImmediately() {
   writeLocalState()
   if (!sharedStateEnabled) return { ok: true }
+  if (!cloud.ready) {
+    replaceState(lastPersistedState)
+    return { ok: false, message: '云端数据仍在加载，请稍后再保存' }
+  }
   window.clearTimeout(cloudSaveTimer)
   cloudSaveInProgress = true
   try {
+    const latest = await fetchSharedState()
+    if (!latest.ok) {
+      replaceState(lastPersistedState)
+      return { ok: false, message: latest.message || '无法检查云端数据' }
+    }
+    if (latest.data && latest.updatedAt !== cloud.lastSavedAt) {
+      replaceState(latest.data)
+      lastPersistedState = cloneState()
+      cloud.lastSavedAt = latest.updatedAt
+      return { ok: false, message: '数据已在其他设备更新，页面已刷新，请重新操作' }
+    }
     const result = await saveSharedState(cloneState())
     if (result.ok) {
       cloud.error = ''
-      cloud.lastSavedAt = new Date().toISOString()
+      cloud.lastSavedAt = result.updatedAt
+      lastPersistedState = cloneState()
     } else {
       cloud.error = result.message
+      replaceState(lastPersistedState)
     }
     return result
   } finally {
@@ -1331,12 +1333,24 @@ function queueCloudSave() {
   cloudSaveTimer = window.setTimeout(async () => {
     cloudSaveInProgress = true
     try {
+      const latest = await fetchSharedState()
+      if (!latest.ok || (latest.data && latest.updatedAt !== cloud.lastSavedAt)) {
+        if (latest.ok && latest.data) {
+          replaceState(latest.data)
+          lastPersistedState = cloneState()
+          cloud.lastSavedAt = latest.updatedAt
+        }
+        cloud.error = latest.ok ? '数据已在其他设备更新，页面已刷新，请重新操作' : latest.message
+        return
+      }
       const result = await saveSharedState(cloneState())
       if (result.ok) {
         cloud.error = ''
-        cloud.lastSavedAt = new Date().toISOString()
+        cloud.lastSavedAt = result.updatedAt
+        lastPersistedState = cloneState()
       } else {
         cloud.error = result.message
+        replaceState(lastPersistedState)
       }
     } finally {
       cloudSaveInProgress = false
@@ -1460,19 +1474,25 @@ export function useLabStore() {
       const remoteData = migrateData(result.data)
       const remoteUpdatedAt = stateUpdatedTime(remoteData, result.updatedAt)
       const localUpdatedAt = stateUpdatedTime(state)
-      if (remoteUpdatedAt > localUpdatedAt) {
+      if (!initialCloudSyncComplete || remoteUpdatedAt > localUpdatedAt) {
         replaceState(remoteData)
+        lastPersistedState = cloneState()
         cloud.lastSavedAt = result.updatedAt || remoteData.meta?.updatedAt || ''
       }
     } else if (result.ok && !result.data) {
       if (!stateUpdatedTime(state)) writeLocalState()
       const seedResult = await saveSharedState(cloneState())
       if (!seedResult.ok) cloud.error = seedResult.message
+      else {
+        cloud.lastSavedAt = seedResult.updatedAt
+        lastPersistedState = cloneState()
+      }
     } else {
       cloud.error = result.message
     }
     cloud.loading = false
     cloud.ready = true
+    initialCloudSyncComplete = true
   }
 
   function login(staffId, password) {
@@ -1696,12 +1716,17 @@ export function useLabStore() {
       return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
     }
     const emptyStudyInfo = shouldKeepStudyInfoEmpty(payload)
+    const normalizedStaffId = payload.staff_id.trim()
+    const duplicateAccount = state.members.some(
+      (item) => item.id !== existing?.id && item.staff_id === normalizedStaffId,
+    )
+    if (duplicateAccount) return { ok: false, message: '工号/学号已存在' }
     if (hasDoctoralStudentConflict(state.members, existing?.id || payload.id || '', emptyStudyInfo ? '' : payload.grade || '')) {
       return { ok: false, message: '博士生只能保留一个' }
     }
     const base = {
       name: payload.name.trim(),
-      staff_id: payload.staff_id.trim(),
+      staff_id: normalizedStaffId,
       role: payload.role,
       grade: emptyStudyInfo ? '' : payload.grade,
       direction: emptyStudyInfo ? '' : payload.direction.trim(),

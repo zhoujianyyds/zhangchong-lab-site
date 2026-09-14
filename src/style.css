@@ -612,12 +612,19 @@ img {
 
 .research-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border: 1px solid var(--border-weak);
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 1px;
+  padding: 1px;
   background:
     linear-gradient(90deg, rgba(0, 168, 143, 0.06), transparent 45%, rgba(37, 99, 235, 0.06)),
-    var(--panel);
+    var(--border-weak);
   box-shadow: var(--shadow);
+}
+
+.research-admin-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: -18px 0 18px;
 }
 
 .research-card {
@@ -625,7 +632,7 @@ img {
   position: relative;
   min-height: 340px;
   padding: 20px 24px 28px;
-  border-right: 1px solid var(--border-weak);
+  border: 0;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.48), transparent),
     linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 56%),
@@ -637,8 +644,31 @@ img {
     transform 0.24s ease;
 }
 
-.research-card:last-child {
-  border-right: 0;
+.research-card-remove {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--border-weak);
+  color: var(--clay);
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.research-card-remove:hover {
+  color: #fff;
+  background: var(--clay);
+}
+
+.research-empty {
+  padding: 48px 24px;
+  color: var(--muted);
+  text-align: center;
+  background: var(--paper);
 }
 
 .research-card::after {
@@ -995,6 +1025,7 @@ img {
 .mentor-output-layout {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
   gap: 22px;
 }
 
@@ -1067,6 +1098,7 @@ img {
 .member-groups {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
   gap: 16px;
 }
 
@@ -2123,14 +2155,13 @@ input[type='password']::-webkit-credentials-auto-fill-button {
 
 .output-groups {
   display: grid;
-  align-items: stretch;
+  align-items: start;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
 
 .output-group {
   display: flex;
-  min-height: 360px;
   flex-direction: column;
   gap: 14px;
   padding: 20px;
@@ -2157,13 +2188,12 @@ input[type='password']::-webkit-credentials-auto-fill-button {
 }
 
 .output-group .output-list {
-  flex: 1;
   align-content: start;
 }
 
 .output-empty-state {
   display: grid;
-  min-height: 220px;
+  min-height: 96px;
   place-items: center;
   border: 1px dashed var(--border-weak);
   color: var(--muted);
