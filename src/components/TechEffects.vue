@@ -3,9 +3,11 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 const bursts = ref([])
 const canvasRef = ref(null)
-const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
+let reduceMotion = motionPreference.matches
+const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)')
 const cards = '.research-card,.member-group,.output-group,.tool-card,.public-output-card,.member-achievement-item,.mentor-output-panel'
-const reveals = '.section-title,.research-card,.pi-panel,.member-group,.output-group,.tool-card,.mentor-output-panel,.public-member-card,.public-output-section,.member-achievements'
+const reveals = '.section-title,.research-card,.pi-panel,.member-group,.output-group,.tool-card,.mentor-output-panel,.public-member-card,.public-output-section,.member-achievements,.hero-copy,.mentor-hero-copy,.tool-page-header,.public-outputs-header,.login-box,.register-box,.tool-form,.password-panel,.chat-panel,.member-table-wrap,.member-stats,.tool-empty'
 let id = 0
 let frame = 0
 let particles = []
@@ -20,6 +22,7 @@ function scrollProgress() {
 }
 
 function pointerMove(event) {
+  if (reduceMotion || !finePointer.matches || event.pointerType === 'touch') return
   pointer = { x: event.clientX, y: event.clientY }
   document.documentElement.style.setProperty('--pointer-x', `${event.clientX}px`)
   document.documentElement.style.setProperty('--pointer-y', `${event.clientY}px`)
@@ -67,20 +70,25 @@ function animateCount(node) {
   requestAnimationFrame(tick)
 }
 
+function matching(root, selector) {
+  return [...(root.matches?.(selector) ? [root] : []), ...root.querySelectorAll(selector)]
+}
+
 function observe(root = document) {
-  root.querySelectorAll?.(reveals).forEach((node, index) => {
+  matching(root, reveals).forEach((node, index) => {
     if (node.dataset.revealReady) return
     node.dataset.revealReady = '1'
     node.style.setProperty('--reveal-delay', `${(index % 6) * 55}ms`)
-    revealObserver.observe(node)
-    window.setTimeout(() => node.classList.add('is-tech-visible'), 350)
+    if (reduceMotion) node.classList.add('is-tech-visible')
+    else revealObserver.observe(node)
   })
-  root.querySelectorAll?.('.stats-strip strong,.mentor-stats strong').forEach((node) => countObserver.observe(node))
+  matching(root, '.stats-strip strong,.mentor-stats strong').forEach((node) => countObserver.observe(node))
 }
 
 function revealHashTarget() {
   if (!location.hash) return
-  const target = document.querySelector(location.hash)
+  let target
+  try { target = document.getElementById(decodeURIComponent(location.hash.slice(1))) } catch { return }
   if (!target) return
   if (target.dataset.revealReady) target.classList.add('is-tech-visible')
   target.querySelectorAll?.('[data-reveal-ready="1"]').forEach((node) => node.classList.add('is-tech-visible'))
@@ -121,6 +129,21 @@ function draw() {
   frame = requestAnimationFrame(draw)
 }
 
+function resetPointer() {
+  document.querySelectorAll('.is-tech-tilting,.is-tech-magnetic').forEach((node) => {
+    node.classList.remove('is-tech-tilting', 'is-tech-magnetic')
+  })
+}
+
+function updateMotion() {
+  reduceMotion = motionPreference.matches
+  cancelAnimationFrame(frame)
+  resetPointer()
+  if (reduceMotion) {
+    document.querySelectorAll('[data-reveal-ready]').forEach((node) => node.classList.add('is-tech-visible'))
+  } else if (!document.hidden) draw()
+}
+
 onMounted(() => {
   revealObserver = new IntersectionObserver((entries) => entries.forEach((entry) => {
     if (entry.isIntersecting) { entry.target.classList.add('is-tech-visible'); revealObserver.unobserve(entry.target) }
@@ -131,12 +154,20 @@ onMounted(() => {
   mutationObserver = new MutationObserver((records) => records.forEach((record) => record.addedNodes.forEach((node) => node.nodeType === 1 && observe(node))))
   observe(); revealHashTarget(); mutationObserver.observe(document.body, { childList: true, subtree: true })
   resizeCanvas(); draw(); scrollProgress()
+  motionPreference.addEventListener('change', updateMotion)
+  document.addEventListener('visibilitychange', updateMotion)
+  document.addEventListener('pointerleave', resetPointer)
+  window.addEventListener('blur', resetPointer)
   addEventListener('resize', resizeCanvas); addEventListener('scroll', scrollProgress, { passive: true })
   addEventListener('hashchange', revealHashTarget)
   addEventListener('pointermove', pointerMove, { passive: true }); addEventListener('pointerdown', pointerDown, { passive: true })
 })
 
 onBeforeUnmount(() => {
+  motionPreference.removeEventListener('change', updateMotion)
+  document.removeEventListener('visibilitychange', updateMotion)
+  document.removeEventListener('pointerleave', resetPointer)
+  window.removeEventListener('blur', resetPointer)
   cancelAnimationFrame(frame); revealObserver?.disconnect(); countObserver?.disconnect(); mutationObserver?.disconnect()
   removeEventListener('resize', resizeCanvas); removeEventListener('scroll', scrollProgress)
   removeEventListener('hashchange', revealHashTarget)
@@ -145,6 +176,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <div class="tech-ambient" aria-hidden="true">
+    <span></span><span></span>
+    <i class="tech-orbit tech-orbit-one"></i>
+    <i class="tech-orbit tech-orbit-two"></i>
+    <i class="tech-grid-sweep"></i>
+  </div>
   <div class="tech-atmosphere" aria-hidden="true">
     <canvas ref="canvasRef" class="tech-particle-canvas"></canvas>
     <div class="tech-pointer-glow"></div><div class="tech-scanline"></div><div class="tech-scroll-progress"></div>

@@ -254,7 +254,6 @@ function downloadAwardImage(item = selectedOutput.value) {
       <div class="hero-visual" aria-label="研究系统视觉">
         <img :src="heroImage" alt="研究系统抽象视觉" />
         <div class="visual-caption">
-          <span :class="editableClass()" @dblclick="editSiteField('visualLabel', '视觉标签')">{{ store.state.site.visualLabel }}</span>
           <strong :class="editableClass()" @dblclick="editSiteField('visualStack', '视觉说明')">{{ store.state.site.visualStack }}</strong>
         </div>
       </div>
@@ -277,7 +276,6 @@ function downloadAwardImage(item = selectedOutput.value) {
 
     <section id="research" class="section">
       <div class="section-title title-center">
-        <span :class="editableClass()" @dblclick="editSiteField('researchSectionLabel', '栏目小字')">{{ store.state.site.researchSectionLabel }}</span>
         <h2 :class="editableClass()" @dblclick="editSiteField('researchSectionTitle', '栏目标题')">{{ store.state.site.researchSectionTitle }}</h2>
       </div>
 
@@ -311,7 +309,6 @@ function downloadAwardImage(item = selectedOutput.value) {
 
     <section id="people" class="section people-section">
       <div class="section-title compact title-center">
-        <span :class="editableClass()" @dblclick="editSiteField('peopleSectionLabel', '栏目小字')">{{ store.state.site.peopleSectionLabel }}</span>
         <h2 :class="editableClass()" @dblclick="editSiteField('peopleSectionTitle', '栏目标题')">{{ store.state.site.peopleSectionTitle }}</h2>
         <p :class="editableClass()" @dblclick="editSiteField('peopleIntro', '成员区说明')">{{ store.state.site.peopleIntro }}</p>
       </div>
@@ -321,7 +318,6 @@ function downloadAwardImage(item = selectedOutput.value) {
           <img :src="teachers[0]?.photo || heroImage" alt="导师照片" />
         </RouterLink>
         <div class="pi-copy">
-          <span :class="editableClass()" @dblclick="editSiteField('piLabel', '导师标签')">{{ store.state.site.piLabel }}</span>
           <h3><RouterLink class="public-profile-link" to="/mentor" title="查看导师资料">{{ teachers[0]?.name || '负责人姓名' }}</RouterLink></h3>
           <p :class="editableClass()" @dblclick="editSiteField('piIntro', '导师简介')">{{ store.state.site.piIntro }}</p>
         </div>
@@ -332,10 +328,6 @@ function downloadAwardImage(item = selectedOutput.value) {
           <h3>{{ group.title }}</h3>
           <div v-for="member in group.members" :key="member.id" class="member-row">
             <div class="member-row-main">
-              <div class="site-member-avatar">
-                <img v-if="member.photo" :src="member.photo" alt="成员照片" />
-                <span v-else>{{ member.name?.slice(0, 1) || '人' }}</span>
-              </div>
               <div class="member-row-copy">
                 <div class="member-row-head">
                   <RouterLink
@@ -347,6 +339,13 @@ function downloadAwardImage(item = selectedOutput.value) {
                   </RouterLink>
                 </div>
               </div>
+              <RouterLink
+                class="site-member-avatar member-row-photo"
+                :to="{ name: 'member-profile', params: { id: member.id } }"
+                :title="`查看${member.name}的个人资料`"
+              >
+                <img v-if="member.photo" :src="member.photo" alt="成员照片" />
+              </RouterLink>
             </div>
           </div>
         </article>
@@ -355,7 +354,6 @@ function downloadAwardImage(item = selectedOutput.value) {
 
     <section id="outputs" class="section outputs-section">
       <div class="section-title title-center">
-        <span :class="editableClass()" @dblclick="editSiteField('outputsSectionLabel', '栏目小字')">{{ store.state.site.outputsSectionLabel }}</span>
         <h2 :class="editableClass()" @dblclick="editSiteField('outputsSectionTitle', '栏目标题')">{{ store.state.site.outputsSectionTitle }}</h2>
       </div>
 
@@ -430,7 +428,6 @@ function downloadAwardImage(item = selectedOutput.value) {
 
     <section v-if="store.isSuperAdmin()" id="tools" class="section">
       <div class="section-title compact title-center">
-        <span :class="editableClass()" @dblclick="editSiteField('toolsSectionLabel', '栏目小字')">{{ store.state.site.toolsSectionLabel }}</span>
         <h2 :class="editableClass()" @dblclick="editSiteField('toolsSectionTitle', '栏目标题')">{{ store.state.site.toolsSectionTitle }}</h2>
         <p :class="editableClass()" @dblclick="editSiteField('toolsIntro', '工具区说明')">{{ store.state.site.toolsIntro }}</p>
       </div>
@@ -446,7 +443,6 @@ function downloadAwardImage(item = selectedOutput.value) {
 
     <section id="contact" class="contact-band contact-center">
       <div>
-        <p class="eyebrow" :class="editableClass()" @dblclick="editSiteField('contactSectionLabel', '联系小字')">{{ store.state.site.contactSectionLabel }}</p>
         <h2 :class="editableClass()" @dblclick="editSiteField('contactSectionTitle', '联系标题')">{{ store.state.site.contactSectionTitle }}</h2>
         <p :class="editableClass()" @dblclick="editSiteField('contactText', '联系说明')">{{ store.state.site.contactText }}</p>
       </div>

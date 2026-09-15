@@ -35,7 +35,6 @@ const identity = computed(() => {
       </div>
 
       <div class="public-member-content">
-        <p class="eyebrow">成员资料</p>
         <h1>{{ member.name }}</h1>
 
         <div class="public-member-meta">

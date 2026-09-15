@@ -7,6 +7,7 @@ import TechEffects from './components/TechEffects.vue'
 
 const store = useLabStore()
 const router = useRouter()
+const THEME_PROMPT_KEY = 'lab-theme-prompt-shown-v1'
 
 const theme = ref('light')
 const isDark = computed(() => theme.value === 'dark')
@@ -42,6 +43,7 @@ const globalBusy = reactive({
 })
 let sharedSyncTimer = 0
 let globalDialogTimer = 0
+let themePromptTimer = 0
 let nativeAlert = null
 
 function beginGlobalBusy(message = '正在处理，请稍候') {
@@ -216,7 +218,17 @@ onMounted(() => {
   window.appConfirm = (message, title) => showGlobalConfirm(message, title)
   window.appFreeze = (message) => beginGlobalBusy(message)
   window.appRunBusy = (action, message) => runWithGlobalBusy(action, message)
-  setTheme('light')
+  setTheme('dark')
+  const isHomePage = ['/', '/home', '/402zhangchong'].includes(router.currentRoute.value.path)
+  if (isHomePage && window.localStorage.getItem(THEME_PROMPT_KEY) !== '1') {
+    window.localStorage.setItem(THEME_PROMPT_KEY, '1')
+    themePromptTimer = window.setTimeout(async () => {
+      if (!isDark.value) return
+      const decision = showGlobalConfirm('当前为深色主题，是否切换为浅色主题？', '切换主题')
+      globalDialogTimer = window.setTimeout(() => closeGlobalDialog(false), 3000)
+      if (await decision) setTheme('light')
+    }, 3000)
+  }
   refreshSharedState()
   sharedSyncTimer = window.setInterval(refreshSharedState, 8000)
   window.addEventListener('focus', refreshSharedState)
@@ -226,6 +238,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.clearInterval(sharedSyncTimer)
   window.clearTimeout(globalDialogTimer)
+  window.clearTimeout(themePromptTimer)
   if (nativeAlert) window.alert = nativeAlert
   delete window.appConfirm
   delete window.appFreeze

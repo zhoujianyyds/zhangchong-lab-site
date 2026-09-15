@@ -62,7 +62,7 @@ function toggleLoginPasswordVisibility() {
 </script>
 
 <template>
-  <main class="tool-page">
+  <main class="tool-page auth-page">
     <header class="tool-page-header">
       <RouterLink class="back-link" to="/">← 返回首页</RouterLink>
       <div class="tool-page-title-row">

@@ -92,7 +92,6 @@ function openLink(item) {
   <section class="member-achievements">
     <div class="member-achievements-head">
       <div>
-        <p class="eyebrow">Achievements</p>
         <h2><Trophy :size="20" />个人成果</h2>
       </div>
       <button v-if="editable" class="button button-light" type="button" :disabled="busy" @click="openEditor()">

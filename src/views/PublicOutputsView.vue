@@ -38,7 +38,6 @@ function downloadAward(item) {
     </RouterLink>
 
     <header class="public-outputs-header">
-      <p class="eyebrow">Research Outputs</p>
       <h1>论文与获奖</h1>
       <p>浏览研究小组的全部论文和获奖成果。</p>
     </header>
@@ -47,7 +46,6 @@ function downloadAward(item) {
       <div class="public-output-title">
         <FileText :size="22" />
         <div>
-          <p class="eyebrow">Publications</p>
           <h2>全部论文</h2>
         </div>
         <span>{{ store.sortedPublications.value.length }}</span>
@@ -76,7 +74,6 @@ function downloadAward(item) {
       <div class="public-output-title">
         <Award :size="22" />
         <div>
-          <p class="eyebrow">Awards</p>
           <h2>全部获奖</h2>
         </div>
         <span>{{ store.sortedAwards.value.length }}</span>
@@ -104,7 +101,6 @@ function downloadAward(item) {
       <div class="public-output-title">
         <Pencil :size="22" />
         <div>
-          <p class="eyebrow">Patents</p>
           <h2>全部专利</h2>
         </div>
         <span>{{ store.sortedProjects.value.filter((item) => item.category === '专利' || item.patent_no).length }}</span>

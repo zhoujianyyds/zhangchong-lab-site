@@ -199,7 +199,6 @@ function uploadMentorPhoto(event) {
 
     <section class="mentor-content section">
       <div class="section-title title-center">
-        <span>导师成果</span>
         <h2>Publications · Awards · Patents</h2>
       </div>
 
