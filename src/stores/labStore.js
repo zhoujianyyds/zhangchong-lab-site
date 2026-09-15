@@ -3,7 +3,7 @@ import { fetchSharedState, saveSharedState, sharedStateEnabled } from '../lib/cl
 
 const STORAGE_KEY = 'lab-site-vue-store-v1'
 const SESSION_KEY = 'lab-site-vue-session-v1'
-const DATA_VERSION = 'award-images-v1'
+const DATA_VERSION = 'member-ids-v2'
 const ADMIN_PASSWORD = 'admin666'
 const ZHOU_JIAN_PASSWORD = 'zj020206zj'
 
@@ -1229,6 +1229,23 @@ function migrateData(data) {
         if (!member.password) member.password = name === '周健' ? ZHOU_JIAN_PASSWORD : '666666'
         member.permissions = studentPermissions()
       }
+    }
+    // Keep existing local/Supabase records aligned with the verified roster.
+    const rosterUpdates = {
+      '赵德伟': '202522000809',
+      '杨怀宇': '202522000824',
+      '巫玲娜': '202522000743',
+      '巫林娜': '202522000743',
+      '李海峰': '202521000838',
+      '彭遥影': '202621000876',
+      '宾慧敏': '202622000846',
+      '胡佳': '202622000878',
+      '欧阳天舒': '202621000838',
+      '石鑫': '202611000221',
+    }
+    for (const member of data.members) {
+      if (rosterUpdates[member.name]) member.staff_id = rosterUpdates[member.name]
+      if (member.name === '巫玲娜') member.name = '巫林娜'
     }
   }
   enforceCoreMemberIdentities(data)
