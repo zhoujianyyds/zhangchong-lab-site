@@ -384,7 +384,7 @@ function downloadAwardImage(item = selectedOutput.value) {
           </div>
           <div class="output-list">
             <article
-              v-for="item in store.homePublications.value.slice(0, 8)"
+              v-for="item in store.homePublications.value"
               :key="item.id"
               class="output-item output-item-interactive"
               tabindex="0"
@@ -418,7 +418,7 @@ function downloadAwardImage(item = selectedOutput.value) {
           </div>
           <div class="output-list">
             <article
-              v-for="item in store.homeAwards.value.slice(0, 8)"
+              v-for="item in store.homeAwards.value"
               :key="item.id"
               class="output-item output-item-interactive"
               tabindex="0"
@@ -449,7 +449,7 @@ function downloadAwardImage(item = selectedOutput.value) {
             </RouterLink>
           </div>
           <div class="output-list">
-            <article v-for="item in store.sortedProjects.value.slice(0, 8)" :key="item.id" class="output-item">
+            <article v-for="item in store.sortedProjects.value" :key="item.id" class="output-item">
               <div>
                 <h3>{{ item.title }}</h3>
                 <p>{{ item.patent_no || '专利号待录入' }}</p>

@@ -6,6 +6,7 @@ import { useLabStore } from '../stores/labStore'
 const store = useLabStore()
 const route = useRoute()
 const category = () => route.query.type || 'all'
+const categoryTitle = () => ({ publications: '全部论文', awards: '全部获奖', patents: '全部专利' }[category()] || '论文与获奖')
 
 function openPublication(item) {
   const source = item.paper_link?.trim()
@@ -39,9 +40,9 @@ function downloadAward(item) {
       返回首页成果
     </RouterLink>
 
-    <header class="public-outputs-header">
-      <h1>论文与获奖</h1>
-      <p>浏览研究小组的全部论文和获奖成果。</p>
+    <header v-if="category() === 'all'" class="public-outputs-header">
+      <h1>{{ categoryTitle() }}</h1>
+      <p v-if="category() === 'all'">浏览研究小组的全部论文、获奖和专利成果。</p>
     </header>
 
     <section v-if="category() === 'all' || category() === 'publications'" id="publications" class="public-output-section">
