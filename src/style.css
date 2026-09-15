@@ -1546,10 +1546,20 @@ img {
 
 .member-groups {
   display: grid;
-  grid-template-columns: repeat(3, 176px);
+  grid-template-columns: repeat(4, 176px);
   align-items: start;
   gap: 16px;
 }
+
+.member-group-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Keep the new grade groups aligned with the established three-column layout:
+   undergraduate below doctoral, and third-year in its own column. */
 
 .member-group {
   width: 176px;
@@ -4108,6 +4118,11 @@ button.editable,
   .tool-grid,
   .people-section {
     grid-template-columns: 1fr;
+  }
+
+  .member-group-column,
+  .member-group {
+    width: 100%;
   }
 
   .research-card {

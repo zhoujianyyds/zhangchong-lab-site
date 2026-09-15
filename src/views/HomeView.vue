@@ -76,6 +76,12 @@ const gradeGroups = computed(() => [
     members: students.value.filter((member) => member.grade === '研三'),
   },
 ])
+const gradeColumns = computed(() => [
+  gradeGroups.value.slice(0, 1),
+  gradeGroups.value.slice(1, 2),
+  gradeGroups.value.slice(2, 4),
+  gradeGroups.value.slice(4, 5),
+])
 const outputCount = computed(
   () => store.homePublications.value.length + store.homeAwards.value.length,
 )
@@ -332,7 +338,8 @@ function downloadAwardImage(item = selectedOutput.value) {
       </article>
 
       <div class="member-groups">
-        <article v-for="group in gradeGroups" :key="group.title" class="member-group">
+        <div v-for="(column, columnIndex) in gradeColumns" :key="columnIndex" class="member-group-column">
+        <article v-for="group in column" :key="group.title" class="member-group">
           <h3>{{ group.title }}</h3>
           <div v-for="member in group.members" :key="member.id" class="member-row">
             <div class="member-row-main">
@@ -357,6 +364,7 @@ function downloadAwardImage(item = selectedOutput.value) {
             </div>
           </div>
         </article>
+        </div>
       </div>
     </section>
 
