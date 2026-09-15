@@ -1458,11 +1458,31 @@ img {
 
 .mentor-output-items {
   display: grid;
-  grid-template-rows: repeat(5, minmax(0, 1fr));
+  grid-template-rows: none;
+  grid-auto-rows: 150px;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  scrollbar-color: transparent transparent;
 }
+
+.mentor-output-panel:hover .mentor-output-items {
+  scrollbar-color: var(--jade) rgba(255, 255, 255, 0.08);
+}
+
+.mentor-output-items::-webkit-scrollbar { width: 10px; }
+.mentor-output-items::-webkit-scrollbar-track { background: transparent; }
+.mentor-output-panel:hover .mentor-output-items::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.08); }
+.mentor-output-items::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  background-clip: padding-box;
+}
+
+.mentor-output-panel:hover .mentor-output-items::-webkit-scrollbar-thumb { background: var(--jade); }
 
 .mentor-output-more {
   display: flex;
@@ -1505,6 +1525,8 @@ img {
   padding: 18px 22px;
   border-bottom: 1px solid var(--border-weak);
   overflow: hidden;
+  box-sizing: border-box;
+  height: 150px;
 }
 
 .mentor-output-item:last-child {
@@ -2950,24 +2972,43 @@ input[type='password']::-webkit-credentials-auto-fill-button {
   overflow-y: scroll;
   scrollbar-gutter: stable;
   scrollbar-width: auto;
-  scrollbar-color: var(--jade) rgba(255, 255, 255, 0.08);
+  scrollbar-color: transparent transparent;
   padding-right: 6px;
 }
 
+.outputs-section .output-group:hover .output-list {
+  scrollbar-color: var(--jade) rgba(255, 255, 255, 0.08);
+}
+
 .outputs-section .output-list::-webkit-scrollbar { width: 10px; }
-.outputs-section .output-list::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.08); }
+.outputs-section .output-list::-webkit-scrollbar-track { background: transparent; }
+.outputs-section .output-group:hover .output-list::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.08); }
 .outputs-section .output-list::-webkit-scrollbar-thumb {
   border: 2px solid transparent;
   border-radius: 10px;
-  background: var(--jade);
+  background: transparent;
   background-clip: padding-box;
 }
 
+.outputs-section .output-group:hover .output-list::-webkit-scrollbar-thumb { background: var(--jade); }
+
 .outputs-section .output-item {
+  box-sizing: border-box;
+  height: 168px;
   min-height: 168px;
   max-height: 168px;
   overflow: hidden;
   padding: 14px 16px;
+}
+
+.outputs-section .output-item > div {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.outputs-section .output-item h3 {
+  max-height: 4.35em;
+  overflow: hidden;
 }
 
 .output-group-head {

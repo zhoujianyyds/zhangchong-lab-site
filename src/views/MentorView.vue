@@ -23,9 +23,9 @@ const mentorAwards = computed(() => store.sortedAwards.value)
 const mentorPatents = computed(() =>
   store.sortedProjects.value.filter((item) => item.category === '专利' || item.patent_no),
 )
-const previewPublications = computed(() => mentorPublications.value.slice(0, 8))
-const previewAwards = computed(() => mentorAwards.value.slice(0, 8))
-const previewPatents = computed(() => mentorPatents.value.slice(0, 8))
+const previewPublications = computed(() => mentorPublications.value)
+const previewAwards = computed(() => mentorAwards.value)
+const previewPatents = computed(() => mentorPatents.value)
 
 function editableClass() {
   return { editable: store.isSuperAdmin() }
@@ -220,7 +220,7 @@ function uploadMentorPhoto(event) {
             </button>
           </article>
           </div>
-          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', query: { type: 'publications' }, hash: '#publications' }">查看更多论文 <ExternalLink :size="15" /></RouterLink>
+          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', query: { type: 'publications' }, hash: '#publications' }">查看全部论文 <ExternalLink :size="15" /></RouterLink>
         </section>
 
         <section class="mentor-output-panel">
@@ -240,7 +240,7 @@ function uploadMentorPhoto(event) {
             </button>
           </article>
           </div>
-          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', query: { type: 'awards' }, hash: '#awards' }">查看更多获奖 <ExternalLink :size="15" /></RouterLink>
+          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', query: { type: 'awards' }, hash: '#awards' }">查看全部获奖 <ExternalLink :size="15" /></RouterLink>
         </section>
 
         <section class="mentor-output-panel">
@@ -257,7 +257,7 @@ function uploadMentorPhoto(event) {
             </button>
           </article>
           </div>
-          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', query: { type: 'patents' }, hash: '#patents' }">查看更多专利 <ExternalLink :size="15" /></RouterLink>
+          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', query: { type: 'patents' }, hash: '#patents' }">查看全部专利 <ExternalLink :size="15" /></RouterLink>
         </section>
       </div>
     </section>

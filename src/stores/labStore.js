@@ -246,9 +246,8 @@ function enforceCoreMemberIdentities(data) {
     zhangChong.grade = ''
     zhangChong.direction = ''
     if (!zhangChong.email || zhangChong.email === 'zhsngchong92@swpu.edu.cn') zhangChong.email = 'zhangchong92@swpu.edu.cn'
-    if (!zhangChong.bio) {
-      zhangChong.bio =
-        '西南石油大学计算机与软件学院特聘副研究员、硕士生导师，主要围绕油气井、嵌入式系统、智能感知与 Agent 智能体开展研究与工程实践。'
+    if (!zhangChong.bio || zhangChong.bio.length < 300) {
+      zhangChong.bio = '张翀，中共党员，工学博士（后），西南石油大学计算机与软件学院特聘副研究员、硕士生导师。现任四川省人工智能学会理事、ACM SIGBED China 执行委员、ACM/CCF 专业会员，中国计算机学会（CCF）物联网专委会、分布式计算与系统专委会、计算机安全专委会委员，四川省油气勘探开发智能化工程研究中心骨干。担任 HPCA 程序委员会委员及 IEEE Transactions on Mobile Computing 审稿人。主要围绕高效智能系统与低功耗泛在计算开展研究，重点关注大模型搜索加速、计算机体系结构、低功耗与无源物联网、边端协同感知与推理、计算机网络与应用安全，并面向油气能源、智能检测等场景开展系统验证。近年来发表论文50余篇，申请发明及实用新型专利近40项，出版科研著作2部，获科技奖励8项。重视学生科研能力与工程实践能力培养，长期指导本科生、研究生开展科研训练、论文写作、系统实现与创新竞赛。'
     }
     zhangChong.permissions = studentPermissions()
   }
@@ -1284,11 +1283,23 @@ function ensureDocumentUpdates(data) {
     '计算机网络与应用安全',
     '工业智能与能源场景应用',
   ]
+  const researchDescriptions = [
+    '面向检索增强生成（RAG）、智能体工具检索、长上下文搜索与搜索式推理，研究搜索空间压缩、检索与缓存优化、调度优化及软硬件协同加速，提高大模型的搜索与推理效率。',
+    '围绕可重构计算、芯片级任务执行、冗余消除、AI 系统与加速架构，研究算法、系统与硬件的协同优化方法。',
+    '研究能量采集、无源与间歇计算、微功耗电路、能量管理、反向散射通信及低功耗终端架构。',
+    '研究稀疏感知、虚拟传感、多模态融合、物理约束学习、边端协同推理及资源受限条件下的智能识别。',
+    '研究物联网通信、数据完整性、轻量级可信机制、边端安全及资源受限系统的安全执行。',
+    '面向油气勘探开发、气井生产、测井、结构健康监测和智能检测等实际问题，开展算法研究、系统设计与原型验证。',
+  ]
   const existingResearch = new Set((data.site.researchLines || []).map((item) => item.title))
   for (const [index, title] of researchTitles.entries()) {
     if (existingResearch.has(title)) continue
-    data.site.researchLines.push({ title, tag: '研究方向', icon: index % 2 ? 'cpu' : 'network', tone: ['jade', 'blue', 'moss', 'clay'][index % 4], text: '围绕该方向开展科研与工程实践。' })
+    data.site.researchLines.push({ title, tag: '研究方向', icon: index % 2 ? 'cpu' : 'network', tone: ['jade', 'blue', 'moss', 'clay'][index % 4], text: researchDescriptions[index] })
   }
+  data.site.researchLines.forEach((line) => {
+    const index = researchTitles.indexOf(line.title)
+    if (index >= 0) line.text = researchDescriptions[index]
+  })
   data.site.researchLines = data.site.researchLines.slice(0, 6)
   const awards = [
     ['doc-award-sensys-best-paper', 'Processor-Sharing Internet of Things Architecture for Large-scale Deployment：ACM SenSys 2024 Best Paper Award', 8],
