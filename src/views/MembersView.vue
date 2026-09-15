@@ -41,6 +41,7 @@ const disableGrade = computed(() => isLockedStudyInfo.value)
 const disableDirection = computed(() => isLockedStudyInfo.value)
 const editingMember = computed(() => store.state.members.find((item) => item.id === editingId.value) || null)
 const canSetMemberPassword = computed(() => store.currentMember.value?.staff_id === 'admin')
+const canEditNames = computed(() => store.currentMember.value?.staff_id === 'admin')
 
 watch(
   memberBusy,
@@ -388,7 +389,7 @@ async function submitProfile() {
       <div class="form-row">
         <div class="form-field">
           <label for="profile-name">姓名</label>
-          <input id="profile-name" v-model="profileForm.name" type="text" />
+          <input id="profile-name" v-model="profileForm.name" type="text" :disabled="!canEditNames" />
         </div>
         <div class="form-field">
           <label for="profile-staff-id">账号</label>
@@ -531,7 +532,7 @@ async function submitProfile() {
       <div class="form-row">
         <div class="form-field">
           <label for="member-name">姓名 *</label>
-          <input id="member-name" v-model="form.name" type="text" placeholder="填写姓名" />
+          <input id="member-name" v-model="form.name" type="text" placeholder="填写姓名" :disabled="!canEditNames" />
         </div>
         <div class="form-field">
           <label for="staff-id">工号/学号 *</label>
