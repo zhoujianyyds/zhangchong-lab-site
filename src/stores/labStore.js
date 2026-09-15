@@ -1079,6 +1079,7 @@ function migrateData(data) {
   removeTemplateOutputs(data)
   ensureDefaultPublications(data, seeded, needsUpgrade)
   ensureDefaultPatents(data, seeded, needsUpgrade)
+  ensureDocumentUpdates(data)
   normalizeOutputAssets(data, seeded)
   normalizeOutputOrders(data.publications)
   normalizeOutputOrders(data.awards)
@@ -1256,6 +1257,33 @@ function migrateData(data) {
     updatedAt: data.meta?.updatedAt || '',
   }
   return data
+}
+
+// Keep the representative items from the September 2026 profile available
+// when older cloud state is loaded, without creating duplicates.
+function ensureDocumentUpdates(data) {
+  const papers = [
+    ['doc-paper-fedmcs-2026', 'FedMCS: Federated Multi-Granularity Chemical-Semantic Distillation for Molecular Graph Learning', 'CIKM 2026', 52, ''],
+    ['doc-paper-cloud-audit-2026', 'Anonymous Authorization Auditing Scheme Over Fuzzy Multi-Keyword Searchable Encrypted Data in Cloud Storage', 'IEEE Internet of Things Journal', 53, ''],
+  ]
+  const existingPapers = new Set(data.publications.map((item) => item.title))
+  for (const [id, title, journal, sort_order, paper_link] of papers) {
+    if (existingPapers.has(title)) continue
+    data.publications.push({ id, title, authors: 'Chong Zhang 等', journal, pub_year: 2026, volume_issue: '', pages: '', doi: '', paper_link, pub_type: '论文', note: '导师论文成果', visible_on_home: false, sort_order })
+  }
+  const awards = [
+    ['doc-award-sensys-best-paper', 'Processor-Sharing Internet of Things Architecture for Large-scale Deployment：ACM SenSys 2024 Best Paper Award', 8],
+    ['doc-award-teaching-innovation', '数据分析与机器学习：第五届四川省高校教师教学创新大赛三等奖', 9],
+    ['doc-award-innovation-gold', '2025年西南石油大学大学生创新创业大赛金奖：智慧岩识-薄片微观图像全自动鉴定引领者', 10],
+    ['doc-award-innovation-bronze', '2025年四川省国际大学生创新大赛铜奖：微岩精灵-薄片微观图像全自动鉴定引领者', 11],
+    ['doc-award-lex-nexus', '2025年西南石油大学大学生创新创业大赛银奖：律桥（Lex Nexus）综合法律平台', 12],
+    ['doc-award-oilfield-third', '油气田开发生产智能管控关键技术与应用：科技进步三等奖', 13],
+  ]
+  const existingAwards = new Set(data.awards.map((item) => item.title))
+  for (const [id, title, sort_order] of awards) {
+    if (existingAwards.has(title)) continue
+    data.awards.push({ id, title, winner: '张翀', visible_on_home: false, sort_order })
+  }
 }
 
 function loadData() {
