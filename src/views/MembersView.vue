@@ -450,7 +450,7 @@ async function submitProfile() {
     <template v-else>
     <div class="member-stats">
       <div class="stat-item">
-        <strong>{{ store.state.members.length }}</strong>
+        <strong>{{ store.state.members.filter((item) => item.staff_id !== 'admin').length }}</strong>
         <span>总人数</span>
       </div>
       <div class="stat-item stat-active">

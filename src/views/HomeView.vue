@@ -279,7 +279,7 @@ function downloadAwardImage(item = selectedOutput.value) {
         <span :class="editableClass()" @dblclick="editSiteField('statResearchLabel', '统计标签')">{{ store.state.site.statResearchLabel }}</span>
       </div>
       <div>
-        <strong>{{ students.length }}</strong>
+        <strong>{{ store.siteMembers.value.length }}</strong>
         <span :class="editableClass()" @dblclick="editSiteField('statMembersLabel', '统计标签')">{{ store.state.site.statMembersLabel }}</span>
       </div>
       <div>
