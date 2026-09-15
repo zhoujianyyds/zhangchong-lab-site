@@ -10,6 +10,7 @@ const editingId = ref('')
 const tabs = [
   { key: 'publications', label: '论文' },
   { key: 'awards', label: '获奖' },
+  { key: 'projects', label: '专利' },
 ]
 
 const form = reactive(createEmptyForm(activeTab.value))
@@ -36,7 +37,8 @@ watch(
 
 const activeList = computed(() => {
   if (activeTab.value === 'publications') return store.sortedPublications.value
-  return store.sortedAwards.value
+  if (activeTab.value === 'awards') return store.sortedAwards.value
+  return store.sortedProjects.value
 })
 const activeTabLabel = computed(() => tabs.find((tab) => tab.key === activeTab.value)?.label || '成果')
 
@@ -45,7 +47,7 @@ function cloneSiteForm() {
 }
 
 function nextSortOrder(tabKey = activeTab.value) {
-  const list = tabKey === 'publications' ? store.sortedPublications.value : store.sortedAwards.value
+  const list = tabKey === 'publications' ? store.sortedPublications.value : tabKey === 'awards' ? store.sortedAwards.value : store.sortedProjects.value
   const maxOrder = Math.max(
     0,
     ...list.filter((item) => item.visible_on_home !== false).map((item) => Number(item.sort_order) || 0),
@@ -70,6 +72,7 @@ function createEmptyForm(tabKey = activeTab.value) {
     image_data: '',
     image_url: '',
     image_name: '',
+    patent_no: '',
     visible_on_home: true,
   }
 }
@@ -105,7 +108,7 @@ function switchTab(tab) {
 }
 
 function successText(kind, action = '保存') {
-  const label = kind === 'awards' ? '获奖' : '论文'
+  const label = kind === 'awards' ? '获奖' : kind === 'projects' ? '专利' : '论文'
   return `${label}${action}成功`
 }
 
@@ -154,6 +157,17 @@ async function submitOutput() {
         sort_order: displayOrder,
       })
     }
+    if (savingKind === 'projects') {
+      result = await store.upsertOutput('projects', {
+        id: editingId.value,
+        title: form.title.trim(),
+        category: '专利',
+        authors: form.authors.trim(),
+        patent_no: form.patent_no.trim(),
+        visible_on_home: form.visible_on_home,
+        sort_order: displayOrder,
+      })
+    }
     if (!result.ok) {
       window.alert(result.message || '保存失败')
       return
@@ -191,7 +205,7 @@ async function submitSiteContent() {
 async function removeOutput(kind, id) {
   if (outputBusy.value) return
   const item = store.state[kind]?.find((record) => record.id === id)
-  const label = kind === 'awards' ? '获奖' : '论文'
+  const label = kind === 'awards' ? '获奖' : kind === 'projects' ? '专利' : '论文'
   const name = item?.title ? `「${item.title}」` : `该${label}`
   if (!(await window.appConfirm(`确定删除${name}吗？删除后无法恢复。`, '删除确认'))) return
   submittingOutput.value = true
@@ -232,6 +246,7 @@ function itemMeta(item) {
   if (activeTab.value === 'publications') {
     return [item.authors, item.journal, item.pub_year, item.note].filter(Boolean).join(' · ') || '论文信息'
   }
+  if (activeTab.value === 'projects') return [item.authors, item.patent_no].filter(Boolean).join(' · ') || '专利信息'
   return item.winner ? `获奖人：${item.winner}` : '获奖信息'
 }
 
@@ -241,7 +256,7 @@ function editItem(item) {
 
 async function toggleHomeVisibility(kind, item) {
   if (outputBusy.value) return
-  const label = kind === 'awards' ? '获奖' : '论文'
+  const label = kind === 'awards' ? '获奖' : kind === 'projects' ? '专利' : '论文'
   const action = item.visible_on_home === false ? '展示到首页' : '从首页隐藏'
   if (!(await window.appConfirm(`确定将${label}「${item.title || '未命名'}」${action}吗？`, '确认修改展示状态'))) return
   submittingOutput.value = true
@@ -746,6 +761,17 @@ function handleAwardImage(event) {
           <div class="form-field">
             <label for="image-name">图片文件名（可选）</label>
             <input id="image-name" v-model="form.image_name" type="text" placeholder="award-2025-kjjb-1.jpg" />
+          </div>
+        </template>
+
+        <template v-if="activeTab === 'projects'">
+          <div class="form-field">
+            <label for="patent-authors">发明人（可选）</label>
+            <input id="patent-authors" v-model="form.authors" type="text" />
+          </div>
+          <div class="form-field">
+            <label for="patent-no">专利号（可选）</label>
+            <input id="patent-no" v-model="form.patent_no" type="text" />
           </div>
         </template>
 

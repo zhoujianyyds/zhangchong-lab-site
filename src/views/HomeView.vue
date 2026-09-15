@@ -77,13 +77,13 @@ const gradeGroups = computed(() => [
   },
 ])
 const gradeColumns = computed(() => [
-  gradeGroups.value.slice(0, 1),
   gradeGroups.value.slice(1, 2),
-  gradeGroups.value.slice(2, 4),
+  gradeGroups.value.slice(0, 1),
   gradeGroups.value.slice(4, 5),
+  gradeGroups.value.slice(2, 4),
 ])
 const outputCount = computed(
-  () => store.homePublications.value.length + store.homeAwards.value.length,
+  () => store.sortedPublications.value.length + store.sortedProjects.value.length + store.sortedAwards.value.length,
 )
 const contactHref = computed(() => `mailto:${store.state.site.contactEmail}`)
 const selectedOutput = ref(null)
@@ -384,7 +384,7 @@ function downloadAwardImage(item = selectedOutput.value) {
           </div>
           <div class="output-list">
             <article
-              v-for="item in store.homePublications.value"
+              v-for="item in store.homePublications.value.slice(0, 8)"
               :key="item.id"
               class="output-item output-item-interactive"
               tabindex="0"
@@ -418,7 +418,7 @@ function downloadAwardImage(item = selectedOutput.value) {
           </div>
           <div class="output-list">
             <article
-              v-for="item in store.homeAwards.value"
+              v-for="item in store.homeAwards.value.slice(0, 8)"
               :key="item.id"
               class="output-item output-item-interactive"
               tabindex="0"
@@ -439,6 +439,27 @@ function downloadAwardImage(item = selectedOutput.value) {
             </div>
           </div>
         </section>
+
+        <section class="output-group">
+          <div class="output-group-head">
+            <h3>专利</h3>
+            <RouterLink class="output-more-link" :to="{ name: 'public-outputs', hash: '#patents' }">
+              查看更多
+              <ArrowUpRight :size="15" />
+            </RouterLink>
+          </div>
+          <div class="output-list">
+            <article v-for="item in store.sortedProjects.value.slice(0, 8)" :key="item.id" class="output-item">
+              <div>
+                <h3>{{ item.title }}</h3>
+                <p>{{ item.patent_no || '专利号待录入' }}</p>
+                <small>{{ item.authors || '发明人待录入' }}</small>
+              </div>
+            </article>
+            <div v-if="store.sortedProjects.value.length === 0" class="output-empty-state">暂无专利成果</div>
+          </div>
+        </section>
+
       </div>
     </section>
 

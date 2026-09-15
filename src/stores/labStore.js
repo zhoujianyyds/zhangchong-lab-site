@@ -61,7 +61,7 @@ function defaultSiteContent() {
     contactSectionTitle: 'Contact',
     contactTitle: '开放合作与学生加入',
     contactText: '如需交流合作或咨询加入研究小组，可通过张翀导师邮箱联系。',
-    contactEmail: 'zhsngchong92@swpu.edu.cn',
+    contactEmail: 'zhangchong92@swpu.edu.cn',
     researchLines: [
       {
         title: '油气井',
@@ -245,7 +245,7 @@ function enforceCoreMemberIdentities(data) {
     zhangChong.role = 'teacher'
     zhangChong.grade = ''
     zhangChong.direction = ''
-    if (!zhangChong.email) zhangChong.email = 'zhsngchong92@swpu.edu.cn'
+    if (!zhangChong.email || zhangChong.email === 'zhsngchong92@swpu.edu.cn') zhangChong.email = 'zhangchong92@swpu.edu.cn'
     if (!zhangChong.bio) {
       zhangChong.bio =
         '西南石油大学计算机与软件学院特聘副研究员、硕士生导师，主要围绕油气井、嵌入式系统、智能感知与 Agent 智能体开展研究与工程实践。'
@@ -932,7 +932,7 @@ function seedData() {
         visible_on_site: true,
         permissions: studentPermissions(),
         ...memberProfileDefaults({
-          email: 'zhsngchong92@swpu.edu.cn',
+          email: 'zhangchong92@swpu.edu.cn',
           bio: '西南石油大学计算机与软件学院特聘副研究员、硕士生导师，主要围绕油气井、嵌入式系统、智能感知与 Agent 智能体开展研究与工程实践。',
         }),
       },
@@ -1181,6 +1181,7 @@ function migrateData(data) {
     }
     if (
       data.site.contactEmail === 'lab@example.edu.cn' ||
+      data.site.contactEmail === 'zhsngchong92@swpu.edu.cn' ||
       !data.site.contactEmail
     ) {
       data.site.contactEmail = seeded.site.contactEmail
@@ -1263,6 +1264,7 @@ function migrateData(data) {
 // when older cloud state is loaded, without creating duplicates.
 function ensureDocumentUpdates(data) {
   const papers = [
+    ['doc-paper-raster-welllog-2026', 'Raster well-log digitization: a benchmark for numerical grounding', 'Frontiers of Computer Science', 51, 'https://doi.org/10.1007/s11704-026-60965-4'],
     ['doc-paper-fedmcs-2026', 'FedMCS: Federated Multi-Granularity Chemical-Semantic Distillation for Molecular Graph Learning', 'CIKM 2026', 52, ''],
     ['doc-paper-cloud-audit-2026', 'Anonymous Authorization Auditing Scheme Over Fuzzy Multi-Keyword Searchable Encrypted Data in Cloud Storage', 'IEEE Internet of Things Journal', 53, ''],
   ]
@@ -1271,6 +1273,20 @@ function ensureDocumentUpdates(data) {
     if (existingPapers.has(title)) continue
     data.publications.push({ id, title, authors: 'Chong Zhang 等', journal, pub_year: 2026, volume_issue: '', pages: '', doi: '', paper_link, pub_type: '论文', note: '导师论文成果', visible_on_home: false, sort_order })
   }
+  const researchTitles = [
+    '大模型搜索加速与高效推理',
+    '计算机体系结构与高效智能系统',
+    '低功耗物联网与无源智能系统',
+    '边端智能感知与数据推理',
+    '计算机网络与应用安全',
+    '工业智能与能源场景应用',
+  ]
+  const existingResearch = new Set((data.site.researchLines || []).map((item) => item.title))
+  for (const [index, title] of researchTitles.entries()) {
+    if (existingResearch.has(title)) continue
+    data.site.researchLines.push({ title, tag: '研究方向', icon: index % 2 ? 'cpu' : 'network', tone: ['jade', 'blue', 'moss', 'clay'][index % 4], text: '围绕该方向开展科研与工程实践。' })
+  }
+  data.site.researchLines = data.site.researchLines.slice(0, 6)
   const awards = [
     ['doc-award-sensys-best-paper', 'Processor-Sharing Internet of Things Architecture for Large-scale Deployment：ACM SenSys 2024 Best Paper Award', 8],
     ['doc-award-teaching-innovation', '数据分析与机器学习：第五届四川省高校教师教学创新大赛三等奖', 9],

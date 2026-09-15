@@ -121,5 +121,6 @@ function downloadAward(item) {
         <div v-if="store.sortedProjects.value.filter((item) => item.category === '专利' || item.patent_no).length === 0" class="output-empty-state">暂无专利成果</div>
       </div>
     </section>
+
   </main>
 </template>

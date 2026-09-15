@@ -23,9 +23,9 @@ const mentorAwards = computed(() => store.sortedAwards.value)
 const mentorPatents = computed(() =>
   store.sortedProjects.value.filter((item) => item.category === '专利' || item.patent_no),
 )
-const previewPublications = computed(() => mentorPublications.value.slice(0, 5))
-const previewAwards = computed(() => mentorAwards.value.slice(0, 5))
-const previewPatents = computed(() => mentorPatents.value.slice(0, 5))
+const previewPublications = computed(() => mentorPublications.value.slice(0, 8))
+const previewAwards = computed(() => mentorAwards.value.slice(0, 8))
+const previewPatents = computed(() => mentorPatents.value.slice(0, 8))
 
 function editableClass() {
   return { editable: store.isSuperAdmin() }
