@@ -1145,8 +1145,8 @@ img {
 
 @media (min-width: 1041px) {
   .pi-panel {
-    width: 80%;
-    justify-self: end;
+    width: 100%;
+    justify-self: start;
   }
 }
 
@@ -1567,9 +1567,10 @@ img {
 
 .member-groups {
   display: grid;
-  grid-template-columns: repeat(4, 176px);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: start;
   gap: 16px;
+  width: 100%;
 }
 
 .member-group-column {
@@ -1583,7 +1584,7 @@ img {
    undergraduate below doctoral, and third-year in its own column. */
 
 .member-group {
-  width: 176px;
+  width: 100%;
   min-width: 0;
   border: 1px solid var(--border-weak);
   background:

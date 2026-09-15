@@ -1300,6 +1300,12 @@ function ensureDocumentUpdates(data) {
     const index = researchTitles.indexOf(line.title)
     if (index >= 0) line.text = researchDescriptions[index]
   })
+  const documentedLinks = {
+    'BioTouch: Reliable Re-Authentication via Finger Bio-Capacitance and Touching Behavior': 'https://doi.org/10.3390/s22093583',
+  }
+  for (const paper of data.publications) {
+    if (!paper.paper_link && documentedLinks[paper.title]) paper.paper_link = documentedLinks[paper.title]
+  }
   data.site.researchLines = data.site.researchLines.slice(0, 6)
   const awards = [
     ['doc-award-sensys-best-paper', 'Processor-Sharing Internet of Things Architecture for Large-scale Deployment：ACM SenSys 2024 Best Paper Award', 8],
