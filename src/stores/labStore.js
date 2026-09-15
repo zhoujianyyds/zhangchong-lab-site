@@ -1061,6 +1061,9 @@ function migrateData(data) {
         ? data.site.researchLines
         : seeded.site.researchLines,
   }
+  if (data.site.contactEmail === 'zhsngchong92@swpu.edu.cn') {
+    data.site.contactEmail = 'zhangchong92@swpu.edu.cn'
+  }
   for (const key of ['rooms', 'members', 'pendingRegistrations', 'publications', 'projects', 'awards', 'bookings', 'reimbursements']) {
     if (!Array.isArray(data[key])) data[key] = seeded[key]
   }
@@ -1355,7 +1358,7 @@ async function saveImmediately() {
   window.clearTimeout(cloudSaveTimer)
   cloudSaveInProgress = true
   try {
-    const latest = await fetchSharedState()
+    const latest = await retryCloud(fetchSharedState)
     if (!latest.ok) {
       replaceState(lastPersistedState)
       return { ok: false, message: latest.message || '无法检查云端数据' }
@@ -1366,7 +1369,7 @@ async function saveImmediately() {
       cloud.lastSavedAt = latest.updatedAt
       return { ok: false, message: '数据已在其他设备更新，页面已刷新，请重新操作' }
     }
-    const result = await saveSharedState(cloneState())
+    const result = await retryCloud(() => saveSharedState(cloneState()))
     if (result.ok) {
       cloud.error = ''
       cloud.lastSavedAt = result.updatedAt
@@ -1383,6 +1386,16 @@ async function saveImmediately() {
   } finally {
     cloudSaveInProgress = false
   }
+}
+
+async function retryCloud(operation, attempts = 3) {
+  let result
+  for (let index = 0; index < attempts; index += 1) {
+    result = await operation()
+    if (result?.ok) return result
+    if (index < attempts - 1) await new Promise((resolve) => window.setTimeout(resolve, 350 * (index + 1)))
+  }
+  return result
 }
 
 function cloneState() {

@@ -377,7 +377,7 @@ function downloadAwardImage(item = selectedOutput.value) {
         <section class="output-group">
           <div class="output-group-head">
             <h3>论文</h3>
-            <RouterLink class="output-more-link" :to="{ name: 'public-outputs', hash: '#publications' }">
+            <RouterLink class="output-more-link" :to="{ name: 'public-outputs', query: { type: 'publications' }, hash: '#publications' }">
               查看更多
               <ArrowUpRight :size="15" />
             </RouterLink>
@@ -411,7 +411,7 @@ function downloadAwardImage(item = selectedOutput.value) {
         <section class="output-group">
           <div class="output-group-head">
             <h3>获奖</h3>
-            <RouterLink class="output-more-link" :to="{ name: 'public-outputs', hash: '#awards' }">
+            <RouterLink class="output-more-link" :to="{ name: 'public-outputs', query: { type: 'awards' }, hash: '#awards' }">
               查看更多
               <ArrowUpRight :size="15" />
             </RouterLink>
@@ -443,7 +443,7 @@ function downloadAwardImage(item = selectedOutput.value) {
         <section class="output-group">
           <div class="output-group-head">
             <h3>专利</h3>
-            <RouterLink class="output-more-link" :to="{ name: 'public-outputs', hash: '#patents' }">
+            <RouterLink class="output-more-link" :to="{ name: 'public-outputs', query: { type: 'patents' }, hash: '#patents' }">
               查看更多
               <ArrowUpRight :size="15" />
             </RouterLink>

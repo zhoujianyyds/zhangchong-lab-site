@@ -1,9 +1,11 @@
 <script setup>
 import { Download, ExternalLink, FileText, Award, ArrowLeft, Pencil } from 'lucide-vue-next'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import { useLabStore } from '../stores/labStore'
 
 const store = useLabStore()
+const route = useRoute()
+const category = () => route.query.type || 'all'
 
 function openPublication(item) {
   const source = item.paper_link?.trim()
@@ -42,7 +44,7 @@ function downloadAward(item) {
       <p>浏览研究小组的全部论文和获奖成果。</p>
     </header>
 
-    <section id="publications" class="public-output-section">
+    <section v-if="category() === 'all' || category() === 'publications'" id="publications" class="public-output-section">
       <div class="public-output-title">
         <FileText :size="22" />
         <div>
@@ -70,7 +72,7 @@ function downloadAward(item) {
       </div>
     </section>
 
-    <section id="awards" class="public-output-section">
+    <section v-if="category() === 'all' || category() === 'awards'" id="awards" class="public-output-section">
       <div class="public-output-title">
         <Award :size="22" />
         <div>
@@ -97,7 +99,7 @@ function downloadAward(item) {
       </div>
     </section>
 
-    <section id="patents" class="public-output-section">
+    <section v-if="category() === 'all' || category() === 'patents'" id="patents" class="public-output-section">
       <div class="public-output-title">
         <Pencil :size="22" />
         <div>

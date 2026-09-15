@@ -220,7 +220,7 @@ function uploadMentorPhoto(event) {
             </button>
           </article>
           </div>
-          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', hash: '#publications' }">查看更多论文 <ExternalLink :size="15" /></RouterLink>
+          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', query: { type: 'publications' }, hash: '#publications' }">查看更多论文 <ExternalLink :size="15" /></RouterLink>
         </section>
 
         <section class="mentor-output-panel">
@@ -240,7 +240,7 @@ function uploadMentorPhoto(event) {
             </button>
           </article>
           </div>
-          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', hash: '#awards' }">查看更多获奖 <ExternalLink :size="15" /></RouterLink>
+          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', query: { type: 'awards' }, hash: '#awards' }">查看更多获奖 <ExternalLink :size="15" /></RouterLink>
         </section>
 
         <section class="mentor-output-panel">
@@ -257,7 +257,7 @@ function uploadMentorPhoto(event) {
             </button>
           </article>
           </div>
-          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', hash: '#patents' }">查看更多专利 <ExternalLink :size="15" /></RouterLink>
+          <RouterLink class="mentor-output-more" :to="{ name: 'public-outputs', query: { type: 'patents' }, hash: '#patents' }">查看更多专利 <ExternalLink :size="15" /></RouterLink>
         </section>
       </div>
     </section>
