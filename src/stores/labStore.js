@@ -1509,8 +1509,11 @@ export function useLabStore() {
       if (!initialCloudSyncComplete || remoteUpdatedAt > localUpdatedAt) {
         replaceState(remoteData)
         lastPersistedState = cloneState()
-        cloud.lastSavedAt = result.updatedAt || remoteData.meta?.updatedAt || ''
       }
+      // Always remember the version that was read from the cloud. Without
+      // this baseline, the first admin save after a sync is incorrectly
+      // treated as a conflicting edit from another device.
+      cloud.lastSavedAt = result.updatedAt || remoteData.meta?.updatedAt || ''
     } else if (result.ok && !result.data) {
       if (!stateUpdatedTime(state)) writeLocalState()
       const seedResult = await saveSharedState(cloneState())
