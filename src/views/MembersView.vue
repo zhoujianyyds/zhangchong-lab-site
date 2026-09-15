@@ -405,6 +405,7 @@ async function submitProfile() {
             <option value="研二">研二</option>
             <option value="研三">研三</option>
             <option value="博士">博士生</option>
+            <option value="本科生">本科生</option>
           </select>
         </div>
         <div class="form-field">
@@ -556,6 +557,7 @@ async function submitProfile() {
             <option value="研二">研二</option>
             <option value="研三">研三</option>
             <option value="博士">博士生</option>
+            <option value="本科生">本科生</option>
           </select>
         </div>
       </div>

@@ -67,6 +67,14 @@ const gradeGroups = computed(() => [
     title: '博士生',
     members: students.value.filter((member) => member.grade === '博士'),
   },
+  {
+    title: '本科生',
+    members: students.value.filter((member) => member.grade === '本科生'),
+  },
+  {
+    title: '研三',
+    members: students.value.filter((member) => member.grade === '研三'),
+  },
 ])
 const outputCount = computed(
   () => store.homePublications.value.length + store.homeAwards.value.length,
