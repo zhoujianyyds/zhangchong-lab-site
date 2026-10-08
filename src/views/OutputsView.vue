@@ -11,10 +11,13 @@ const tabs = [
   { key: 'publications', label: '论文' },
   { key: 'awards', label: '获奖' },
   { key: 'projects', label: '专利' },
+  { key: 'researchProjects', label: '科研与教改项目' },
+  { key: 'softwareCopyrights', label: '软著' },
 ]
 
 const form = reactive(createEmptyForm(activeTab.value))
 const siteForm = reactive(cloneSiteForm())
+let siteFormBaseline = JSON.stringify(siteForm)
 const siteFeedback = ref('')
 const editorOpen = ref(false)
 const submittingOutput = ref(false)
@@ -35,10 +38,20 @@ watch(
   { flush: 'sync' },
 )
 
+watch(
+  () => store.state.site,
+  () => {
+    // Refresh the form after cloud sync or inline edits while preserving an open draft.
+    if (JSON.stringify(siteForm) === siteFormBaseline) resetSiteForm()
+  },
+)
+
 const activeList = computed(() => {
   if (activeTab.value === 'publications') return store.sortedPublications.value
   if (activeTab.value === 'awards') return store.sortedAwards.value
-  return store.sortedProjects.value
+  if (activeTab.value === 'softwareCopyrights') return store.sortedSoftwareCopyrights.value
+  if (activeTab.value === 'researchProjects') return store.sortedResearchProjects.value
+  return store.sortedPatents.value
 })
 const activeTabLabel = computed(() => tabs.find((tab) => tab.key === activeTab.value)?.label || '成果')
 
@@ -47,7 +60,7 @@ function cloneSiteForm() {
 }
 
 function nextSortOrder(tabKey = activeTab.value) {
-  const list = tabKey === 'publications' ? store.sortedPublications.value : tabKey === 'awards' ? store.sortedAwards.value : store.sortedProjects.value
+  const list = tabKey === 'publications' ? store.sortedPublications.value : tabKey === 'awards' ? store.sortedAwards.value : tabKey === 'softwareCopyrights' ? store.sortedSoftwareCopyrights.value : tabKey === 'researchProjects' ? store.sortedResearchProjects.value : store.sortedPatents.value
   const maxOrder = Math.max(
     0,
     ...list.filter((item) => item.visible_on_home !== false).map((item) => Number(item.sort_order) || 0),
@@ -68,6 +81,8 @@ function createEmptyForm(tabKey = activeTab.value) {
     paper_link: '',
     pub_type: '论文',
     note: '',
+    source: '',
+    project_no: '',
     winner: '',
     image_data: '',
     image_url: '',
@@ -108,7 +123,7 @@ function switchTab(tab) {
 }
 
 function successText(kind, action = '保存') {
-  const label = kind === 'awards' ? '获奖' : kind === 'projects' ? '专利' : '论文'
+  const label = kind === 'awards' ? '获奖' : kind === 'projects' ? '专利' : kind === 'researchProjects' ? '科研与教改项目' : kind === 'softwareCopyrights' ? '软著' : '论文'
   return `${label}${action}成功`
 }
 
@@ -168,7 +183,33 @@ async function submitOutput() {
         sort_order: displayOrder,
       })
     }
+    if (savingKind === 'researchProjects') {
+      result = await store.upsertOutput('researchProjects', {
+        id: editingId.value,
+        title: form.title.trim(),
+        source: form.source.trim(),
+        project_no: form.project_no.trim(),
+        note: form.note.trim(),
+        visible_on_home: form.visible_on_home,
+        sort_order: displayOrder,
+      })
+    }
+    if (savingKind === 'softwareCopyrights') {
+      result = await store.upsertOutput('softwareCopyrights', {
+        id: editingId.value,
+        title: form.title.trim(),
+        authors: form.authors.trim(),
+        winner: form.winner.trim(),
+        patent_no: form.patent_no.trim(),
+        image_data: form.image_data,
+        image_url: form.image_url.trim(),
+        image_name: form.image_name.trim(),
+        visible_on_home: form.visible_on_home,
+        sort_order: displayOrder,
+      })
+    }
     if (!result.ok) {
+      if (result.message?.includes('页面已刷新')) closeOutputEditor(true)
       window.alert(result.message || '保存失败')
       return
     }
@@ -183,6 +224,7 @@ async function submitOutput() {
 
 function resetSiteForm() {
   Object.assign(siteForm, cloneSiteForm())
+  siteFormBaseline = JSON.stringify(siteForm)
 }
 
 async function submitSiteContent() {
@@ -192,10 +234,12 @@ async function submitSiteContent() {
   try {
     const result = await store.updateSiteContent(JSON.parse(JSON.stringify(siteForm)))
     if (!result.ok) {
+      if (result.message?.includes('页面已刷新')) resetSiteForm()
       window.alert(result.message || '保存失败')
       return
     }
     siteFeedback.value = '保存成功'
+    siteFormBaseline = JSON.stringify(siteForm)
     window.alert(siteFeedback.value)
   } finally {
     submittingOutput.value = false
@@ -204,13 +248,14 @@ async function submitSiteContent() {
 
 async function removeOutput(kind, id) {
   if (outputBusy.value) return
-  const item = store.state[kind]?.find((record) => record.id === id)
-  const label = kind === 'awards' ? '获奖' : kind === 'projects' ? '专利' : '论文'
+  const storeKind = kind === 'softwareCopyrights' ? 'softwareCopyrights' : kind
+  const item = store.state[storeKind]?.find((record) => record.id === id)
+  const label = kind === 'awards' ? '获奖' : kind === 'projects' ? '专利' : kind === 'researchProjects' ? '科研与教改项目' : kind === 'softwareCopyrights' ? '软著' : '论文'
   const name = item?.title ? `「${item.title}」` : `该${label}`
   if (!(await window.appConfirm(`确定删除${name}吗？删除后无法恢复。`, '删除确认'))) return
   submittingOutput.value = true
   try {
-    const result = await store.removeOutput(kind, id)
+    const result = await store.removeOutput(storeKind, id)
     if (!result.ok) {
       window.alert(result.message || '保存失败')
       return
@@ -233,12 +278,12 @@ function addResearchLine() {
 
 async function removeResearchLine(index) {
   if (outputBusy.value) return
-  if (siteForm.researchLines.length <= 1) return
   if (!(await window.appConfirm('确定删除这个研究方向吗？保存站点内容后才会正式生效。', '删除方向'))) return
   siteForm.researchLines.splice(index, 1)
 }
 
 function tabCount(tabKey) {
+  if (tabKey === 'softwareCopyrights') return store.state.softwareCopyrights.length
   return store.state[tabKey].length
 }
 
@@ -247,7 +292,13 @@ function itemMeta(item) {
     return [item.authors, item.journal, item.pub_year, item.note].filter(Boolean).join(' · ') || '论文信息'
   }
   if (activeTab.value === 'projects') return [item.authors, item.patent_no].filter(Boolean).join(' · ') || '专利信息'
+  if (activeTab.value === 'researchProjects') return [item.source, item.project_no, item.note].filter(Boolean).join(' · ') || '科研与教改项目信息'
+  if (activeTab.value === 'softwareCopyrights') return [item.authors, item.winner, item.patent_no].filter(Boolean).join(' · ') || '科研著作或软著信息'
   return item.winner ? `获奖人：${item.winner}` : '获奖信息'
+}
+
+function outputStoreKind(tabKey = activeTab.value) {
+  return tabKey
 }
 
 function editItem(item) {
@@ -256,12 +307,13 @@ function editItem(item) {
 
 async function toggleHomeVisibility(kind, item) {
   if (outputBusy.value) return
-  const label = kind === 'awards' ? '获奖' : kind === 'projects' ? '专利' : '论文'
+  const label = kind === 'awards' ? '获奖' : kind === 'projects' ? '专利' : kind === 'researchProjects' ? '科研与教改项目' : kind === 'softwareCopyrights' ? '软著' : '论文'
   const action = item.visible_on_home === false ? '展示到首页' : '从首页隐藏'
   if (!(await window.appConfirm(`确定将${label}「${item.title || '未命名'}」${action}吗？`, '确认修改展示状态'))) return
   submittingOutput.value = true
   try {
-    const result = await store.upsertOutput(kind, {
+    const storeKind = kind === 'softwareCopyrights' ? 'softwareCopyrights' : kind
+    const result = await store.upsertOutput(storeKind, {
       ...JSON.parse(JSON.stringify(item)),
       visible_on_home: item.visible_on_home === false,
     })
@@ -718,9 +770,9 @@ function handleAwardImage(event) {
           </div>
         </template>
 
-        <template v-if="activeTab === 'awards'">
+        <template v-if="activeTab === 'awards' || activeTab === 'softwareCopyrights'">
           <div class="form-field">
-            <label for="winner">获奖人（可选）</label>
+            <label for="winner">{{ activeTab === 'softwareCopyrights' ? '作者/著作权人' : '获奖人（可选）' }}</label>
             <input id="winner" v-model="form.winner" type="text" placeholder="研究小组" />
           </div>
           <div class="form-field">
@@ -734,7 +786,7 @@ function handleAwardImage(event) {
             />
             <button class="button button-light award-upload-button" type="button" @click="chooseAwardImage">
               <ImagePlus :size="16" />
-              上传获奖图片
+              上传{{ activeTab === 'softwareCopyrights' ? '软著获奖' : '获奖' }}图片
             </button>
           </div>
           <div v-if="form.image_data || form.image_url" class="award-upload-preview">
@@ -775,6 +827,32 @@ function handleAwardImage(event) {
           </div>
         </template>
 
+        <template v-if="activeTab === 'researchProjects'">
+          <div class="form-field">
+            <label for="project-source">项目来源与类别</label>
+            <input id="project-source" v-model="form.source" type="text" placeholder="国家自然科学基金重点项目（主持/参与）" />
+          </div>
+          <div class="form-field">
+            <label for="research-project-no">项目编号</label>
+            <input id="research-project-no" v-model="form.project_no" type="text" placeholder="项目编号（可选）" />
+          </div>
+          <div class="form-field">
+            <label for="research-project-note">起止时间与经费说明</label>
+            <textarea id="research-project-note" v-model="form.note" placeholder="起止时间、经费及角色"></textarea>
+          </div>
+        </template>
+
+        <template v-if="activeTab === 'softwareCopyrights'">
+          <div class="form-field">
+            <label for="soft-copyright-authors">著作权人/完成人（可选）</label>
+            <input id="soft-copyright-authors" v-model="form.authors" type="text" />
+          </div>
+          <div class="form-field">
+            <label for="soft-copyright-no">软件著作权登记号（可选）</label>
+            <input id="soft-copyright-no" v-model="form.patent_no" type="text" />
+          </div>
+        </template>
+
         <div class="output-editor-actions">
           <button class="button button-light" type="button" :disabled="outputBusy" @click="closeOutputEditor">取消</button>
           <button class="button button-dark" type="submit" :disabled="outputBusy">{{ editingId ? '保存' : '添加' }}</button>
@@ -789,7 +867,7 @@ function handleAwardImage(event) {
           <strong>{{ item.title }}</strong>
           <div class="output-admin-meta">
             <span>{{ itemMeta(item) }}</span>
-            <span v-if="activeTab === 'awards' && (item.image_data || item.image_url)" class="asset-status">已关联图片</span>
+            <span v-if="(activeTab === 'awards' || activeTab === 'softwareCopyrights') && (item.image_data || item.image_url)" class="asset-status">已关联图片</span>
             <span v-if="activeTab === 'publications' && item.paper_link" class="asset-status">已添加链接</span>
             <span class="home-visibility-pill" :class="{ off: item.visible_on_home === false }">
               {{ item.visible_on_home === false ? '不在主页展示' : '主页展示' }}

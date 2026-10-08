@@ -17,15 +17,16 @@ const member = computed(() => {
 const identity = computed(() => {
   if (!member.value) return ''
   if (member.value.role === 'teacher') return '教师'
+  if (member.value.role === 'alumni') return '已毕业生'
   return member.value.grade === '博士' ? '博士生' : member.value.grade || '学生'
 })
 </script>
 
 <template>
   <main class="public-member-page section-frame">
-    <RouterLink class="mentor-back" to="/#people">
+    <RouterLink class="mentor-back" :to="member?.role === 'alumni' ? '/alumni' : '/#people'">
       <ArrowLeft :size="16" />
-      返回成员列表
+      {{ member?.role === 'alumni' ? '返回已毕业生列表' : '返回成员列表' }}
     </RouterLink>
 
     <section v-if="member" class="public-member-card">
@@ -39,6 +40,7 @@ const identity = computed(() => {
 
         <div class="public-member-meta">
           <span><GraduationCap :size="17" />{{ identity }}</span>
+          <span v-if="member.role === 'alumni' && member.graduation_year">{{ member.graduation_year }} 年毕业</span>
           <span v-if="member.direction"><BookOpen :size="17" />{{ member.direction }}</span>
         </div>
 

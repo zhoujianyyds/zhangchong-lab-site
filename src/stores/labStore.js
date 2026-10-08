@@ -1,9 +1,14 @@
 import { computed, reactive } from 'vue'
+import deploymentPreviewSnapshot from '../data/deploymentPreviewSnapshot.json'
 import { fetchSharedState, saveSharedState, sharedStateEnabled } from '../lib/cloudState'
 
 const STORAGE_KEY = 'lab-site-vue-store-v1'
 const SESSION_KEY = 'lab-site-vue-session-v1'
-const DATA_VERSION = 'member-ids-v2'
+const DATA_VERSION = 'profile-2026-v1'
+const PROFILE_DATA_VERSION = 'profile-2026-v2'
+const CONTENT_DATA_VERSION = 'profile-content-2026-v1'
+const PROJECTS_DATA_VERSION = 'research-projects-2026-v1'
+const IS_LOCAL_PREVIEW = import.meta.env.DEV && import.meta.env.VITE_LOCAL_PREVIEW_ONLY === 'true'
 const ADMIN_PASSWORD = 'admin666'
 const ZHOU_JIAN_PASSWORD = 'zj020206zj'
 
@@ -26,7 +31,7 @@ function defaultSiteContent() {
     heroKicker: '',
     heroTitle: '张翀研究小组',
     heroLede:
-      '围绕油气井、嵌入式系统和 Agent 智能体开展研究与工程实践，面向真实工业场景构建可靠、可部署、可持续迭代的智能系统。',
+      '张翀，工学博士（后）、特聘副研究员、硕士生导师。研究聚焦大模型搜索加速、高效智能系统、低功耗物联网与边端智能，面向油气能源和智能检测开展系统验证。',
     heroPrimaryButton: '查看成果',
     heroSecondaryButton: '联系加入',
     visualLabel: '研究方向',
@@ -38,10 +43,10 @@ function defaultSiteContent() {
     researchSectionTitle: 'Research',
     researchIntro: '',
     peopleSectionLabel: '团队成员',
-    peopleSectionTitle: 'People',
-    peopleIntro: '张翀老师负责指导，研究成员共 12 人；研二 6 人、博士 1 人、研一 5 个名额暂时保留。',
+    peopleSectionTitle: 'Members',
+    peopleIntro: '',
     piLabel: '导师',
-    piIntro: '张翀老师负责研究小组，围绕油气井、嵌入式系统和 Agent 智能体方向开展研究与工程实践。',
+    piIntro: '张翀，中共党员，工学博士（后），西南石油大学计算机与软件学院特聘副研究员、硕士生导师。现任四川省人工智能学会理事、ACM SIGBED China 执行委员、ACM/CCF 专业会员，担任 CCF 物联网、分布式计算与系统、计算机安全专委会委员，四川省油气勘探开发智能化工程研究中心骨干。担任 HPCA 程序委员会委员及 IEEE Transactions on Mobile Computing 审稿人。发表论文 50 余篇，其中 CCF-A 类期刊及会议论文 13 篇、TOP CCF-B 类论文 6 篇；申请发明及实用新型专利近 40 项，出版科研著作 2 部，获省部级科技进步一等奖、技术发明一等奖等科技奖励。主持四川省科技厅青年基金、油气藏地质及开发工程全国重点实验室开放基金等项目，并参与国家科技重大专项、国家自然科学基金及国家重点研发计划。',
     outputsSectionLabel: '代表成果',
     outputsSectionTitle: 'Outputs',
     projectTypeLabel: '项目',
@@ -142,14 +147,14 @@ function defaultAwardImage(itemId) {
   return imageMap[itemId] || ''
 }
 
-function normalizeOutputAssets(data, seeded) {
+function normalizeOutputAssets(data, seeded, repairLegacyText = false) {
   const seededAwards = new Map(seeded.awards.map((item) => [item.id, item]))
 
   for (const item of data.publications) {
     item.paper_link = typeof item.paper_link === 'string' ? item.paper_link.trim() : ''
-    if (hasBrokenQuestionMarks(item.title)) item.title = ''
+    if (repairLegacyText && hasBrokenQuestionMarks(item.title)) item.title = ''
     for (const field of ['authors', 'journal', 'volume_issue', 'pages', 'doi', 'note']) {
-      if (hasBrokenQuestionMarks(item[field])) item[field] = ''
+      if (repairLegacyText && hasBrokenQuestionMarks(item[field])) item[field] = ''
     }
   }
 
@@ -158,19 +163,16 @@ function normalizeOutputAssets(data, seeded) {
     item.image_url = typeof item.image_url === 'string' ? item.image_url.trim() : ''
     item.image_name = typeof item.image_name === 'string' ? item.image_name : ''
     const bundledImage = defaultAwardImage(item.id)
-    if (bundledImage) {
-      item.image_data = ''
-      item.image_url = bundledImage
-    } else if (!item.image_data && !item.image_url) {
+    if (repairLegacyText && bundledImage && !item.image_data && !item.image_url) {
       item.image_url = bundledImage
     }
     if (!item.image_name && item.image_url) item.image_name = `${item.id}.jpg`
-    if (hasBrokenQuestionMarks(item.title)) item.title = seededAwards.get(item.id)?.title || ''
-    if (hasBrokenQuestionMarks(item.winner)) item.winner = seededAwards.get(item.id)?.winner || ''
+    if (repairLegacyText && hasBrokenQuestionMarks(item.title)) item.title = seededAwards.get(item.id)?.title || ''
+    if (repairLegacyText && hasBrokenQuestionMarks(item.winner)) item.winner = seededAwards.get(item.id)?.winner || ''
   }
 
   for (const [field, fallback] of Object.entries(seeded.site)) {
-    if (typeof fallback === 'string' && hasBrokenQuestionMarks(data.site[field])) {
+    if (repairLegacyText && typeof fallback === 'string' && hasBrokenQuestionMarks(data.site[field])) {
       data.site[field] = fallback
     }
   }
@@ -219,9 +221,14 @@ function ensureDoctoralStudent(data) {
   if (!candidate.direction) candidate.direction = '待定'
 }
 
-function hasDoctoralStudentConflict(members, memberId, grade) {
-  if (grade !== '博士') return false
-  return members.some((member) => member.id !== memberId && member.grade === '博士')
+function hasDoctoralStudentConflict(members, memberId, grade, role = 'student') {
+  if (grade !== '博士' || role !== 'student') return false
+  return members.some((member) => member.id !== memberId && member.role === 'student' && member.grade === '博士')
+}
+
+function isValidGraduationYear(value) {
+  const year = String(value ?? '').trim()
+  return /^\d{4}$/.test(year) && Number(year) >= 1900 && Number(year) <= new Date().getFullYear()
 }
 
 function enforceCoreMemberIdentities(data) {
@@ -229,7 +236,7 @@ function enforceCoreMemberIdentities(data) {
   if (systemAdmin) {
     systemAdmin.name = 'admin'
     systemAdmin.staff_id = 'admin'
-    systemAdmin.password = ADMIN_PASSWORD
+    if (!systemAdmin.password) systemAdmin.password = ADMIN_PASSWORD
     systemAdmin.role = 'superadmin'
     systemAdmin.grade = ''
     systemAdmin.direction = ''
@@ -239,25 +246,19 @@ function enforceCoreMemberIdentities(data) {
 
   const zhangChong = data.members.find((item) => item.id === 'm-teacher' || item.name === '张翀' || item.staff_id === 'zhangchong')
   if (zhangChong) {
-    zhangChong.name = '张翀'
     zhangChong.staff_id = 'zhangchong'
     if (!zhangChong.password) zhangChong.password = '666666'
     zhangChong.role = 'teacher'
     zhangChong.grade = ''
     zhangChong.direction = ''
     if (!zhangChong.email || zhangChong.email === 'zhsngchong92@swpu.edu.cn') zhangChong.email = 'zhangchong92@swpu.edu.cn'
-    if (!zhangChong.bio || zhangChong.bio.length < 300) {
-      zhangChong.bio = '张翀，中共党员，工学博士（后），西南石油大学计算机与软件学院特聘副研究员、硕士生导师。现任四川省人工智能学会理事、ACM SIGBED China 执行委员、ACM/CCF 专业会员，中国计算机学会（CCF）物联网专委会、分布式计算与系统专委会、计算机安全专委会委员，四川省油气勘探开发智能化工程研究中心骨干。担任 HPCA 程序委员会委员及 IEEE Transactions on Mobile Computing 审稿人。主要围绕高效智能系统与低功耗泛在计算开展研究，重点关注大模型搜索加速、计算机体系结构、低功耗与无源物联网、边端协同感知与推理、计算机网络与应用安全，并面向油气能源、智能检测等场景开展系统验证。近年来发表论文50余篇，申请发明及实用新型专利近40项，出版科研著作2部，获科技奖励8项。重视学生科研能力与工程实践能力培养，长期指导本科生、研究生开展科研训练、论文写作、系统实现与创新竞赛。'
-    }
     zhangChong.permissions = studentPermissions()
   }
 
   const zhouJian = data.members.find((item) => item.name === '周健' || item.staff_id === '202522000755')
   if (zhouJian) {
-    zhouJian.name = '周健'
     zhouJian.staff_id = '202522000755'
     if (!zhouJian.password) zhouJian.password = ZHOU_JIAN_PASSWORD
-    zhouJian.role = 'student'
     zhouJian.permissions = studentPermissions()
   }
 }
@@ -953,6 +954,8 @@ function seedData() {
     pendingRegistrations: [],
     publications: defaultMentorPublications(),
     projects: defaultMentorPatents(),
+    researchProjects: [],
+    softwareCopyrights: [],
     awards: [
       {
         id: 'award-2025-kjjb-1',
@@ -1056,16 +1059,28 @@ function migrateData(data) {
     ...seeded.site,
     ...(data.site || {}),
     researchLines:
-      Array.isArray(data.site?.researchLines) && data.site.researchLines.length > 0
+      Array.isArray(data.site?.researchLines)
         ? data.site.researchLines
         : seeded.site.researchLines,
+  }
+  if (data.site.peopleSectionTitle === 'People') {
+    data.site.peopleSectionTitle = 'Members'
   }
   if (data.site.contactEmail === 'zhsngchong92@swpu.edu.cn') {
     data.site.contactEmail = 'zhangchong92@swpu.edu.cn'
   }
-  for (const key of ['rooms', 'members', 'pendingRegistrations', 'publications', 'projects', 'awards', 'bookings', 'reimbursements']) {
+  for (const key of ['rooms', 'members', 'pendingRegistrations', 'publications', 'projects', 'researchProjects', 'awards', 'bookings', 'reimbursements']) {
     if (!Array.isArray(data[key])) data[key] = seeded[key]
   }
+  if (!Array.isArray(data.softwareCopyrights)) data.softwareCopyrights = seeded.softwareCopyrights || []
+  if (!Array.isArray(data.researchProjects)) data.researchProjects = []
+  if (!Array.isArray(data.softwareCopyrights)) {
+    data.softwareCopyrights = data.projects
+      .filter((item) => item.category === '软著获奖')
+      .map(({ category, ...item }) => item)
+    data.projects = data.projects.filter((item) => item.category !== '软著获奖')
+  }
+  if (!Array.isArray(data.softwareCopyrights)) data.softwareCopyrights = []
   for (const member of data.members) {
     const isAdminMember = member.staff_id === 'admin' || member.role === 'superadmin' || member.permissions?.can_manage_members
     if (!member.password) member.password = isAdminMember ? ADMIN_PASSWORD : '123456'
@@ -1078,21 +1093,24 @@ function migrateData(data) {
   }
   normalizeOutputVisibility(data.publications)
   normalizeOutputVisibility(data.awards)
-  removeTemplateOutputs(data)
-  ensureDefaultPublications(data, seeded, needsUpgrade)
-  ensureDefaultPatents(data, seeded, needsUpgrade)
+  if (needsUpgrade) removeTemplateOutputs(data)
+  if (needsUpgrade) {
+    ensureDefaultPublications(data, seeded, true)
+    ensureDefaultPatents(data, seeded, true)
+  }
   ensureDocumentUpdates(data)
-  normalizeOutputAssets(data, seeded)
+  normalizeOutputAssets(data, seeded, needsUpgrade)
   normalizeOutputOrders(data.publications)
   normalizeOutputOrders(data.awards)
+  normalizeOutputOrders(data.softwareCopyrights)
   enforceCoreMemberIdentities(data)
-  ensureDoctoralStudent(data)
+  if (needsUpgrade) ensureDoctoralStudent(data)
   if (needsUpgrade) {
     const systemAdmin = data.members.find((item) => item.id === 'm-admin' || item.staff_id === 'system-admin')
     if (systemAdmin) {
       systemAdmin.name = 'admin'
       systemAdmin.staff_id = 'admin'
-      systemAdmin.password = ADMIN_PASSWORD
+      if (!systemAdmin.password) systemAdmin.password = ADMIN_PASSWORD
       systemAdmin.role = 'superadmin'
       systemAdmin.grade = ''
       systemAdmin.direction = ''
@@ -1146,6 +1164,7 @@ function migrateData(data) {
       data.site.researchIntro = seeded.site.researchIntro
     }
     if (
+      (import.meta.env.DEV && import.meta.env.VITE_LOCAL_PREVIEW_ONLY === 'true' && data.site.peopleIntro?.includes('暂时保留')) ||
       data.site.peopleIntro === '教师及在读研究生按身份组织，成员状态和首页展示开关可在成员管理中维护。' ||
       data.site.peopleIntro?.includes('研一 6 个名额暂时保留') ||
       data.site.peopleIntro?.startsWith('Led by Zhang Chong') ||
@@ -1188,9 +1207,6 @@ function migrateData(data) {
     ) {
       data.site.contactEmail = seeded.site.contactEmail
     }
-    if (data.site.researchLines?.some((item) => item.title === 'Oil & Gas Wells' || item.title === 'Embedded Systems')) {
-      data.site.researchLines = seeded.site.researchLines
-    }
     const targetNames = ['张翀', '周健', '赵德伟', '杨怀宇', '向与飞', '巫玲娜', '李海峰']
     const hasTargetMembers = targetNames.every((name) => data.members.some((item) => item.name === name))
     const newFirstYearNames = ['向乐达', '彭遥影', '宾慧敏', '胡佳', '欧阳天舒', '郑松义']
@@ -1209,7 +1225,7 @@ function migrateData(data) {
       }
     }
     const visibleStudentCount = data.members.filter(
-      (item) => item.role === 'student' && item.visible_on_site && item.status === 'active',
+      (item) => ['student', 'alumni'].includes(item.role) && item.visible_on_site && item.status === 'active',
     ).length
     const hasEnglishMembers = data.members.some((item) =>
       ['Zhou Jian', 'Zhao Dewei', 'Yang Huaiyu', 'Xiang Yufei', 'Wu Lingna', 'Li Haifeng'].includes(item.name),
@@ -1253,11 +1269,35 @@ function migrateData(data) {
     }
   }
   enforceCoreMemberIdentities(data)
-  ensureDoctoralStudent(data)
+  if (needsUpgrade) ensureDoctoralStudent(data)
   data.meta = {
     ...(data.meta || {}),
-    dataVersion: DATA_VERSION,
+    dataVersion: PROFILE_DATA_VERSION,
+    contentVersion: CONTENT_DATA_VERSION,
+    projectsVersion: PROJECTS_DATA_VERSION,
     updatedAt: data.meta?.updatedAt || '',
+  }
+  return data
+}
+
+function applyDeploymentPreviewSnapshot(data) {
+  if (!IS_LOCAL_PREVIEW || data.meta?.previewSnapshotVersion === deploymentPreviewSnapshot.snapshotVersion) return data
+
+  const privateLocalMembers = data.members.filter((member) =>
+    !member.visible_on_site || member.status !== 'active' || member.staff_id === 'admin' || member.role === 'superadmin',
+  )
+  data.site = JSON.parse(JSON.stringify(deploymentPreviewSnapshot.site))
+  data.members = [...privateLocalMembers, ...JSON.parse(JSON.stringify(deploymentPreviewSnapshot.members))]
+  data.publications = JSON.parse(JSON.stringify(deploymentPreviewSnapshot.publications))
+  data.awards = JSON.parse(JSON.stringify(deploymentPreviewSnapshot.awards))
+  data.projects = JSON.parse(JSON.stringify(deploymentPreviewSnapshot.projects))
+  data.researchProjects = JSON.parse(JSON.stringify(deploymentPreviewSnapshot.researchProjects))
+  data.softwareCopyrights = JSON.parse(JSON.stringify(deploymentPreviewSnapshot.softwareCopyrights))
+  data.meta = {
+    ...(data.meta || {}),
+    ...deploymentPreviewSnapshot.meta,
+    previewSnapshotVersion: deploymentPreviewSnapshot.snapshotVersion,
+    databaseUpdatedAt: deploymentPreviewSnapshot.sourceUpdatedAt,
   }
   return data
 }
@@ -1265,6 +1305,208 @@ function migrateData(data) {
 // Keep the representative items from the September 2026 profile available
 // when older cloud state is loaded, without creating duplicates.
 function ensureDocumentUpdates(data) {
+  if (data.meta?.contentVersion === CONTENT_DATA_VERSION && data.meta?.projectsVersion === PROJECTS_DATA_VERSION) return
+  const profilePapers = [
+    ['dossier-paper-lego-2023', 'LEGO: Empowering Chip-level Functionality Plug-and-play for Next-generation IoT devices', 'ASPLOS 2023', 2023, 'CCF-A；川渝地区首篇，全球录用 72 篇。'],
+    ['dossier-paper-tc-2023', 'A Lightweight and Chip-Level Reconfigurable Architecture for Next-Generation IoT End Devices', 'IEEE Transactions on Computers', 2023, 'CCF-A；西南石油大学首篇。DOI: 10.1109/TC.2023.3343094'],
+    ['dossier-paper-ectc-tmc', 'ECTC: A Game-Theoretic Framework for Energy-Communication-Computation Coupled Optimization in Battery-Free Sensor Networks', 'IEEE Transactions on Mobile Computing', 2026, 'CCF-A / SCI 一区 TOP；已接收。'],
+    ['dossier-paper-entrust-2026', 'EnTrust: Bringing Energy-Efficient Trustworthy Sensing for Battery-Free Sensor Nodes', 'IEEE Transactions on Mobile Computing', 2026, 'CCF-A / SCI 一区 TOP；Early Access, Aug. 2026。'],
+    ['dossier-paper-legoplus-2025', 'LEGO+: Redefining the Redundancy Removal for IoT Sensing Edge-End Systems', 'MobiSys 2025', 2025, 'TOP CCF-B 推荐会议；全球录用 42 篇。DOI: 10.1145/3711875.3729126'],
+    ['dossier-paper-muman-2026', 'μMan: Towards Device-Agnostic Power Management for Battery-free IoT', 'SenSys 2026', 2026, 'TOP CCF-B 推荐会议；全球录用 48 篇。'],
+    ['dossier-paper-sensys-best-2024', 'Processor-Sharing Internet of Things Architecture for Large-scale Deployment', 'SenSys 2024', 2024, 'CCF-B 推荐会议；Best Paper Award。'],
+    ['dossier-paper-blinkbud-2025', 'BlinkBud: Detecting Hazards from Behind via Sampled Monocular 3D Detection on a Single Earbud', 'Proceedings of the ACM on IMWUT / UbiComp', 2025, 'CCF-A。DOI: 10.1145/3770707'],
+    ['dossier-paper-mobicom-2020', 'Internet-of-Microchips: Direct Radio-to-Bus Communication with SPI Backscatter', 'ACM MobiCom 2020', 2020, '计算机网络领域 CCF-A。DOI: 10.1145/3372224.3419182'],
+    ['dossier-paper-nsdi-2022', 'Passive DSSS: Empowering the Downlink Communication for Backscatter Systems', 'USENIX NSDI 2022', 2022, '计算机网络领域 CCF-A。'],
+    ['dossier-paper-mobicom-2023', 'Go Beyond RFID: Rethinking the Design of RFID Sensor Tags for Versatile Applications', 'ACM MobiCom 2023', 2023, '计算机网络领域 CCF-A。'],
+    ['dossier-paper-mobicom-sisyphus-2024', 'Sisyphus: Redefining Low Power for LoRa Receiver', 'ACM MobiCom 2024', 2024, '计算机网络领域 CCF-A。DOI: 10.1145/3636534.3690686'],
+    ['dossier-paper-umote-nsdi-2023', 'μMote: Enabling Passive Chirp De-spreading and μW-level Long-Range Downlink for Backscatter Devices', 'USENIX NSDI 2023', 2023, '计算机网络领域 CCF-A。'],
+    ['dossier-paper-tdsc-2023', 'Watch out Your Thumb Drive: Covert Data Theft from Portable Data Storage via Backscatter', 'IEEE Transactions on Dependable and Secure Computing', 2023, 'CCF-A；已接收。'],
+    ['dossier-paper-fedmcs-2026', 'FedMCS: Federated Multi-Granularity Chemical-Semantic Distillation for Molecular Graph Learning', 'CIKM 2026', 2026, '已列入个人简介成果清单。'],
+    ['dossier-paper-cloud-audit-2026', 'Anonymous Authorization Auditing Scheme Over Fuzzy Multi-Keyword Searchable Encrypted Data in Cloud Storage', 'IEEE Internet of Things Journal', 2026, 'Early Access。'],
+    ['dossier-paper-shm-virtual-sensor', 'CBLA: Empowering Virtual Sensor Nodes with Zero Deployment Costs for SHM Systems', 'IJCNN 2024', 2024, 'CCF-C 推荐会议；张翀为通信作者。'],
+    ['dossier-paper-icsd-yolo-2024', 'ICSD-YOLO: Intelligent Detection for Real-time Industrial Field Safety', 'Expert Systems with Applications', 2024, '已接收。'],
+    ['dossier-paper-sensors-fast-2024', 'FAST: A Ubiquitous Inference Computation Model for Temperature and Humidity Sensing', 'IEEE Sensors Journal', 2024, 'SCI 二区；DOI: 10.1109/JSEN.2024.3499359'],
+    ['dossier-paper-data-integrity-shm', 'A high-accuracy cross-device data integrity framework for trustworthy SHM sensing', 'IEEE Sensors Journal', 2026, '已接收；SCI 二区。'],
+  ]
+  const paperTitles = new Set(data.publications.map((item) => item.title))
+  for (const [id, title, journal, pub_year, note] of profilePapers) {
+    const existing = data.publications.find((item) => item.title === title)
+    if (existing) {
+      if (!existing.note) existing.note = note
+      continue
+    }
+    data.publications.push({ id, title, authors: '张翀及合作者', journal, pub_year, volume_issue: '', pages: '', doi: '', paper_link: '', pub_type: '论文', note, visible_on_home: true, sort_order: data.publications.length + 1 })
+    paperTitles.add(title)
+  }
+
+  const oldPaperTitles = new Set(data.publications.map((item) => item.title))
+  const extendedPapers = [
+    ['mentor-paper-ectc-tmc', 'ECTC: A Game-Theoretic Framework for Energy-Communication-Computation Coupled Optimization in Battery-Free Sensor Networks', 'IEEE Transactions on Mobile Computing', 2026],
+    ['mentor-paper-data-integrity-shm', 'A high-accuracy cross-device data integrity framework for trustworthy SHM sensing', 'IEEE Sensors Journal', 2026],
+    ['mentor-paper-eect-2025', 'Empowering Adaptive Endogenous Security Trend Prediction Detection for IoT Sensor Nodes', 'EECT 2025', 2025],
+    ['mentor-paper-cfcst-ijcnn', 'CFCST: A Cost-Efficient Spatio-Temporal Coupling Architecture for Multi-Task SHM Systems', 'IJCNN', 2025],
+    ['mentor-paper-cloud-audit-2026', 'Anonymous Authorization Auditing Scheme Over Fuzzy Multi-Keyword Searchable Encrypted Data in Cloud Storage', 'IEEE Internet of Things Journal', 2026],
+    ['mentor-paper-raster-welllog-2026', 'Raster well-log digitization: a benchmark for numerical grounding', 'Frontiers of Computer Science', 2026],
+    ['mentor-paper-fedmcs-2026', 'FedMCS: Federated Multi-Granularity Chemical-Semantic Distillation for Molecular Graph Learning', 'CIKM 2026', 2026],
+    ['mentor-paper-cross-device-security-mlnlp', 'Empowering Cross-Device Data Security Verification for IoT Sensor Nodes', 'MLNLP 2024', 2024],
+    ['mentor-paper-multi-agent-gas-2026', 'Multi-Agent Cooperation for Smart Gas Reservoir Management', 'Expert Systems with Applications', 2026],
+    ['mentor-paper-active-learning-dasfaa-2026', 'Certified Pseudo-label Enhanced Active Learning Framework for Pattern Interest Evaluation', 'DASFAA 2026', 2026],
+    ['mentor-paper-chipnet-2022', 'Chipnet: Enabling Large-scale Backscatter Network with Processor-free Devices', 'ACM Transactions on Sensor Networks', 2022],
+    ['mentor-paper-power-efficiency-sensors-2022', 'Rethinking Power Efficiency for Next-Generation Processor-Free Sensing Devices', 'Sensors', 2022],
+    ['mentor-paper-distance-bounding-2021', 'A Spectrum-Efficient Cross-Layer RF Distance Bounding Scheme', 'Security and Communication Networks', 2021],
+    ['mentor-paper-encryption-rfid-cbd-2022', 'Realizing Power-efficient Encryption Communication for Computational RFID Tags', 'CBD 2022', 2022],
+    ['mentor-paper-eamnet-2025', 'EAMNet: A dual-decoder network with edge-semantics synergy for agricultural parcel extraction from remote sensing images', 'Journal of Applied Remote Sensing', 2025],
+  ]
+  for (const [id, title, journal, pub_year] of extendedPapers) {
+    if (oldPaperTitles.has(title)) continue
+    data.publications.push({ id, title, authors: '张翀及合作者', journal, pub_year, volume_issue: '', pages: '', doi: '', paper_link: '', pub_type: '论文', note: '个人简介论文清单', visible_on_home: false, sort_order: data.publications.length + 1 })
+    oldPaperTitles.add(title)
+  }
+
+  const patents = [
+    ['dossier-patent-pnp-system', '物联网外设即插即用系统', '鲁力、张翀、张光远、邵贤栋、张竣钦', 'CN202111653418；2023.05.16'],
+    ['dossier-patent-iot-interface', '统一的物联网外设接入与控制方法', '鲁力、张翀、张竣钦、张光远、邵贤栋', 'CN114546394A；2023.02.28'],
+    ['dossier-patent-adaptive-scheduling', '一种物联网自适应外设调度方法、计算机设备及存储介质', '鲁力、张翀、张竣钦、张光远、邵贤栋', 'CN114500286A；2023.05.16'],
+    ['dossier-patent-converter', '物联网外设的即插即用转换电路及方法', '鲁力、张翀、邵贤栋、张竣钦、张光远', 'CN114500274A；2023.06.23'],
+    ['dossier-patent-peripheral-interface', '用于物联网终端的统一的外设交互接口', '鲁力、张翀、张竣钦、邵贤栋、张光远', 'CN114513411A；2021.12.30'],
+    ['dossier-patent-harvesting-wearable', '一种能量收集装置及地震监测系统、无源智能可穿戴系统', '鲁力、张翀', 'CN205921503U；2017.02.01'],
+    ['dossier-patent-pendulum', '一种有利于高效利用单摆能量的齿轮结构', '鲁力、张翀', 'CN205859050U；2017.01.04'],
+    ['dossier-patent-backscatter-bus', '基于反向散射的无线总线通信方法', '鲁力、李松璠、张翀、宋一杭、郑辉、刘璐', 'CN112039744A；2021.10.01'],
+    ['dossier-patent-iot-signal-receiver', '用于接收物联网终端信号的信号接收系统', '鲁力、李松璠、张翀、宋一杭、郑辉、刘璐', 'CN111988054A；2021.11.05'],
+    ['dossier-patent-radio-bus', '通过无线电直接访问总线的通信方法', '鲁力、李松璠、张翀、宋一杭、郑辉、刘璐', 'CN111988420A；2022.07.19'],
+    ['dossier-patent-iot-terminal-communication', '物联网终端的通信控制方法', '鲁力、李松璠、张翀、宋一杭', 'CN111988417A；2020.11.24'],
+    ['dossier-patent-processorless-iot', '免编程无处理器的物联网终端架构', '鲁力、李松璠、张翀、宋一杭', 'CN111949595A；2020.11.17'],
+    ['dossier-patent-demodulator', '终端对收发机发送数据的解调电路', '鲁力、李松璠、张翀、宋一杭、郑辉、刘璐', 'CN213072710U；2021.04.27'],
+    ['dossier-patent-pressure-gauge', '一种附带半自动且具夜视功能色带盘的压力表', '刘芬、石泽民、张翀、雍林、王瑶', 'ZL201820557176.0；2018.04.18'],
+    ['dossier-patent-pressure-dial', '压力表盘（外观设计专利）', '石泽民、汪浩瀚、张娟、张翀、彭冬婳、李忻洪、王长虹、郑旭', 'ZL201930071397.7；2019.02.21'],
+    ['dossier-patent-iot-modulator', '物联网终端向网关发送数据的调制电路', '鲁力、李松璠、张翀、宋一杭、郑辉、刘璐', 'CN213072711U；2021.04.27'],
+    ['dossier-patent-lora-downlink', '一种低功耗长距离下行接收机电路', '鲁力、宋一杭、张翀、郑辉、杨深', 'CN116388783A；2023.07.04'],
+    ['dossier-patent-reader-rfid', '一种阅读器与 RFID 标签间数据交换方法', '鲁力、李松璠、孟千贺、白彦序、张翀、宋一杭', 'CN113705258A；2023.05.16'],
+    ['dossier-patent-rfid-sensing-tag', '一种集感知与识别于一体的 RFID 标签系统', '鲁力、李松璠、孟千贺、白彦序、张翀、宋一杭', 'CN113705257A；2021.11.26'],
+    ['dossier-patent-rfid-chip', '一种 RFID 芯片', '鲁力、李松璠、孟千贺、白彦序、张翀、宋一杭', 'CN202110975685；2023.07.07'],
+    ['dossier-patent-rfid-tag', '一种易于定制的 RFID 感知标签', '鲁力、李松璠、孟千贺、白彦序、张翀、宋一杭', 'CN114462565A；2022.05.10'],
+    ['dossier-patent-air-quality', '一种空气质量预测方法', '张舒、张克萌、王杨、陈雁、张翀、谢文波', 'CN118072873B；2024.07.05'],
+    ['dossier-patent-gas-classification', '基于频率信道转换和自监督的气井积液分类和预测方法', '许森海、陈雁、李洋冰、张恩莉、王骞、曾星杰、张翀', 'CN202410823205.3；2024.06.25'],
+    ['dossier-patent-foam-timing-application', '一种基于自适应周期划分与深度学习的泡排时机预测方法', '陈雁、张朋、魏峰、熊斌、王帅、张艺萌、易雨、石诚、胡治权、朱敏、胡斌、曾星杰、王骞、张翀、尹红', 'CN202511277752.7；2025.09.09'],
+    ['dossier-patent-image-similarity', '一种基于多视图特征融合的图像相似度计算方法', '陈雁、石诚、魏峰、张兴鹏、易雨、张朋、熊斌、曾星杰、尹红、王骞、张翀', 'CN120726353A；2025.09.30'],
+  ]
+  const patentsInState = data.projects.filter((item) => item.category === '专利' || item.patent_no)
+  const patentTitles = new Set(patentsInState.map((item) => item.title))
+  for (const [index, [id, title, authors, patent_no]] of patents.entries()) {
+    if (patentTitles.has(title)) continue
+    const registration = patent_no.match(/(?:CN|ZL)?[\d.]+[A-Z]?/i)?.[0]
+    const existing = registration && patentsInState.find((item) => item.patent_no?.includes(registration))
+    if (existing) {
+      if (!existing.title) existing.title = title
+      if (!existing.authors) existing.authors = authors
+      if (!existing.visible_on_home) existing.visible_on_home = true
+      patentTitles.add(title)
+      continue
+    }
+    data.projects.push({ id, title, category: '专利', authors, patent_no, visible_on_home: true, sort_order: 100 + index })
+    patentTitles.add(title)
+  }
+
+  const normalizedAwardTitles = [
+    '隐蔽性储层定量表征与智能精细评价关键技术及应用：中国石油和化工自动化应用协会科技进步一等奖，排名第三。',
+    '油气工业物联网安全防御与数据智能分析关键技术及应用：中国石油和化工自动化应用协会技术发明二等奖，证书编号 2024 KXJSJ-FM041-2-R03，排名第三。',
+    '南海西部注水油田开发数智化关键技术与应用：第二十九届全国发明展览会“一带一路”暨金砖国家技能发展与技术创新大赛银奖，证书编号 3502043，排名第八。',
+    '数字油气田数据安全智能协同防御关键技术与应用：中国石油和化工自动化应用协会技术发明一等奖，证书编号 2023KXJSJ-FM016-1-R10，排名第十。',
+    '基于信创技术体系的油气生产物联关键技术与应用：中国石油和化工自动化应用协会科技进步二等奖，证书编号 2023KXJSJ-JB115-2-R10，排名第十。',
+    '低渗-低压油藏生产动态智能识别与优化关键技术及应用：中国石油和化工自动化应用协会科技进步二等奖，证书编号 2025KXJSJ-JB050-2-R09，排名第九。',
+    '致密储层智能动态评价与生产实时预警关键技术及应用：中国石油和化工自动化应用协会科技进步二等奖，证书编号 2024 KXJSJ-JB064-2-R11，排名第十一。',
+    'Processor-Sharing Internet of Things Architecture for Large-scale Deployment：ACM SenSys 2024 Best Paper Award，排名第三。',
+    '数据分析与机器学习：第五届四川省高校教师教学创新大赛三等奖，排名第三。',
+    '2025 年西南石油大学大学生创新创业大赛金奖：智慧岩识——薄片微观图像全自动鉴定引领者，第一指导教师。',
+    '2025 年四川省国际大学生创新大赛铜奖：微岩精灵——薄片微观图像全自动鉴定引领者，第一指导教师。',
+    '2025 年西南石油大学大学生创新创业大赛银奖：律桥（Lex Nexus）综合法律平台，第二指导教师。',
+    '油气田开发生产智能管控关键技术与应用：中国石油和化工自动化应用协会科技进步三等奖，证书编号 2025KXJSJ-JB135-3-R05，排名第五。',
+  ]
+  const profileAwardTitles = new Set(data.awards.map((item) => item.title))
+  const awardMatches = [
+    ['隐蔽性储层定量表征与智能精细评价', '隐蔽性储层定量表征与智能精细评价'],
+    ['油气工业物联网安全防御与数据智能分析', '油气工业物联网安全防御与数据智能分析'],
+    ['南海西部注水油田开发数智化', '南海西部注水油田开发数智化'],
+    ['数字油气田数据安全智能协同防御', '数字油气田数据安全智能协同防御'],
+    ['基于信创技术体系的油气生产物联', '基于信创技术体系的油气生产物联'],
+    ['低渗-低压油藏生产动态智能识别与优化', '低渗-低压油藏生产动态智能识别与优化'],
+    ['Processor-Sharing Internet of Things Architecture for Large-scale Deployment', 'Processor-Sharing Internet of Things Architecture for Large-scale Deployment'],
+    ['数据分析与机器学习', '数据分析与机器学习'],
+  ]
+  data.awards = data.awards.filter((item) => !item.title.includes('致密储层智能动态评价与生产实时预警'))
+  for (const [index, title] of normalizedAwardTitles.entries()) {
+    const exact = data.awards.find((item) => item.title === title)
+    if (exact) {
+      if (exact.visible_on_home === undefined) exact.visible_on_home = true
+      continue
+    }
+    const identity = awardMatches.find(([phrase]) => title.includes(phrase))?.[1]
+    const existing = identity && data.awards.find((item) => item.title.includes(identity))
+    if (existing) {
+      existing.title = title
+      if (existing.winner === undefined || !existing.winner) existing.winner = '张翀'
+      if (existing.visible_on_home === undefined) existing.visible_on_home = true
+      continue
+    }
+    data.awards.push({ id: `dossier-award-2026-${index + 1}`, title, winner: '张翀', visible_on_home: true, sort_order: index + 1 })
+    profileAwardTitles.add(title)
+  }
+
+  const bookEntries = [
+    ['dossier-book-wireless-bus', '无线总线物联网边端系统', '鲁力、张翀、李松璠、宋一杭、王晗、孟千贺、李圣雨', '科学出版社', 'ISBN 978-7-03-084463-7'],
+    ['dossier-book-oil-gas-security', '油气工业数据安全防御理论与技术', '张晓均、张翀、周让、薛婧婷', '石油工业出版社', 'ISBN 978-7-5183-7930-9'],
+  ]
+  const existingBooks = new Set((data.softwareCopyrights || []).map((item) => item.title))
+  for (const [index, [id, title, authors, publisher, isbn]] of bookEntries.entries()) {
+    if (existingBooks.has(title)) continue
+    const existing = data.softwareCopyrights.find((item) => item.title?.includes(title))
+    if (existing) continue
+    data.softwareCopyrights.push({ id, title, authors, winner: '', patent_no: `${publisher} · ${isbn}`, note: '科研著作（个人简介原文列于“软著”标题下，书目信息表明为图书）', visible_on_home: true, sort_order: index + 1 })
+  }
+
+  const researchLines = [
+    { title: '大模型搜索加速与高效推理', tag: '大模型与智能体', icon: 'bot', tone: 'jade', text: '面向 RAG、智能体工具检索、长上下文搜索与搜索式推理，研究搜索空间压缩、检索与缓存、调度优化及软硬件协同加速。' },
+    { title: '计算机体系结构与高效智能系统', tag: '体系结构', icon: 'cpu', tone: 'blue', text: '围绕可重构计算、芯片级任务执行、冗余消除与 AI 加速架构，研究算法、系统和硬件协同优化。' },
+    { title: '低功耗物联网与无源智能系统', tag: '低功耗计算', icon: 'network', tone: 'moss', text: '研究能量采集、无源与间歇计算、微功耗电路、能量管理、反向散射通信及低功耗终端架构。' },
+    { title: '边端智能感知与数据推理', tag: '边端智能', icon: 'bot', tone: 'clay', text: '研究稀疏感知、虚拟传感、多模态融合、物理约束学习和边端协同推理。' },
+    { title: '计算机网络与应用安全', tag: '网络与安全', icon: 'network', tone: 'blue', text: '研究物联网通信、数据完整性、轻量级可信机制、边端安全及资源受限系统安全执行。' },
+    { title: '工业智能与能源场景应用', tag: '工业应用', icon: 'cpu', tone: 'jade', text: '面向油气勘探开发、气井生产、测井、结构健康监测和智能检测开展算法研究、系统设计与原型验证。' },
+  ]
+  data.site.researchLines = researchLines
+  const researchProjects = [
+    ['dossier-project-major-well-logging', '万米特深井测井关键核心装备', '国家科技重大专项（课题5：万米深层复杂环境测井采集质控与数据处理）', '2025ZD1402100', '2025.07—2030.12；课题经费 100 万元。'],
+    ['dossier-project-nsf-key', '安全攸关的航空智能制造威胁监检测和动态自适防御研究', '国家自然科学基金重点项目', 'U21A20462', '2022.01—2025.12；项目经费 260 万元。'],
+    ['dossier-project-sichuan-youth', '数字油气田轻量级传感架构关键技术研究', '四川省科技厅青年基金项目（主持）', '24NSFSC4152', '2024.01—2025.12；项目经费 10 万元。'],
+    ['dossier-project-open-oilgas', '油气藏数字开发推理感知关键技术研究', '油气藏地质及开发工程全国重点实验室开放基金（主持）', 'PLN2024-34', '2024.10—2026.05。'],
+    ['dossier-project-weather-open', '低功耗多模融合气象信息感知方法与执行架构关键技术研究', '四川省数值天气计算工程技术研究中心开放基金（主持）', '2025JSJKF02', '2026.01—2026.12；项目经费 2 万元。'],
+    ['dossier-project-nsf-sensing', '无源感知和计算系统能量理论和关键技术研究', '国家自然科学基金面上项目（主研第二，结题）', '61872061', '2019.01—2022.12；项目经费 64 万元。'],
+    ['dossier-project-nsrd-industrial-iot', '面向大规模异质工业互联网终端的高效安全自适应互联技术', '国家重点研发计划', '2017YFB1003003', '2017.10—2021.09；项目经费 298 万元。'],
+    ['dossier-project-nsf-physio', '噪声影响下的微弱生理信号的情感识别关键理论研究', '国家自然科学基金面上项目', '61976047', '2020.01—2022.12；项目经费 68.6 万元。'],
+    ['dossier-project-sichuan-general', '物联网系统多源数据可验证密态计算方法研究', '四川省科技厅面上项目', '2025ZNSFSC0495', '2025.01—2026.12；项目经费 20 万元。'],
+    ['dossier-project-next-internet', '时序信息融合轻量化传感控制关键技术研究', '下一代互联网数据处理技术国家地方联合工程实验室开放基金（主持）', '', '2024.06—2024.12；项目经费 1 万元。'],
+    ['dossier-project-changqing-algorithm', '气井工况及积液智能诊断算法测试评价', '中国石油天然气股份有限公司长庆油田分公司油气工艺研究院项目', '', '2026.02—2026.12；项目经费 59.3 万元。'],
+    ['dossier-project-grad-teaching', '案例驱动型数据仓库与知识工程课程教学改革与实践', '西南石油大学研究生教改项目', '2024JGYB024', ''],
+    ['dossier-project-sichuan-teaching', '面向一流人才培养的计算机类课程虚拟教研室建设与实践', '四川省教学改革重大项目研究项目', 'JG-2023-47', ''],
+    ['dossier-project-sailing', '泛在物联网轻量级感知体系与信息计算关键技术研究', '西南石油大学自然科学“启航计划”项目', '2023QHZ002', '项目经费 10 万元。'],
+    ['dossier-project-changqing-knowledgebase', '长庆油田开发知识库智能化技术（2024年软件测试与数据加工）', '长庆油田数字和智能化事业部技术服务合同', '计科F114', '2024.07—2024.12；合同金额 65 万元。'],
+  ]
+  const projectKeys = new Set((data.researchProjects || []).flatMap((item) => [item.title, item.project_no].filter(Boolean)))
+  const projectTitles = new Set((data.researchProjects || []).map((item) => item.title))
+  for (const [index, [id, title, source, project_no, note]] of researchProjects.entries()) {
+    const same = data.researchProjects.find((item) => item.title === title || (project_no && item.project_no === project_no))
+    if (same) continue
+    if (projectKeys.has(title) || projectTitles.has(title)) continue
+    data.researchProjects.push({ id, title, source, project_no, note, visible_on_home: true, sort_order: index + 1 })
+    projectKeys.add(title)
+    projectTitles.add(title)
+  }
+  data.site.heroLede = '张翀，工学博士（后）、特聘副研究员、硕士生导师。研究聚焦大模型搜索加速、高效智能系统、低功耗物联网与边端智能，面向油气能源和智能检测开展系统验证。'
+  data.site.piIntro = '张翀，中共党员，工学博士（后），西南石油大学计算机与软件学院特聘副研究员、硕士生导师。现任四川省人工智能学会理事、ACM SIGBED China 执行委员、ACM/CCF 专业会员，担任 CCF 物联网、分布式计算与系统、计算机安全专委会委员，四川省油气勘探开发智能化工程研究中心骨干。担任 HPCA 程序委员会委员及 IEEE Transactions on Mobile Computing 审稿人。发表论文 50 余篇，其中 CCF-A 类期刊及会议论文 13 篇、TOP CCF-B 类论文 6 篇；申请发明及实用新型专利近 40 项，出版科研著作 2 部，获省部级科技进步一等奖、技术发明一等奖等科技奖励。主持四川省科技厅青年基金、油气藏地质及开发工程全国重点实验室开放基金等项目，并参与国家科技重大专项、国家自然科学基金及国家重点研发计划。'
+  const mentor = data.members.find((item) => item.staff_id === 'zhangchong')
+  if (mentor) mentor.bio = data.site.piIntro
+  data.meta.contentVersion = CONTENT_DATA_VERSION
+  data.meta.projectsVersion = PROJECTS_DATA_VERSION
+
   const papers = [
     ['doc-paper-raster-welllog-2026', 'Raster well-log digitization: a benchmark for numerical grounding', 'Frontiers of Computer Science', 51, 'https://doi.org/10.1007/s11704-026-60965-4'],
     ['doc-paper-fedmcs-2026', 'FedMCS: Federated Multi-Granularity Chemical-Semantic Distillation for Molecular Graph Learning', 'CIKM 2026', 52, ''],
@@ -1275,38 +1517,12 @@ function ensureDocumentUpdates(data) {
     if (existingPapers.has(title)) continue
     data.publications.push({ id, title, authors: 'Chong Zhang 等', journal, pub_year: 2026, volume_issue: '', pages: '', doi: '', paper_link, pub_type: '论文', note: '导师论文成果', visible_on_home: false, sort_order })
   }
-  const researchTitles = [
-    '大模型搜索加速与高效推理',
-    '计算机体系结构与高效智能系统',
-    '低功耗物联网与无源智能系统',
-    '边端智能感知与数据推理',
-    '计算机网络与应用安全',
-    '工业智能与能源场景应用',
-  ]
-  const researchDescriptions = [
-    '面向检索增强生成（RAG）、智能体工具检索、长上下文搜索与搜索式推理，研究搜索空间压缩、检索与缓存优化、调度优化及软硬件协同加速，提高大模型的搜索与推理效率。',
-    '围绕可重构计算、芯片级任务执行、冗余消除、AI 系统与加速架构，研究算法、系统与硬件的协同优化方法。',
-    '研究能量采集、无源与间歇计算、微功耗电路、能量管理、反向散射通信及低功耗终端架构。',
-    '研究稀疏感知、虚拟传感、多模态融合、物理约束学习、边端协同推理及资源受限条件下的智能识别。',
-    '研究物联网通信、数据完整性、轻量级可信机制、边端安全及资源受限系统的安全执行。',
-    '面向油气勘探开发、气井生产、测井、结构健康监测和智能检测等实际问题，开展算法研究、系统设计与原型验证。',
-  ]
-  const existingResearch = new Set((data.site.researchLines || []).map((item) => item.title))
-  for (const [index, title] of researchTitles.entries()) {
-    if (existingResearch.has(title)) continue
-    data.site.researchLines.push({ title, tag: '研究方向', icon: index % 2 ? 'cpu' : 'network', tone: ['jade', 'blue', 'moss', 'clay'][index % 4], text: researchDescriptions[index] })
-  }
-  data.site.researchLines.forEach((line) => {
-    const index = researchTitles.indexOf(line.title)
-    if (index >= 0) line.text = researchDescriptions[index]
-  })
   const documentedLinks = {
     'BioTouch: Reliable Re-Authentication via Finger Bio-Capacitance and Touching Behavior': 'https://doi.org/10.3390/s22093583',
   }
   for (const paper of data.publications) {
     if (!paper.paper_link && documentedLinks[paper.title]) paper.paper_link = documentedLinks[paper.title]
   }
-  data.site.researchLines = data.site.researchLines.slice(0, 6)
   const awards = [
     ['doc-award-sensys-best-paper', 'Processor-Sharing Internet of Things Architecture for Large-scale Deployment：ACM SenSys 2024 Best Paper Award', 8],
     ['doc-award-teaching-innovation', '数据分析与机器学习：第五届四川省高校教师教学创新大赛三等奖', 9],
@@ -1325,11 +1541,11 @@ function ensureDocumentUpdates(data) {
 function loadData() {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
-    const data = raw ? migrateData(JSON.parse(raw)) : seedData()
+    const data = applyDeploymentPreviewSnapshot(raw ? migrateData(JSON.parse(raw)) : seedData())
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
     return data
   } catch {
-    return seedData()
+    return applyDeploymentPreviewSnapshot(seedData())
   }
 }
 
@@ -1354,7 +1570,9 @@ let lastPersistedState = JSON.parse(JSON.stringify(state))
 function writeLocalState() {
   state.meta = {
     ...(state.meta || {}),
-    dataVersion: DATA_VERSION,
+    dataVersion: PROFILE_DATA_VERSION,
+    contentVersion: CONTENT_DATA_VERSION,
+    projectsVersion: PROJECTS_DATA_VERSION,
     updatedAt: new Date().toISOString(),
   }
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
@@ -1551,7 +1769,7 @@ function ensureDefaultPublications(data, seeded, force = false) {
 }
 
 function ensureDefaultPatents(data, seeded, force = false) {
-  const existingKeys = new Set(data.projects.map((item) => item.id || item.title).filter(Boolean))
+    const existingKeys = new Set(data.projects.map((item) => item.id || item.title).filter(Boolean))
   const hasPatents = data.projects.some((item) => item.category === '专利' || item.patent_no)
   if (!force && hasPatents) return
   for (const patent of seeded.projects) {
@@ -1567,6 +1785,9 @@ export function useLabStore() {
   )
   const sortedPublications = computed(() => [...state.publications].sort(bySortOrder))
   const sortedProjects = computed(() => [...state.projects].sort(bySortOrder))
+  const sortedPatents = computed(() => sortedProjects.value.filter((item) => item.category === '专利' || item.patent_no))
+  const sortedResearchProjects = computed(() => [...state.researchProjects].sort(bySortOrder))
+  const sortedSoftwareCopyrights = computed(() => [...state.softwareCopyrights].sort(bySortOrder))
   const sortedAwards = computed(() => [...state.awards].sort(bySortOrder))
   const homePublications = computed(() => sortedPublications.value.filter((item) => item.visible_on_home !== false))
   const homeAwards = computed(() => sortedAwards.value.filter((item) => item.visible_on_home !== false))
@@ -1608,13 +1829,6 @@ export function useLabStore() {
     const normalizedStaffId = staffId.trim()
     const member = state.members.find((item) => item.staff_id === normalizedStaffId)
     if (!member) return { ok: false, message: '账号或密码不正确' }
-    if (normalizedStaffId === 'admin' && password === ADMIN_PASSWORD && member.password !== ADMIN_PASSWORD) {
-      member.password = ADMIN_PASSWORD
-      member.name = 'admin'
-      member.role = 'superadmin'
-      member.permissions = superAdminPermissions()
-      save()
-    }
     if (member.password !== password) return { ok: false, message: '账号或密码不正确' }
     setSession(member.id)
     return { ok: true, member }
@@ -1634,13 +1848,18 @@ export function useLabStore() {
 
   async function registerMember(payload) {
     const staffId = payload.staff_id.trim()
+    const role = payload.role === 'alumni' ? 'alumni' : 'student'
+    const graduationYear = String(payload.graduation_year ?? '').trim()
+    if (role === 'alumni' && !isValidGraduationYear(graduationYear)) {
+      return { ok: false, message: '请填写有效的毕业年份' }
+    }
     if (state.members.some((item) => item.staff_id === staffId)) {
       return { ok: false, message: '账号已存在' }
     }
     if (state.pendingRegistrations.some((item) => item.staff_id === staffId)) {
       return { ok: false, message: '该账号正在等待审批' }
     }
-    if (hasDoctoralStudentConflict(state.members, '', payload.grade || '')) {
+    if (hasDoctoralStudentConflict(state.members, '', payload.grade || '', role)) {
       return { ok: false, message: '博士生只能保留一个' }
     }
     state.pendingRegistrations.push({
@@ -1648,8 +1867,12 @@ export function useLabStore() {
       name: payload.name.trim(),
       staff_id: staffId,
       password: payload.password,
-      grade: payload.grade,
+      role,
+      grade: role === 'alumni' ? '' : payload.grade,
+      graduation_year: role === 'alumni' ? graduationYear : '',
       direction: payload.direction.trim(),
+      email: payload.email?.trim() || '',
+      bio: payload.bio?.trim() || '',
       created_at: new Date().toISOString(),
     })
     const result = await saveImmediately()
@@ -1666,7 +1889,11 @@ export function useLabStore() {
       await saveImmediately()
       return { ok: false, message: '账号已存在' }
     }
-    if (hasDoctoralStudentConflict(state.members, '', record.grade || '')) {
+    const role = record.role === 'alumni' ? 'alumni' : 'student'
+    if (role === 'alumni' && record.graduation_year && !isValidGraduationYear(record.graduation_year)) {
+      return { ok: false, message: '毕业年份无效，请核对注册申请' }
+    }
+    if (hasDoctoralStudentConflict(state.members, '', record.grade || '', role)) {
       return { ok: false, message: '博士生只能保留一个' }
     }
     state.members.push({
@@ -1674,11 +1901,12 @@ export function useLabStore() {
       name: record.name,
       staff_id: record.staff_id,
       password: record.password,
-      role: 'student',
-      grade: record.grade,
+      role,
+      grade: role === 'alumni' ? '' : record.grade,
+      graduation_year: role === 'alumni' ? String(record.graduation_year ?? '').trim() : '',
       direction: record.direction,
       status: 'active',
-      visible_on_site: false,
+      visible_on_site: role === 'alumni',
       permissions: studentPermissions(),
       ...memberProfileDefaults(record),
     })
@@ -1700,6 +1928,10 @@ export function useLabStore() {
 
   function isSuperAdmin(member = currentMember.value) {
     return Boolean(member?.staff_id === 'admin' && member?.permissions?.can_manage_members)
+  }
+
+  function canEditMentorPage() {
+    return isSuperAdmin() || currentMember.value?.staff_id === 'zhangchong'
   }
 
   function canManageSite() {
@@ -1806,14 +2038,23 @@ export function useLabStore() {
     const isAdminEditing = isSuperAdmin()
     if (!isAdminEditing) {
       if (!existing || existing.id !== currentMember.value.id) return { ok: false, message: '暂无权限' }
-      const nextGrade = shouldKeepStudyInfoEmpty(existing) ? '' : payload.grade || ''
-      if (hasDoctoralStudentConflict(state.members, existing.id, nextGrade)) {
+      if (existing.staff_id === 'zhangchong' && !payload.name?.trim()) return { ok: false, message: '请填写导师姓名' }
+      if (existing.role === 'alumni' && payload.graduation_year && !isValidGraduationYear(payload.graduation_year)) {
+        return { ok: false, message: '请填写有效的毕业年份' }
+      }
+      const nextGrade = shouldKeepStudyInfoEmpty(existing) || existing.role === 'alumni' ? '' : payload.grade || ''
+      if (hasDoctoralStudentConflict(state.members, existing.id, nextGrade, existing.role)) {
         return { ok: false, message: '博士生只能保留一个' }
+      }
+      if (existing.staff_id === 'zhangchong') {
+        existing.name = payload.name.trim()
+        if ('mentor_title' in payload) existing.mentor_title = String(payload.mentor_title ?? '').trim()
       }
       if (!shouldKeepStudyInfoEmpty(existing)) {
         existing.grade = nextGrade
         existing.direction = payload.direction?.trim() || ''
       }
+      if (existing.role === 'alumni') existing.graduation_year = String(payload.graduation_year ?? '').trim()
       existing.phone = payload.phone?.trim() || ''
       existing.email = payload.email?.trim() || ''
       existing.wechat = payload.wechat?.trim() || ''
@@ -1824,19 +2065,36 @@ export function useLabStore() {
       return result.ok ? { ok: true } : { ok: false, message: result.message || '保存失败' }
     }
     const emptyStudyInfo = shouldKeepStudyInfoEmpty(payload)
+    if (!payload.name?.trim() || !payload.staff_id?.trim()) return { ok: false, message: '请填写姓名和工号/学号' }
+    if (existing?.staff_id === 'admin' && (payload.name.trim() !== 'admin' || payload.staff_id.trim() !== 'admin' || payload.role !== 'superadmin')) {
+      return { ok: false, message: '系统管理员身份不可修改' }
+    }
+    if (existing?.staff_id === 'zhangchong' && (payload.staff_id.trim() !== 'zhangchong' || payload.role !== 'teacher')) {
+      return { ok: false, message: '导师账号和身份不可修改' }
+    }
+    if (existing?.staff_id === '202522000755' && payload.staff_id.trim() !== '202522000755') {
+      return { ok: false, message: '该账号标识不可修改' }
+    }
+    if (payload.role === 'alumni' && payload.graduation_year && !isValidGraduationYear(payload.graduation_year)) {
+      return { ok: false, message: '请填写有效的毕业年份' }
+    }
+    if (payload.role === 'alumni' && !payload.graduation_year && (!existing || existing.role !== 'alumni')) {
+      return { ok: false, message: '请填写毕业年份' }
+    }
     const normalizedStaffId = payload.staff_id.trim()
     const duplicateAccount = state.members.some(
       (item) => item.id !== existing?.id && item.staff_id === normalizedStaffId,
     )
     if (duplicateAccount) return { ok: false, message: '工号/学号已存在' }
-    if (hasDoctoralStudentConflict(state.members, existing?.id || payload.id || '', emptyStudyInfo ? '' : payload.grade || '')) {
+    if (hasDoctoralStudentConflict(state.members, existing?.id || payload.id || '', emptyStudyInfo ? '' : payload.grade || '', payload.role)) {
       return { ok: false, message: '博士生只能保留一个' }
     }
     const base = {
       name: payload.name.trim(),
       staff_id: normalizedStaffId,
       role: payload.role,
-      grade: emptyStudyInfo ? '' : payload.grade,
+      grade: emptyStudyInfo || payload.role === 'alumni' ? '' : payload.grade,
+      graduation_year: payload.role === 'alumni' ? String(payload.graduation_year ?? '').trim() : '',
       direction: emptyStudyInfo ? '' : payload.direction.trim(),
       status: payload.status,
       visible_on_site: Boolean(payload.visible_on_site),
@@ -1848,6 +2106,7 @@ export function useLabStore() {
       photo: payload.photo || '',
       bio: payload.bio?.trim() || '',
     }
+    if ('mentor_title' in payload) base.mentor_title = String(payload.mentor_title ?? '').trim()
     if (base.staff_id !== 'admin') {
       if (base.role === 'superadmin') base.role = base.staff_id === 'zhangchong' ? 'teacher' : 'student'
       base.permissions = studentPermissions()
@@ -1922,10 +2181,31 @@ export function useLabStore() {
   }
 
   async function upsertOutput(kind, payload) {
-    if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
+    if (kind === 'patents') {
+      kind = 'projects'
+      payload = { ...payload, category: '专利' }
+    }
     const list = state[kind]
     if (!Array.isArray(list)) return { ok: false, message: '数据类型不存在' }
     const existing = list.find((item) => item.id === payload.id)
+    if (!isSuperAdmin()) {
+      if (currentMember.value?.staff_id !== 'zhangchong' || !existing) return { ok: false, message: '暂无权限' }
+      const allowedFields = {
+        publications: ['title', 'authors'],
+        awards: ['title', 'winner'],
+        projects: ['title', 'authors', 'patent_no'],
+        researchProjects: ['title', 'source', 'project_no', 'note'],
+        softwareCopyrights: ['title', 'authors', 'patent_no', 'winner'],
+      }[kind]
+      if (!allowedFields) return { ok: false, message: '暂无权限' }
+      if (payload.title !== undefined && !String(payload.title).trim()) return { ok: false, message: '请填写标题' }
+      for (const field of allowedFields) {
+        if (payload[field] !== undefined) existing[field] = String(payload[field]).trim()
+      }
+      const result = await saveImmediately()
+      return result.ok ? { ok: true, id: existing.id } : { ok: false, message: result.message || '保存失败' }
+    }
+    if (!payload.title?.trim()) return { ok: false, message: '请填写标题' }
     const requestedOrder = payload.sort_order === undefined
       ? existing?.sort_order ?? nextOutputOrder(list)
       : Number(payload.sort_order)
@@ -1939,6 +2219,12 @@ export function useLabStore() {
     if (hasVisibleOutputOrderConflict(list, payload, existing)) {
       return { ok: false, message: `主页展示编号 ${requestedOrder} 已被占用，请更换编号` }
     }
+    if (kind === 'researchProjects') {
+      payload.title = payload.title?.trim() || ''
+      payload.source = payload.source?.trim() || ''
+      payload.project_no = payload.project_no?.trim() || ''
+      payload.note = payload.note?.trim() || ''
+    }
     if (kind === 'publications') {
       payload.paper_link = payload.paper_link?.trim() || ''
     }
@@ -1946,6 +2232,12 @@ export function useLabStore() {
       payload.image_data = payload.image_data || ''
       payload.image_url = payload.image_url?.trim() || ''
       payload.image_name = payload.image_name?.trim() || ''
+    }
+    if (kind === 'softwareCopyrights') {
+      payload.image_data = payload.image_data || ''
+      payload.image_url = payload.image_url?.trim() || ''
+      payload.image_name = payload.image_name?.trim() || ''
+      payload.winner = payload.winner?.trim() || ''
     }
     if (existing) {
       Object.assign(existing, payload)
@@ -1963,6 +2255,7 @@ export function useLabStore() {
 
   async function removeOutput(kind, id) {
     if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
+    if (kind === 'patents') kind = 'projects'
     const list = state[kind]
     if (!Array.isArray(list)) return { ok: false, message: '数据类型不存在' }
     const index = list.findIndex((item) => item.id === id)
@@ -1976,6 +2269,7 @@ export function useLabStore() {
 
   async function moveOutputUp(kind, id) {
     if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
+    if (kind === 'patents') kind = 'projects'
     if (!Array.isArray(state[kind])) return { ok: false, message: '数据类型不存在' }
     const list = state[kind].sort(bySortOrder)
     const index = list.findIndex((item) => item.id === id)
@@ -1997,16 +2291,16 @@ export function useLabStore() {
       ...state.site,
       ...payload,
       researchLines: nextResearchLines.map((item) => ({
-        title: item.title.trim(),
-        tag: item.tag.trim(),
-        icon: item.icon,
-        tone: item.tone,
-        text: item.text.trim(),
+        title: String(item?.title ?? '').trim(),
+        tag: String(item?.tag ?? '').trim(),
+        icon: item?.icon || 'network',
+        tone: item?.tone || 'jade',
+        text: String(item?.text ?? '').trim(),
       })),
       toolCards: nextToolCards.map((item) => ({
-        key: item.key,
-        title: item.title.trim(),
-        text: item.text.trim(),
+        key: item?.key || '',
+        title: String(item?.title ?? '').trim(),
+        text: String(item?.text ?? '').trim(),
       })),
     }
     const result = await saveImmediately()
@@ -2029,6 +2323,9 @@ export function useLabStore() {
       siteMembers,
       sortedPublications,
       sortedProjects,
+      sortedPatents,
+    sortedResearchProjects,
+      sortedSoftwareCopyrights,
       sortedAwards,
       homePublications,
       homeAwards,
@@ -2040,6 +2337,7 @@ export function useLabStore() {
     approveRegistration,
     rejectRegistration,
     isSuperAdmin,
+    canEditMentorPage,
     hasTool,
     canViewAll,
     canExport,

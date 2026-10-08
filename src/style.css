@@ -243,6 +243,8 @@ img {
 .tech-atmosphere {
   position: fixed;
   inset: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: 9999;
   overflow: hidden;
   pointer-events: none;
@@ -268,7 +270,7 @@ img {
 }
 
 .tech-pointer-glow {
-  position: absolute;
+  position: fixed;
   left: var(--pointer-x);
   top: var(--pointer-y);
   width: 420px;
@@ -292,7 +294,7 @@ img {
 }
 
 .tech-click-burst {
-  position: absolute;
+  position: fixed;
   width: 1px;
   height: 1px;
 }
@@ -1123,6 +1125,13 @@ img {
   grid-column: 1 / -1;
 }
 
+.alumni-link-wrap {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+}
+
 .pi-panel {
   display: grid;
   align-content: end;
@@ -1184,8 +1193,7 @@ img {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(4, 33, 47, 0.1) 0%, rgba(4, 33, 47, 0.16) 44%, rgba(4, 33, 47, 0.92) 100%),
-    linear-gradient(90deg, rgba(4, 33, 47, 0.58) 0%, transparent 46%);
+    linear-gradient(180deg, rgba(4, 33, 47, 0.05) 0%, rgba(4, 33, 47, 0.04) 62%, rgba(4, 33, 47, 0.5) 100%);
   content: '';
 }
 
@@ -1209,8 +1217,13 @@ img {
   position: relative;
   z-index: 1;
   align-self: end;
-  padding: 34px;
-  background: linear-gradient(180deg, transparent, rgba(4, 33, 47, 0.68));
+  justify-self: start;
+  margin: 28px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(4, 33, 47, 0.62);
+  backdrop-filter: blur(8px);
 }
 
 .pi-panel span {
@@ -1221,8 +1234,9 @@ img {
 }
 
 .pi-panel h3 {
-  margin: 8px 0 10px;
-  font-size: 2rem;
+  margin: 0;
+  font-size: 1.55rem;
+  line-height: 1.2;
 }
 
 .pi-panel p {
@@ -1408,7 +1422,7 @@ img {
 
 .mentor-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 20px;
   padding-top: 30px;
 }
@@ -1439,11 +1453,95 @@ img {
   padding-top: 96px;
 }
 
+.mentor-profile-details {
+  padding-top: 38px;
+}
+
+.mentor-subsection-title {
+  padding-top: 54px;
+}
+
+.mentor-direction-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.mentor-direction-card {
+  min-width: 0;
+  padding: 26px;
+  border: 1px solid var(--border-weak);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.mentor-direction-index {
+  color: var(--jade);
+  font-size: 0.8rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.mentor-direction-card h3 {
+  margin: 12px 0 10px;
+  color: var(--heading);
+  font-size: 1.04rem;
+}
+
+.mentor-direction-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.mentor-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.mentor-detail-panel {
+  padding: 28px;
+  border: 1px solid var(--border-weak);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.mentor-detail-panel h3 {
+  margin: 0 0 16px;
+  color: var(--heading);
+  font-size: 1.15rem;
+}
+
+.mentor-detail-panel p {
+  color: var(--muted);
+  line-height: 1.85;
+}
+
+.mentor-detail-panel a {
+  color: var(--jade);
+}
+
+@media (max-width: 760px) {
+  .mentor-direction-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mentor-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .mentor-output-layout {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
   gap: 22px;
+}
+
+.mentor-output-panel:nth-child(4),
+.mentor-output-panel:nth-child(5) {
+  grid-column: span 1;
 }
 
 .mentor-output-panel {
@@ -3820,6 +3918,13 @@ input[type='password']::-webkit-credentials-auto-fill-button {
   outline: 1px dashed color-mix(in srgb, var(--jade) 58%, transparent);
   outline-offset: 3px;
   background: color-mix(in srgb, var(--jade) 7%, transparent);
+}
+
+.editable:empty::before {
+  content: '双击添加内容';
+  color: var(--muted);
+  display: inline-block;
+  min-width: 4em;
 }
 
 button .editable,

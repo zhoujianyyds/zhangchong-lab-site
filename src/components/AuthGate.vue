@@ -15,6 +15,7 @@ const router = useRouter()
 const currentMember = store.currentMember
 const form = reactive({ staffId: '', password: '', captcha: '' })
 const error = ref('')
+const loginBusy = ref(false)
 const captchaCode = ref(createCaptcha())
 const showPassword = ref(false)
 const passwordInputRef = ref(null)
@@ -29,11 +30,25 @@ function refreshCaptcha() {
   form.captcha = ''
 }
 
-function submitLogin() {
+async function submitLogin() {
+  if (loginBusy.value) return
   if (form.captcha !== captchaCode.value) {
     error.value = '验证码不正确'
     refreshCaptcha()
     return
+  }
+  loginBusy.value = true
+  try {
+    if (store.cloud.enabled && !store.cloud.ready) await store.syncSharedState()
+    if (store.cloud.enabled && (store.cloud.loading || !store.cloud.ready || store.cloud.error)) {
+      error.value = store.cloud.error
+        ? `云端账户数据加载失败：${store.cloud.error}`
+        : '云端账户数据暂时无法加载，请稍后重试'
+      refreshCaptcha()
+      return
+    }
+  } finally {
+    loginBusy.value = false
   }
   const result = store.login(form.staffId, form.password)
   error.value = result.ok ? '' : result.message
@@ -118,9 +133,9 @@ function toggleLoginPasswordVisibility() {
         </div>
       </div>
       <div v-if="error" class="form-error">{{ error }}</div>
-      <button class="button button-dark" type="submit">
+      <button class="button button-dark" type="submit" :disabled="loginBusy">
         <KeyRound :size="16" />
-        登录
+        {{ loginBusy ? '正在同步账户…' : '登录' }}
       </button>
     </form>
 

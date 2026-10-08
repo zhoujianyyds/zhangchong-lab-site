@@ -17,6 +17,7 @@ import {
   UsersRound,
 } from 'lucide-vue-next'
 import heroImage from '../assets/hero.png'
+import mentorPreviewImage from '../assets/mentor-preview.jpg'
 import { useLabStore } from '../stores/labStore'
 
 const store = useLabStore()
@@ -53,6 +54,8 @@ const tools = computed(() =>
 )
 
 const teachers = computed(() => store.siteMembers.value.filter((member) => member.role === 'teacher'))
+const previewMentorPhoto = mentorPreviewImage
+const mentorPhoto = import.meta.env.DEV ? previewMentorPhoto : null
 const students = computed(() => store.siteMembers.value.filter((member) => member.role === 'student'))
 const gradeGroups = computed(() => [
   {
@@ -82,14 +85,16 @@ const gradeColumns = computed(() => [
   gradeGroups.value.slice(4, 5),
   gradeGroups.value.slice(2, 4),
 ])
-const outputCount = computed(
-  () => store.sortedPublications.value.length + store.sortedProjects.value.length + store.sortedAwards.value.length,
-)
+const outputCount = computed(() => store.sortedPublications.value.length + store.sortedPatents.value.length + store.sortedSoftwareCopyrights.value.length + store.sortedAwards.value.length + store.sortedResearchProjects.value.length)
 const contactHref = computed(() => `mailto:${store.state.site.contactEmail}`)
 const selectedOutput = ref(null)
 
 function editableClass() {
   return { editable: store.isSuperAdmin() }
+}
+
+function editableSiteText(field) {
+  return store.state.site[field] || (store.isSuperAdmin() ? '双击添加标题' : '')
 }
 
 async function saveEditResult(action, successMessage = '保存成功', confirmMessage = '确定保存这项修改吗？') {
@@ -245,7 +250,7 @@ function downloadAwardImage(item = selectedOutput.value) {
   <main id="top">
     <section class="hero section-frame">
       <div class="hero-copy">
-        <h1 :class="editableClass()" @dblclick="editSiteField('heroTitle', '首页标题')">{{ store.state.site.heroTitle }}</h1>
+        <h1 :class="editableClass()" @dblclick="editSiteField('heroTitle', '首页标题')">{{ editableSiteText('heroTitle') }}</h1>
         <p class="hero-lede" :class="editableClass()" @dblclick="editSiteField('heroLede', '首页介绍')">
           {{ store.state.site.heroLede }}
         </p>
@@ -279,7 +284,7 @@ function downloadAwardImage(item = selectedOutput.value) {
         <span :class="editableClass()" @dblclick="editSiteField('statResearchLabel', '统计标签')">{{ store.state.site.statResearchLabel }}</span>
       </div>
       <div>
-        <strong>{{ store.siteMembers.value.length }}</strong>
+        <strong>{{ store.siteMembers.value.filter((member) => member.role !== 'alumni').length }}</strong>
         <span :class="editableClass()" @dblclick="editSiteField('statMembersLabel', '统计标签')">{{ store.state.site.statMembersLabel }}</span>
       </div>
       <div>
@@ -290,7 +295,7 @@ function downloadAwardImage(item = selectedOutput.value) {
 
     <section id="research" class="section">
       <div class="section-title title-center">
-        <h2 :class="editableClass()" @dblclick="editSiteField('researchSectionTitle', '栏目标题')">{{ store.state.site.researchSectionTitle }}</h2>
+        <h2 :class="editableClass()" @dblclick="editSiteField('researchSectionTitle', '栏目标题')">{{ editableSiteText('researchSectionTitle') }}</h2>
       </div>
 
       <div v-if="store.isSuperAdmin()" class="research-admin-actions">
@@ -313,9 +318,9 @@ function downloadAwardImage(item = selectedOutput.value) {
           </button>
           <div class="card-index">{{ String(index + 1).padStart(2, '0') }}</div>
           <component :is="line.icon" :size="30" />
-          <p :class="editableClass()" @dblclick="editResearchLine(index, 'tag', '方向标签')">{{ line.tag }}</p>
-          <h3 :class="editableClass()" @dblclick="editResearchLine(index, 'title', '方向名称')">{{ line.title }}</h3>
-          <span :class="editableClass()" @dblclick="editResearchLine(index, 'text', '方向说明')">{{ line.text }}</span>
+          <p :class="editableClass()" @dblclick="editResearchLine(index, 'tag', '方向标签')">{{ line.tag || (store.isSuperAdmin() ? '双击添加方向标签' : '') }}</p>
+          <h3 :class="editableClass()" @dblclick="editResearchLine(index, 'title', '方向名称')">{{ line.title || (store.isSuperAdmin() ? '双击添加方向名称' : '') }}</h3>
+          <span :class="editableClass()" @dblclick="editResearchLine(index, 'text', '方向说明')">{{ line.text || (store.isSuperAdmin() ? '双击添加方向说明' : '') }}</span>
         </article>
         <div v-if="researchLines.length === 0" class="research-empty">暂无研究方向</div>
       </div>
@@ -323,17 +328,16 @@ function downloadAwardImage(item = selectedOutput.value) {
 
     <section id="people" class="section people-section">
       <div class="section-title compact title-center">
-        <h2 :class="editableClass()" @dblclick="editSiteField('peopleSectionTitle', '栏目标题')">{{ store.state.site.peopleSectionTitle }}</h2>
-        <p :class="editableClass()" @dblclick="editSiteField('peopleIntro', '成员区说明')">{{ store.state.site.peopleIntro }}</p>
+        <h2 :class="editableClass()" @dblclick="editSiteField('peopleSectionTitle', '栏目标题')">{{ editableSiteText('peopleSectionTitle') }}</h2>
+        <p v-if="store.state.site.peopleIntro" :class="editableClass()" @dblclick="editSiteField('peopleIntro', '成员区说明')">{{ store.state.site.peopleIntro }}</p>
       </div>
 
       <article id="mentor" class="pi-panel">
         <RouterLink class="pi-avatar" to="/mentor" title="查看导师信息">
-          <img :src="teachers[0]?.photo || heroImage" alt="导师照片" />
+          <img :src="mentorPhoto || teachers[0]?.photo || heroImage" alt="导师照片" />
         </RouterLink>
         <div class="pi-copy">
           <h3><RouterLink class="public-profile-link" to="/mentor" title="查看导师资料">{{ teachers[0]?.name || '负责人姓名' }}</RouterLink></h3>
-          <p :class="editableClass()" @dblclick="editSiteField('piIntro', '导师简介')">{{ store.state.site.piIntro }}</p>
         </div>
       </article>
 
@@ -366,11 +370,14 @@ function downloadAwardImage(item = selectedOutput.value) {
         </article>
         </div>
       </div>
+      <div class="alumni-link-wrap">
+        <RouterLink class="button button-light" to="/alumni">查看已毕业生资料 <ArrowUpRight :size="16" /></RouterLink>
+      </div>
     </section>
 
     <section id="outputs" class="section outputs-section">
       <div class="section-title title-center">
-        <h2 :class="editableClass()" @dblclick="editSiteField('outputsSectionTitle', '栏目标题')">{{ store.state.site.outputsSectionTitle }}</h2>
+        <h2 :class="editableClass()" @dblclick="editSiteField('outputsSectionTitle', '栏目标题')">{{ editableSiteText('outputsSectionTitle') }}</h2>
       </div>
 
       <div class="output-groups">
@@ -441,22 +448,23 @@ function downloadAwardImage(item = selectedOutput.value) {
         </section>
 
         <section class="output-group">
-          <div class="output-group-head">
-            <h3>专利</h3>
-            <RouterLink class="output-more-link" :to="{ name: 'public-outputs', query: { type: 'patents' }, hash: '#patents' }">
-              查看更多
-              <ArrowUpRight :size="15" />
-            </RouterLink>
-          </div>
+          <div class="output-group-head"><h3>专利</h3><RouterLink class="output-more-link" :to="{ name: 'public-outputs', query: { type: 'patents' }, hash: '#patents' }">查看更多 <ArrowUpRight :size="15" /></RouterLink></div>
+          <div class="output-list"><article v-for="item in store.sortedPatents.value" :key="item.id" class="output-item"><div><h3>{{ item.title }}</h3><p>{{ item.patent_no || '专利号待录入' }}</p><small>{{ item.authors || '发明人待录入' }}</small></div></article><div v-if="store.sortedPatents.value.length === 0" class="output-empty-state">暂无专利成果</div></div>
+        </section>
+
+        <section class="output-group">
+          <div class="output-group-head"><h3>科研与教改项目</h3><RouterLink class="output-more-link" :to="{ name: 'public-outputs', query: { type: 'researchProjects' }, hash: '#researchProjects' }">查看更多 <ArrowUpRight :size="15" /></RouterLink></div>
           <div class="output-list">
-            <article v-for="item in store.sortedProjects.value" :key="item.id" class="output-item">
-              <div>
-                <h3>{{ item.title }}</h3>
-                <p>{{ item.patent_no || '专利号待录入' }}</p>
-                <small>{{ item.authors || '发明人待录入' }}</small>
-              </div>
-            </article>
-            <div v-if="store.sortedProjects.value.length === 0" class="output-empty-state">暂无专利成果</div>
+            <article v-for="item in store.sortedResearchProjects.value.filter((record) => record.visible_on_home !== false)" :key="item.id" class="output-item"><div><h3>{{ item.title }}</h3><p>{{ [item.source, item.project_no].filter(Boolean).join(' · ') }}</p><small>{{ item.note }}</small></div></article>
+            <div v-if="store.sortedResearchProjects.value.filter((record) => record.visible_on_home !== false).length === 0" class="output-empty-state">暂无科研与教改项目</div>
+          </div>
+        </section>
+
+        <section class="output-group">
+          <div class="output-group-head"><h3>软著</h3><RouterLink class="output-more-link" :to="{ name: 'public-outputs', query: { type: 'softwareCopyrights' }, hash: '#softwareCopyrights' }">查看更多 <ArrowUpRight :size="15" /></RouterLink></div>
+          <div class="output-list">
+            <article v-for="item in store.sortedSoftwareCopyrights.value.filter((record) => record.visible_on_home !== false)" :key="item.id" class="output-item"><div><h3>{{ item.title }}</h3><p>{{ item.patent_no || '登记号待录入' }}</p><small>{{ item.winner ? `获奖人：${item.winner}` : item.authors || '软件著作权成果' }}</small></div></article>
+            <div v-if="store.sortedSoftwareCopyrights.value.filter((record) => record.visible_on_home !== false).length === 0" class="output-empty-state">暂无软著</div>
           </div>
         </section>
 
@@ -465,7 +473,7 @@ function downloadAwardImage(item = selectedOutput.value) {
 
     <section v-if="store.isSuperAdmin()" id="tools" class="section">
       <div class="section-title compact title-center">
-        <h2 :class="editableClass()" @dblclick="editSiteField('toolsSectionTitle', '栏目标题')">{{ store.state.site.toolsSectionTitle }}</h2>
+        <h2 :class="editableClass()" @dblclick="editSiteField('toolsSectionTitle', '栏目标题')">{{ editableSiteText('toolsSectionTitle') }}</h2>
         <p :class="editableClass()" @dblclick="editSiteField('toolsIntro', '工具区说明')">{{ store.state.site.toolsIntro }}</p>
       </div>
 
@@ -480,7 +488,7 @@ function downloadAwardImage(item = selectedOutput.value) {
 
     <section id="contact" class="contact-band contact-center">
       <div>
-        <h2 :class="editableClass()" @dblclick="editSiteField('contactSectionTitle', '联系标题')">{{ store.state.site.contactSectionTitle }}</h2>
+        <h2 :class="editableClass()" @dblclick="editSiteField('contactSectionTitle', '联系标题')">{{ editableSiteText('contactSectionTitle') }}</h2>
         <p :class="editableClass()" @dblclick="editSiteField('contactText', '联系说明')">{{ store.state.site.contactText }}</p>
       </div>
       <a class="button button-dark" :href="contactHref">

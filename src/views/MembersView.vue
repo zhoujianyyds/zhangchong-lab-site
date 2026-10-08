@@ -36,7 +36,10 @@ const superAdminCount = computed(() => store.state.members.filter((item) => stor
 const doctoralCount = computed(() => store.state.members.filter((item) => item.role === 'student' && item.grade === '博士').length)
 const isEditingAdmin = computed(() => editingId.value === 'm-admin' || form.staff_id === 'admin')
 const isEditingZhangChong = computed(() => editingId.value === 'm-teacher' || form.staff_id === 'zhangchong')
+const isEditingZhouJian = computed(() => editingId.value === 'm-student-zhoujian' || form.staff_id === '202522000755')
 const isLockedStudyInfo = computed(() => isEditingAdmin.value || isEditingZhangChong.value)
+const isLockedIdentity = computed(() => isEditingAdmin.value || isEditingZhangChong.value)
+const disableStaffId = computed(() => isLockedIdentity.value || isEditingZhouJian.value)
 const disableGrade = computed(() => isLockedStudyInfo.value)
 const disableDirection = computed(() => isLockedStudyInfo.value)
 const editingMember = computed(() => store.state.members.find((item) => item.id === editingId.value) || null)
@@ -94,6 +97,7 @@ function createEmptyForm() {
     staff_id: '',
     role: 'student',
     grade: '研一',
+    graduation_year: '',
     direction: '',
     phone: '',
     email: '',
@@ -140,6 +144,7 @@ function editMember(member) {
     staff_id: member.staff_id,
     role: member.role,
     grade: member.grade,
+    graduation_year: member.graduation_year || '',
     direction: member.direction,
     phone: member.phone || '',
     email: member.email || '',
@@ -158,7 +163,6 @@ function editMember(member) {
   }
   if (member.staff_id === 'admin') form.role = 'superadmin'
   if (member.staff_id === 'zhangchong') form.role = 'teacher'
-  if (member.staff_id === '202522000755' || member.name === '周健') form.role = 'student'
 }
 
 async function submitMember() {
@@ -180,7 +184,6 @@ async function submitMember() {
     }
     if (form.staff_id === 'admin') form.role = 'superadmin'
     if (form.staff_id === 'zhangchong') form.role = 'teacher'
-    if (form.staff_id === '202522000755' || form.name === '周健') form.role = 'student'
     if (form.staff_id === 'admin') {
       form.permissions.tool_access = [...store.toolIds]
       form.permissions.password_required_tools = [...store.toolIds]
@@ -273,9 +276,9 @@ async function clearPhoto(target) {
 function roleLabel(member) {
   if (member.staff_id === 'admin') return '超管'
   if (member.staff_id === 'zhangchong' || member.name === '张翀') return '教师'
-  if (member.staff_id === '202522000755' || member.name === '周健') return '学生'
   if (member.role === 'superadmin') return '超管'
   if (member.role === 'teacher') return '教师'
+  if (member.role === 'alumni') return '已毕业生'
   return '学生'
 }
 
@@ -480,7 +483,8 @@ async function submitProfile() {
             <tr>
               <th>姓名</th>
               <th>工号/学号</th>
-              <th>年级</th>
+              <th>身份</th>
+              <th>年级 / 毕业年份</th>
               <th>方向</th>
               <th>操作</th>
             </tr>
@@ -489,7 +493,8 @@ async function submitProfile() {
             <tr v-for="record in pendingRegistrations" :key="record.id">
               <td><strong>{{ record.name }}</strong></td>
               <td class="mono">{{ record.staff_id }}</td>
-              <td>{{ record.grade }}</td>
+              <td>{{ record.role === 'alumni' ? '已毕业生' : '学生' }}</td>
+              <td>{{ record.role === 'alumni' ? (record.graduation_year ? `${record.graduation_year} 年毕业` : '') : record.grade }}</td>
               <td>{{ record.direction }}</td>
               <td>
                 <div class="row-actions">
@@ -533,23 +538,24 @@ async function submitProfile() {
       <div class="form-row">
         <div class="form-field">
           <label for="member-name">姓名 *</label>
-          <input id="member-name" v-model="form.name" type="text" placeholder="填写姓名" :disabled="!canEditNames" />
+          <input id="member-name" v-model="form.name" type="text" placeholder="填写姓名" :disabled="!canEditNames || isEditingAdmin" />
         </div>
         <div class="form-field">
           <label for="staff-id">工号/学号 *</label>
-          <input id="staff-id" v-model="form.staff_id" type="text" placeholder="2024xxxx" />
+          <input id="staff-id" v-model="form.staff_id" type="text" placeholder="2024xxxx" :disabled="disableStaffId" />
         </div>
       </div>
       <div class="form-row">
         <div class="form-field">
           <label for="role">身份</label>
-          <select id="role" v-model="form.role" class="filter-select">
+          <select id="role" v-model="form.role" class="filter-select" :disabled="isLockedIdentity">
             <option value="student">学生</option>
+            <option value="alumni">已毕业生</option>
             <option value="teacher">教师</option>
-            <option value="superadmin">超管</option>
+            <option v-if="isEditingAdmin" value="superadmin">超管</option>
           </select>
         </div>
-        <div class="form-field">
+        <div v-if="form.role !== 'alumni'" class="form-field">
           <label for="grade">年级</label>
           <select id="grade" v-model="form.grade" class="filter-select" :disabled="disableGrade">
             <option value="">无</option>
@@ -559,6 +565,10 @@ async function submitProfile() {
             <option value="博士">博士生</option>
             <option value="本科生">本科生</option>
           </select>
+        </div>
+        <div v-else class="form-field">
+          <label for="graduation-year">毕业年份</label>
+          <input id="graduation-year" v-model="form.graduation_year" class="filter-select" type="number" min="1900" :max="new Date().getFullYear()" placeholder="例如 2024" />
         </div>
       </div>
       <div class="form-field">
@@ -679,7 +689,7 @@ async function submitProfile() {
             <th>工号/学号</th>
             <th>身份</th>
             <th>密码</th>
-            <th>年级</th>
+            <th>年级 / 毕业年份</th>
             <th>方向</th>
             <th>网站显示</th>
             <th>操作</th>
@@ -694,7 +704,7 @@ async function submitProfile() {
             <td class="mono">{{ member.staff_id }}</td>
             <td>{{ roleLabel(member) }}</td>
             <td class="mono">{{ member.password || '' }}</td>
-            <td>{{ gradeLabel(member.grade) }}</td>
+            <td>{{ member.role === 'alumni' ? (member.graduation_year ? `${member.graduation_year} 年毕业` : '') : gradeLabel(member.grade) }}</td>
             <td>{{ member.direction || '' }}</td>
             <td>
               <button

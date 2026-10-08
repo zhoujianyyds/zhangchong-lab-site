@@ -5,6 +5,7 @@ import MembersView from '../views/MembersView.vue'
 import OutputsView from '../views/OutputsView.vue'
 import PersonalSpaceView from '../views/PersonalSpaceView.vue'
 import MemberProfileView from '../views/MemberProfileView.vue'
+import AlumniView from '../views/AlumniView.vue'
 import PublicOutputsView from '../views/PublicOutputsView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import { useLabStore } from '../stores/labStore'
@@ -13,6 +14,7 @@ export const routes = [
   { path: '/', name: 'home', component: HomeView, alias: ['/402zhangchong', '/home'] },
   { path: '/mentor', name: 'mentor', component: MentorView },
   { path: '/members/:id', name: 'member-profile', component: MemberProfileView },
+  { path: '/alumni', name: 'alumni', component: AlumniView },
   { path: '/outputs', name: 'public-outputs', component: PublicOutputsView },
   { path: '/register', name: 'register', component: RegisterView, meta: { guestOnly: true } },
   { path: '/personal-space', name: 'personal-space', component: PersonalSpaceView, meta: { requiresAuth: true, toolId: 'profile' } },

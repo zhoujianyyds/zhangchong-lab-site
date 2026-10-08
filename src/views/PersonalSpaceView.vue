@@ -14,6 +14,7 @@ const directionOptions = ['油气井', '嵌入式', 'Agent']
 const form = reactive({
   name: '',
   grade: '',
+  graduation_year: '',
   direction: '',
   phone: '',
   email: '',
@@ -29,7 +30,9 @@ const lockStudyInfo = computed(() => ['admin', 'zhangchong'].includes(currentMem
 const identityText = computed(() => {
   const member = currentMember.value
   if (!member) return ''
-  const base = member.staff_id === 'zhangchong' || member.role === 'teacher' ? '教师' : '学生'
+  const base = member.staff_id === 'zhangchong' || member.role === 'teacher'
+    ? '教师'
+    : member.role === 'alumni' ? '已毕业生' : '学生'
   return store.isSuperAdmin(member) ? `${base}兼超管` : base
 })
 
@@ -53,6 +56,7 @@ watch(
     if (!member) return
     form.name = member.name || ''
     form.grade = member.grade || ''
+    form.graduation_year = member.graduation_year || ''
     form.direction = member.direction || ''
     form.phone = member.phone || ''
     form.email = member.email || ''
@@ -96,7 +100,7 @@ async function submitProfile() {
   const member = currentMember.value
   if (!member || isSystemAdmin.value) return
   if (!(await window.appConfirm('确定保存个人空间的全部修改吗？', '确认保存个人空间'))) return
-  const nextGrade = lockStudyInfo.value ? '' : form.grade
+  const nextGrade = lockStudyInfo.value || member.role === 'alumni' ? '' : form.grade
   const nextDirection = lockStudyInfo.value ? '' : form.direction
   profileBusy.value = true
   try {
@@ -104,6 +108,7 @@ async function submitProfile() {
       ...JSON.parse(JSON.stringify(member)),
       name: member.name,
       grade: nextGrade,
+      graduation_year: member.role === 'alumni' ? form.graduation_year : '',
       direction: nextDirection,
       phone: form.phone,
       email: form.email,
@@ -174,7 +179,7 @@ async function submitProfile() {
       </div>
 
       <div class="form-row">
-        <div class="form-field">
+        <div v-if="currentMember?.role !== 'alumni'" class="form-field">
           <label for="space-grade">年级</label>
           <select id="space-grade" v-model="form.grade" class="filter-select" :disabled="lockStudyInfo">
             <option value="">无</option>
@@ -183,6 +188,10 @@ async function submitProfile() {
             <option value="研三">研三</option>
             <option value="博士">博士</option>
           </select>
+        </div>
+        <div v-else class="form-field">
+          <label for="space-graduation-year">毕业年份</label>
+          <input id="space-graduation-year" v-model="form.graduation_year" type="number" min="1900" :max="new Date().getFullYear()" />
         </div>
         <div class="form-field">
           <label for="space-direction">研究方向</label>

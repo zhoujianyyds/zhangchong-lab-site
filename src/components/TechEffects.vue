@@ -26,6 +26,8 @@ function pointerMove(event) {
   pointer = { x: event.clientX, y: event.clientY }
   document.documentElement.style.setProperty('--pointer-x', `${event.clientX}px`)
   document.documentElement.style.setProperty('--pointer-y', `${event.clientY}px`)
+  document.documentElement.style.setProperty('--click-x', `${event.clientX}px`)
+  document.documentElement.style.setProperty('--click-y', `${event.clientY}px`)
   if (reduceMotion) return
   const card = event.target.closest?.(cards)
   document.querySelectorAll('.is-tech-tilting').forEach((node) => node !== card && node.classList.remove('is-tech-tilting'))
@@ -182,11 +184,13 @@ onBeforeUnmount(() => {
     <i class="tech-orbit tech-orbit-two"></i>
     <i class="tech-grid-sweep"></i>
   </div>
-  <div class="tech-atmosphere" aria-hidden="true">
-    <canvas ref="canvasRef" class="tech-particle-canvas"></canvas>
-    <div class="tech-pointer-glow"></div><div class="tech-scanline"></div><div class="tech-scroll-progress"></div>
-    <div v-for="burst in bursts" :key="burst.id" class="tech-click-burst" :style="{ left: `${burst.x}px`, top: `${burst.y}px` }">
-      <span class="tech-click-ring"></span><i v-for="index in 8" :key="index" :style="{ '--spark-index': index - 1 }"></i>
+  <Teleport to="html">
+    <div class="tech-atmosphere" aria-hidden="true">
+      <canvas ref="canvasRef" class="tech-particle-canvas"></canvas>
+      <div class="tech-pointer-glow"></div><div class="tech-scanline"></div><div class="tech-scroll-progress"></div>
+      <div v-for="burst in bursts" :key="burst.id" class="tech-click-burst" :style="{ left: `${burst.x}px`, top: `${burst.y}px` }">
+        <span class="tech-click-ring"></span><i v-for="index in 8" :key="index" :style="{ '--spark-index': index - 1 }"></i>
+      </div>
     </div>
-  </div>
+  </Teleport>
 </template>
