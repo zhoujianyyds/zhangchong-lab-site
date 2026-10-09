@@ -6,6 +6,7 @@ const canvasRef = ref(null)
 const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
 let reduceMotion = motionPreference.matches
 const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)')
+const coarsePointer = window.matchMedia('(pointer: coarse)')
 const cards = '.research-card,.member-group,.output-group,.tool-card,.public-output-card,.member-achievement-item,.mentor-output-panel'
 const reveals = '.section-title,.research-card,.pi-panel,.member-group,.output-group,.tool-card,.mentor-output-panel,.public-member-card,.public-output-section,.member-achievements,.hero-copy,.mentor-hero-copy,.tool-page-header,.public-outputs-header,.login-box,.register-box,.tool-form,.password-panel,.chat-panel,.member-table-wrap,.member-stats,.tool-empty'
 let id = 0
@@ -20,6 +21,7 @@ let lastFrameTime = 0
 const frameInterval = 1000 / 30
 
 function scrollProgress() {
+  if (coarsePointer.matches) return
   const max = document.documentElement.scrollHeight - window.innerHeight
   document.documentElement.style.setProperty('--scroll-progress', String(max > 0 ? window.scrollY / max : 0))
 }
@@ -116,7 +118,7 @@ function resizeCanvas() {
 function draw(now = performance.now()) {
   const canvas = canvasRef.value
   const ctx = canvas?.getContext('2d')
-  if (!ctx || reduceMotion) return
+  if (!ctx || reduceMotion || coarsePointer.matches) return
   if (now - lastFrameTime < frameInterval) {
     frame = requestAnimationFrame(draw)
     return
@@ -152,9 +154,13 @@ function updateMotion() {
   reduceMotion = motionPreference.matches
   cancelAnimationFrame(frame)
   resetPointer()
-  if (reduceMotion) {
+  if (reduceMotion || coarsePointer.matches) {
     document.querySelectorAll('[data-reveal-ready]').forEach((node) => node.classList.add('is-tech-visible'))
   } else if (!document.hidden) draw()
+}
+
+function resizeEffects() {
+  if (!coarsePointer.matches) resizeCanvas()
 }
 
 onMounted(() => {
@@ -163,12 +169,13 @@ onMounted(() => {
   }), { threshold: .4 })
   mutationObserver = new MutationObserver((records) => records.forEach((record) => record.addedNodes.forEach((node) => node.nodeType === 1 && observe(node))))
   observe(); revealHashTarget(); mutationObserver.observe(document.body, { childList: true, subtree: true })
-  resizeCanvas(); draw(); scrollProgress()
+  if (!coarsePointer.matches) { resizeCanvas(); draw() }
+  scrollProgress()
   motionPreference.addEventListener('change', updateMotion)
   document.addEventListener('visibilitychange', updateMotion)
   document.addEventListener('pointerleave', resetPointer)
   window.addEventListener('blur', resetPointer)
-  addEventListener('resize', resizeCanvas); addEventListener('scroll', scrollProgress, { passive: true })
+  addEventListener('resize', resizeEffects); addEventListener('scroll', scrollProgress, { passive: true })
   addEventListener('hashchange', revealHashTarget)
   addEventListener('pointermove', pointerMove, { passive: true }); addEventListener('pointerdown', pointerDown, { passive: true })
 })
@@ -179,7 +186,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('pointerleave', resetPointer)
   window.removeEventListener('blur', resetPointer)
   cancelAnimationFrame(frame); countObserver?.disconnect(); mutationObserver?.disconnect()
-  removeEventListener('resize', resizeCanvas); removeEventListener('scroll', scrollProgress)
+  removeEventListener('resize', resizeEffects); removeEventListener('scroll', scrollProgress)
   removeEventListener('hashchange', revealHashTarget)
   removeEventListener('pointermove', pointerMove); removeEventListener('pointerdown', pointerDown)
 })

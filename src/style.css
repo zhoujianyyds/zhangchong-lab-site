@@ -2503,6 +2503,46 @@ img {
   }
 }
 
+/* Keep the desktop layout on touch devices without repainting animated fixed layers while scrolling. */
+@media (pointer: coarse) {
+  body {
+    zoom: 1;
+  }
+
+  body::before,
+  body::after,
+  .tech-ambient,
+  .tech-particle-canvas,
+  .tech-pointer-glow,
+  .tech-scanline,
+  .tech-scroll-progress {
+    display: none !important;
+  }
+
+  .topbar,
+  .hero-visual,
+  .visual-caption,
+  .stats-strip,
+  .contact-band,
+  .research-card,
+  .member-group,
+  .tool-card,
+  .mentor-output-panel,
+  .modal-panel {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .research-card::after,
+  .member-group::after,
+  .output-group::after,
+  .tool-card::after,
+  .public-output-card::after,
+  .mentor-output-panel::after {
+    animation: none !important;
+  }
+}
+
 /* Student rows keep a real square photo tile; responsive avatar rules must not shrink it. */
 .member-row-photo {
   flex: 0 0 64px !important;
