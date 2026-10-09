@@ -1588,6 +1588,12 @@ async function retryCloud(operation, attempts = 3) {
   return result
 }
 
+async function waitForCloudIdle() {
+  while (cloud.loading || cloudSaveInProgress) {
+    await new Promise((resolve) => window.setTimeout(resolve, 50))
+  }
+}
+
 function cloneState() {
   return JSON.parse(JSON.stringify(state))
 }
@@ -1610,9 +1616,13 @@ function queueCloudSave() {
   if (!sharedStateEnabled) return
   window.clearTimeout(cloudSaveTimer)
   cloudSaveTimer = window.setTimeout(async () => {
+    if (!cloud.ready || cloud.loading || cloudSaveInProgress) {
+      cloudSaveTimer = 0
+      return
+    }
     cloudSaveInProgress = true
     try {
-      const latest = await fetchSharedState()
+      const latest = await retryCloud(fetchSharedState)
       if (!latest.ok || (latest.data && latest.updatedAt !== cloud.lastSavedAt)) {
         if (latest.ok && latest.data) {
           replaceState(latest.data)
@@ -1622,7 +1632,7 @@ function queueCloudSave() {
         cloud.error = latest.ok ? '数据已在其他设备更新，页面已刷新，请重新操作' : latest.message
         return
       }
-      const result = await saveSharedState(cloneState())
+      const result = await retryCloud(() => saveSharedState(cloneState()))
       if (result.ok) {
         cloud.error = ''
         cloud.lastSavedAt = result.updatedAt
@@ -1748,47 +1758,55 @@ export function useLabStore() {
   const homeAwards = computed(() => sortedAwards.value.filter((item) => item.visible_on_home !== false))
 
   async function syncSharedState() {
-    if (!sharedStateEnabled || cloud.loading || cloudSaveInProgress) return
+    if (!sharedStateEnabled || cloud.loading || cloudSaveInProgress) {
+      await waitForCloudIdle()
+      return
+    }
     cloud.loading = true
     cloud.error = ''
-    const result = await fetchSharedState()
-    if (result.ok && result.data) {
-      const remoteData = migrateData(result.data)
-      const visualStackNeedsMigration = remoteData.site.visualStack !== result.data.site?.visualStack
-      const remoteUpdatedAt = stateUpdatedTime(remoteData, result.updatedAt)
-      const localUpdatedAt = stateUpdatedTime(state)
-      const shouldAdoptRemote = !initialCloudSyncComplete || remoteUpdatedAt > localUpdatedAt
-      if (shouldAdoptRemote) {
-        replaceState(remoteData)
-        lastPersistedState = cloneState()
-      }
-      // Always remember the version that was read from the cloud. Without
-      // this baseline, the first admin save after a sync is incorrectly
-      // treated as a conflicting edit from another device.
-      cloud.lastSavedAt = result.updatedAt || remoteData.meta?.updatedAt || ''
-      if (shouldAdoptRemote && visualStackNeedsMigration) {
-        const migrationSave = await retryCloud(() => saveSharedState(cloneState()))
-        if (migrationSave.ok) {
-          cloud.lastSavedAt = migrationSave.updatedAt
+    try {
+      const result = await retryCloud(fetchSharedState)
+      if (result.ok && result.data) {
+        const remoteData = migrateData(result.data)
+        const visualStackNeedsMigration = remoteData.site.visualStack !== result.data.site?.visualStack
+        const remoteUpdatedAt = stateUpdatedTime(remoteData, result.updatedAt)
+        const localUpdatedAt = stateUpdatedTime(state)
+        const shouldAdoptRemote = !initialCloudSyncComplete || remoteUpdatedAt > localUpdatedAt
+        if (shouldAdoptRemote) {
+          replaceState(remoteData)
           lastPersistedState = cloneState()
-        } else {
-          cloud.error = migrationSave.message || '研究方向标题迁移失败'
         }
+        // Always remember the version that was read from the cloud. Without
+        // this baseline, the first admin save after a sync is incorrectly
+        // treated as a conflicting edit from another device.
+        cloud.lastSavedAt = result.updatedAt || remoteData.meta?.updatedAt || ''
+        if (shouldAdoptRemote && visualStackNeedsMigration) {
+          const migrationSave = await retryCloud(() => saveSharedState(cloneState()))
+          if (migrationSave.ok) {
+            cloud.lastSavedAt = migrationSave.updatedAt
+            lastPersistedState = cloneState()
+          } else {
+            cloud.error = migrationSave.message || '研究方向标题迁移失败'
+          }
+        }
+      } else if (result.ok && !result.data) {
+        if (!stateUpdatedTime(state)) writeLocalState()
+        const seedResult = await retryCloud(() => saveSharedState(cloneState()))
+        if (!seedResult.ok) cloud.error = seedResult.message
+        else {
+          cloud.lastSavedAt = seedResult.updatedAt
+          lastPersistedState = cloneState()
+        }
+      } else {
+        cloud.error = result.message
       }
-    } else if (result.ok && !result.data) {
-      if (!stateUpdatedTime(state)) writeLocalState()
-      const seedResult = await saveSharedState(cloneState())
-      if (!seedResult.ok) cloud.error = seedResult.message
-      else {
-        cloud.lastSavedAt = seedResult.updatedAt
-        lastPersistedState = cloneState()
-      }
-    } else {
-      cloud.error = result.message
+    } catch (error) {
+      cloud.error = error?.message || '云端账户数据加载失败'
+    } finally {
+      cloud.loading = false
+      cloud.ready = true
+      initialCloudSyncComplete = true
     }
-    cloud.loading = false
-    cloud.ready = true
-    initialCloudSyncComplete = true
   }
 
   function login(staffId, password) {
@@ -1813,6 +1831,8 @@ export function useLabStore() {
   }
 
   async function registerMember(payload) {
+    await waitForCloudIdle()
+    if (sharedStateEnabled && cloud.error) return { ok: false, message: `云端账户数据不可用，注册未提交：${cloud.error}` }
     const staffId = payload.staff_id.trim()
     const role = payload.role === 'alumni' ? 'alumni' : 'student'
     const graduationYear = String(payload.graduation_year ?? '').trim()
@@ -1846,6 +1866,8 @@ export function useLabStore() {
   }
 
   async function approveRegistration(id) {
+    await waitForCloudIdle()
+    if (sharedStateEnabled && cloud.error) return { ok: false, message: `云端账户数据不可用，审批未提交：${cloud.error}` }
     if (!isSuperAdmin()) return { ok: false, message: '暂无审批权限' }
     const index = state.pendingRegistrations.findIndex((item) => item.id === id)
     if (index < 0) return { ok: false, message: '申请不存在' }
@@ -1882,6 +1904,8 @@ export function useLabStore() {
   }
 
   async function rejectRegistration(id) {
+    await waitForCloudIdle()
+    if (sharedStateEnabled && cloud.error) return { ok: false, message: `云端账户数据不可用，操作未提交：${cloud.error}` }
     if (!isSuperAdmin()) return { ok: false, message: '暂无权限' }
     const index = state.pendingRegistrations.findIndex((item) => item.id === id)
     if (index >= 0) {

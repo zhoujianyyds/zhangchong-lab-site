@@ -39,7 +39,7 @@ async function submitLogin() {
   }
   loginBusy.value = true
   try {
-    if (store.cloud.enabled && !store.cloud.ready) await store.syncSharedState()
+    if (store.cloud.enabled && (!store.cloud.ready || store.cloud.error)) await store.syncSharedState()
     if (store.cloud.enabled && (store.cloud.loading || !store.cloud.ready || store.cloud.error)) {
       error.value = store.cloud.error
         ? `云端账户数据加载失败：${store.cloud.error}`
