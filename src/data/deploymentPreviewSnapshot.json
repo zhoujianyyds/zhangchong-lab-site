@@ -1,6 +1,6 @@
 {
-  "snapshotVersion": "deployment-20261008T164622Z-v2",
-  "sourceUpdatedAt": "2026-10-08T16:46:22.235+00:00",
+  "snapshotVersion": "deployment-20261009T073012Z-v5",
+  "sourceUpdatedAt": "2026-10-09T07:30:12.000+00:00",
   "meta": {
     "dataVersion": "profile-2026-v1",
     "contentVersion": "profile-content-2026-v1",
@@ -31,7 +31,7 @@
     "peopleIntro": "",
     "projectNote": "科研项目可在成果管理中维护排序。",
     "visualLabel": "研究方向",
-    "visualStack": "油气井 / 嵌入式 / Agent",
+    "visualStack": "大模型推理 / 计算机体系结构\n低功耗物联网 / 边端智能\n网络安全 / 工业能源智能",
     "brandTagline": "油气井 · 嵌入式 · Agent",
     "contactEmail": "zhangchong92@swpu.edu.cn",
     "contactTitle": "开放合作与学生加入",
@@ -39,46 +39,46 @@
     "researchIntro": "",
     "researchLines": [
       {
-        "tag": "油气井",
-        "icon": "network",
-        "text": "面向油气井生产、监测与诊断场景，研究井筒状态感知、数据建模和智能决策方法。",
-        "tone": "jade",
-        "title": "Oil and Gas"
-      },
-      {
-        "tag": "嵌入式系统",
-        "icon": "cpu",
-        "text": "围绕现场设备、边缘计算与实时控制，构建可部署、低功耗、稳定运行的嵌入式系统。",
-        "tone": "blue",
-        "title": "Embedded System"
-      },
-      {
-        "tag": "智能体",
+        "tag": "大模型与智能体",
         "icon": "bot",
-        "text": "探索智能体在实验规划、知识检索、代码生成、设备协同和组内工具自动化中的应用。",
-        "tone": "clay",
-        "title": "Agent"
-      },
-      {
-        "tag": "",
-        "icon": "network",
         "text": "面向检索增强生成（RAG）、智能体工具检索、长上下文搜索与搜索式推理，研究搜索空间压缩、检索与缓存优化、调度优化及软硬件协同加速，提高大模型的搜索与推理效率。",
         "tone": "jade",
         "title": "大模型搜索加速与高效推理"
       },
       {
-        "tag": "计算机体系结构与高效智能系统",
+        "tag": "体系结构",
         "icon": "cpu",
         "text": "围绕可重构计算、芯片级任务执行、冗余消除、AI 系统与加速架构，研究算法、系统与硬件的协同优化方法。",
         "tone": "blue",
-        "title": ""
+        "title": "计算机体系结构与高效智能系统"
       },
       {
-        "tag": "",
+        "tag": "低功耗计算",
         "icon": "network",
         "text": "研究能量采集、无源与间歇计算、微功耗电路、能量管理、反向散射通信及低功耗终端架构。",
         "tone": "moss",
         "title": "低功耗物联网与无源智能系统"
+      },
+      {
+        "tag": "边端智能",
+        "icon": "bot",
+        "text": "研究稀疏感知、虚拟传感、多模态融合、物理约束学习、边端协同推理及资源受限条件下的智能识别。",
+        "tone": "clay",
+        "title": "边端智能感知与数据推理"
+      },
+      {
+        "tag": "网络与安全",
+        "icon": "network",
+        "text": "研究物联网通信、数据完整性、轻量级可信机制、边端安全及资源受限系统的安全执行。",
+        "tone": "blue",
+        "title": "计算机网络与应用安全"
+      },
+      {
+        "tag": "工业应用",
+        "icon": "cpu",
+        "text": "面向油气勘探开发、气井生产、测井、结构健康监测和智能检测等实际问题，开展算法研究、系统设计与原型验证。",
+        "tone": "jade",
+        "title": "工业智能与能源场景应用"
       }
     ],
     "awardTypeLabel": "获奖",

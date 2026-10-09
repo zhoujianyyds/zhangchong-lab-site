@@ -406,11 +406,9 @@ onBeforeUnmount(() => {
     </div>
 
     <RouterView v-slot="{ Component, route }">
-      <Transition name="tech-page" mode="out-in">
-        <div :key="route.path" class="tech-page-shell">
-          <component :is="Component" />
-        </div>
-      </Transition>
+      <div :key="route.path" class="tech-page-shell">
+        <component :is="Component" />
+      </div>
     </RouterView>
 
     <div v-if="globalBusy.count > 0" class="global-busy-overlay" role="status" aria-live="polite">

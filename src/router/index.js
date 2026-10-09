@@ -25,21 +25,8 @@ export const routes = [
 export const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior(to, from) {
-    if (to.hash) {
-      const delay = to.path === from.path ? 0 : 420
-      return new Promise((resolve) => {
-        window.setTimeout(() => {
-          const element = document.querySelector(to.hash)
-          if (!element) {
-            resolve({ top: 0 })
-            return
-          }
-          const top = Math.max(0, window.scrollY + element.getBoundingClientRect().top - 80)
-          resolve({ top })
-        }, delay)
-      })
-    }
+  scrollBehavior(to) {
+    if (to.hash) return { el: to.hash, top: 80, behavior: 'smooth' }
     return { top: 0 }
   },
 })

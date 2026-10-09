@@ -12,9 +12,12 @@ let id = 0
 let frame = 0
 let particles = []
 let pointer = { x: -1000, y: -1000 }
-let revealObserver
+let activeCard = null
+let activeButton = null
 let countObserver
 let mutationObserver
+let lastFrameTime = 0
+const frameInterval = 1000 / 30
 
 function scrollProgress() {
   const max = document.documentElement.scrollHeight - window.innerHeight
@@ -30,7 +33,8 @@ function pointerMove(event) {
   document.documentElement.style.setProperty('--click-y', `${event.clientY}px`)
   if (reduceMotion) return
   const card = event.target.closest?.(cards)
-  document.querySelectorAll('.is-tech-tilting').forEach((node) => node !== card && node.classList.remove('is-tech-tilting'))
+  if (activeCard && activeCard !== card) activeCard.classList.remove('is-tech-tilting')
+  activeCard = card
   if (card) {
     const rect = card.getBoundingClientRect()
     card.style.setProperty('--tilt-x', `${((event.clientY - rect.top) / rect.height - .5) * -7}deg`)
@@ -40,7 +44,8 @@ function pointerMove(event) {
     card.classList.add('is-tech-tilting')
   }
   const button = event.target.closest?.('.button,.icon-button,.icon-btn')
-  document.querySelectorAll('.is-tech-magnetic').forEach((node) => node !== button && node.classList.remove('is-tech-magnetic'))
+  if (activeButton && activeButton !== button) activeButton.classList.remove('is-tech-magnetic')
+  activeButton = button
   if (button && !button.disabled) {
     const rect = button.getBoundingClientRect()
     button.style.setProperty('--magnet-x', `${(event.clientX - rect.left - rect.width / 2) * .13}px`)
@@ -54,8 +59,8 @@ function pointerDown(event) {
   document.documentElement.style.setProperty('--click-x', `${event.clientX}px`)
   document.documentElement.style.setProperty('--click-y', `${event.clientY}px`)
   const burstId = ++id
-  bursts.value.push({ id: burstId, x: event.clientX, y: event.clientY })
-  setTimeout(() => { bursts.value = bursts.value.filter((item) => item.id !== burstId) }, 850)
+  bursts.value = [...bursts.value.slice(-3), { id: burstId, x: event.clientX, y: event.clientY }]
+  setTimeout(() => { bursts.value = bursts.value.filter((item) => item.id !== burstId) }, 900)
 }
 
 function animateCount(node) {
@@ -77,12 +82,11 @@ function matching(root, selector) {
 }
 
 function observe(root = document) {
-  matching(root, reveals).forEach((node, index) => {
+  matching(root, reveals).forEach((node) => {
     if (node.dataset.revealReady) return
     node.dataset.revealReady = '1'
-    node.style.setProperty('--reveal-delay', `${(index % 6) * 55}ms`)
-    if (reduceMotion) node.classList.add('is-tech-visible')
-    else revealObserver.observe(node)
+    node.style.setProperty('--reveal-delay', '0ms')
+    node.classList.add('is-tech-visible')
   })
   matching(root, '.stats-strip strong,.mentor-stats strong').forEach((node) => countObserver.observe(node))
 }
@@ -99,20 +103,26 @@ function revealHashTarget() {
 function resizeCanvas() {
   const canvas = canvasRef.value
   if (!canvas) return
-  const ratio = Math.min(devicePixelRatio || 1, 2)
+  const ratio = Math.min(devicePixelRatio || 1, 1.5)
   canvas.width = innerWidth * ratio
   canvas.height = innerHeight * ratio
-  particles = Array.from({ length: Math.min(42, Math.max(18, Math.round(innerWidth / 45))) }, () => ({
+  particles = Array.from({ length: Math.min(26, Math.max(12, Math.round(innerWidth / 65))) }, () => ({
     x: Math.random() * canvas.width, y: Math.random() * canvas.height,
     vx: (Math.random() - .5) * .35, vy: (Math.random() - .5) * .35,
   }))
+  lastFrameTime = 0
 }
 
-function draw() {
+function draw(now = performance.now()) {
   const canvas = canvasRef.value
   const ctx = canvas?.getContext('2d')
   if (!ctx || reduceMotion) return
-  const ratio = Math.min(devicePixelRatio || 1, 2)
+  if (now - lastFrameTime < frameInterval) {
+    frame = requestAnimationFrame(draw)
+    return
+  }
+  lastFrameTime = now
+  const ratio = Math.min(devicePixelRatio || 1, 1.5)
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   particles.forEach((p) => {
     const dx = pointer.x * ratio - p.x, dy = pointer.y * ratio - p.y, distance = Math.hypot(dx, dy)
@@ -132,9 +142,10 @@ function draw() {
 }
 
 function resetPointer() {
-  document.querySelectorAll('.is-tech-tilting,.is-tech-magnetic').forEach((node) => {
-    node.classList.remove('is-tech-tilting', 'is-tech-magnetic')
-  })
+  activeCard?.classList.remove('is-tech-tilting')
+  activeButton?.classList.remove('is-tech-magnetic')
+  activeCard = null
+  activeButton = null
 }
 
 function updateMotion() {
@@ -147,9 +158,6 @@ function updateMotion() {
 }
 
 onMounted(() => {
-  revealObserver = new IntersectionObserver((entries) => entries.forEach((entry) => {
-    if (entry.isIntersecting) { entry.target.classList.add('is-tech-visible'); revealObserver.unobserve(entry.target) }
-  }), { threshold: .08 })
   countObserver = new IntersectionObserver((entries) => entries.forEach((entry) => {
     if (entry.isIntersecting) { animateCount(entry.target); countObserver.unobserve(entry.target) }
   }), { threshold: .4 })
@@ -170,7 +178,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', updateMotion)
   document.removeEventListener('pointerleave', resetPointer)
   window.removeEventListener('blur', resetPointer)
-  cancelAnimationFrame(frame); revealObserver?.disconnect(); countObserver?.disconnect(); mutationObserver?.disconnect()
+  cancelAnimationFrame(frame); countObserver?.disconnect(); mutationObserver?.disconnect()
   removeEventListener('resize', resizeCanvas); removeEventListener('scroll', scrollProgress)
   removeEventListener('hashchange', revealHashTarget)
   removeEventListener('pointermove', pointerMove); removeEventListener('pointerdown', pointerDown)
@@ -189,7 +197,7 @@ onBeforeUnmount(() => {
       <canvas ref="canvasRef" class="tech-particle-canvas"></canvas>
       <div class="tech-pointer-glow"></div><div class="tech-scanline"></div><div class="tech-scroll-progress"></div>
       <div v-for="burst in bursts" :key="burst.id" class="tech-click-burst" :style="{ left: `${burst.x}px`, top: `${burst.y}px` }">
-        <span class="tech-click-ring"></span><i v-for="index in 8" :key="index" :style="{ '--spark-index': index - 1 }"></i>
+        <span class="tech-click-core"></span>
       </div>
     </div>
   </Teleport>

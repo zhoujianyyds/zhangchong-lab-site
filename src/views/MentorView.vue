@@ -4,18 +4,12 @@ import { RouterLink } from 'vue-router'
 import { ArrowLeft, Award, Code2, Download, ExternalLink, FileText, ImagePlus, Mail, Pencil } from 'lucide-vue-next'
 import heroImage from '../assets/hero.png'
 import mentorPreviewImage from '../assets/mentor-preview.jpg'
+import { researchDirections } from '../data/researchDirections'
 import { useLabStore } from '../stores/labStore'
 
 const previewMentorPhoto = mentorPreviewImage
 const isLocalPreview = import.meta.env.DEV
-const previewResearchDirections = [
-  { title: '大模型搜索加速与高效推理', text: '面向检索增强生成（RAG）、智能体工具检索、长上下文搜索与搜索式推理，研究搜索空间压缩、检索与缓存优化、调度优化及软硬件协同加速，提高大模型的搜索与推理效率。' },
-  { title: '计算机体系结构与高效智能系统', text: '围绕可重构计算、芯片级任务执行、冗余消除、AI 系统与加速架构，研究算法、系统与硬件的协同优化方法。' },
-  { title: '低功耗物联网与无源智能系统', text: '研究能量采集、无源与间歇计算、微功耗电路、能量管理、反向散射通信及低功耗终端架构。' },
-  { title: '边端智能感知与数据推理', text: '研究稀疏感知、虚拟传感、多模态融合、物理约束学习、边端协同推理及资源受限条件下的智能识别。' },
-  { title: '计算机网络与应用安全', text: '研究物联网通信、数据完整性、轻量级可信机制、边端安全及资源受限系统的安全执行。' },
-  { title: '工业智能与能源场景应用', text: '面向油气勘探开发、气井生产、测井、结构健康监测和智能检测等实际问题，开展算法研究、系统设计与原型验证。' },
-]
+const previewResearchDirections = researchDirections
 
 const store = useLabStore()
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024

@@ -1,5 +1,6 @@
 import { computed, reactive } from 'vue'
 import deploymentPreviewSnapshot from '../data/deploymentPreviewSnapshot.json'
+import { researchDirections } from '../data/researchDirections'
 import { fetchSharedState, saveSharedState, sharedStateEnabled } from '../lib/cloudState'
 
 const STORAGE_KEY = 'lab-site-vue-store-v1'
@@ -35,7 +36,7 @@ function defaultSiteContent() {
     heroPrimaryButton: '查看成果',
     heroSecondaryButton: '联系加入',
     visualLabel: '研究方向',
-    visualStack: '油气井 / 嵌入式 / Agent',
+    visualStack: '大模型推理 / 计算机体系结构\n低功耗物联网 / 边端智能\n网络安全 / 工业能源智能',
     statResearchLabel: '研究方向',
     statMembersLabel: '研究成员',
     statOutputsLabel: '论文项目获奖',
@@ -67,29 +68,7 @@ function defaultSiteContent() {
     contactTitle: '开放合作与学生加入',
     contactText: '如需交流合作或咨询加入研究小组，可通过张翀导师邮箱联系。',
     contactEmail: 'zhangchong92@swpu.edu.cn',
-    researchLines: [
-      {
-        title: '油气井',
-        tag: '油气井',
-        icon: 'network',
-        tone: 'jade',
-        text: '面向油气井生产、监测与诊断场景，研究井筒状态感知、数据建模和智能决策方法。',
-      },
-      {
-        title: '嵌入式',
-        tag: '嵌入式系统',
-        icon: 'cpu',
-        tone: 'blue',
-        text: '围绕现场设备、边缘计算与实时控制，构建可部署、低功耗、稳定运行的嵌入式系统。',
-      },
-      {
-        title: 'Agent',
-        tag: '智能体',
-        icon: 'bot',
-        tone: 'clay',
-        text: '探索智能体在实验规划、知识检索、代码生成、设备协同和组内工具自动化中的应用。',
-      },
-    ],
+    researchLines: researchDirections.map((item) => ({ ...item })),
   }
 }
 
@@ -1447,15 +1426,7 @@ function ensureDocumentUpdates(data) {
     data.softwareCopyrights.push({ id, title, authors, winner: '', patent_no: `${publisher} · ${isbn}`, note: '科研著作（个人简介原文列于“软著”标题下，书目信息表明为图书）', visible_on_home: true, sort_order: index + 1 })
   }
 
-  const researchLines = [
-    { title: '大模型搜索加速与高效推理', tag: '大模型与智能体', icon: 'bot', tone: 'jade', text: '面向 RAG、智能体工具检索、长上下文搜索与搜索式推理，研究搜索空间压缩、检索与缓存、调度优化及软硬件协同加速。' },
-    { title: '计算机体系结构与高效智能系统', tag: '体系结构', icon: 'cpu', tone: 'blue', text: '围绕可重构计算、芯片级任务执行、冗余消除与 AI 加速架构，研究算法、系统和硬件协同优化。' },
-    { title: '低功耗物联网与无源智能系统', tag: '低功耗计算', icon: 'network', tone: 'moss', text: '研究能量采集、无源与间歇计算、微功耗电路、能量管理、反向散射通信及低功耗终端架构。' },
-    { title: '边端智能感知与数据推理', tag: '边端智能', icon: 'bot', tone: 'clay', text: '研究稀疏感知、虚拟传感、多模态融合、物理约束学习和边端协同推理。' },
-    { title: '计算机网络与应用安全', tag: '网络与安全', icon: 'network', tone: 'blue', text: '研究物联网通信、数据完整性、轻量级可信机制、边端安全及资源受限系统安全执行。' },
-    { title: '工业智能与能源场景应用', tag: '工业应用', icon: 'cpu', tone: 'jade', text: '面向油气勘探开发、气井生产、测井、结构健康监测和智能检测开展算法研究、系统设计与原型验证。' },
-  ]
-  data.site.researchLines = researchLines
+  data.site.researchLines = researchDirections.map((item) => ({ ...item }))
   const researchProjects = [
     ['dossier-project-major-well-logging', '万米特深井测井关键核心装备', '国家科技重大专项（课题5：万米深层复杂环境测井采集质控与数据处理）', '2025ZD1402100', '2025.07—2030.12；课题经费 100 万元。'],
     ['dossier-project-nsf-key', '安全攸关的航空智能制造威胁监检测和动态自适防御研究', '国家自然科学基金重点项目', 'U21A20462', '2022.01—2025.12；项目经费 260 万元。'],
