@@ -1207,7 +1207,7 @@ function migrateData(data) {
     ) {
       data.site.contactEmail = seeded.site.contactEmail
     }
-    const targetNames = ['张翀', '周健', '赵德伟', '杨怀宇', '向与飞', '巫玲娜', '李海峰']
+    const targetNames = ['张翀', '周健', '赵德伟', '杨怀宇', '向与飞', '巫林娜', '李海峰']
     const hasTargetMembers = targetNames.every((name) => data.members.some((item) => item.name === name))
     const newFirstYearNames = ['向乐达', '彭遥影', '宾慧敏', '胡佳', '欧阳天舒', '郑松义']
     const hasNewFirstYearMembers = newFirstYearNames.every((name) => data.members.some((item) => item.name === name))
