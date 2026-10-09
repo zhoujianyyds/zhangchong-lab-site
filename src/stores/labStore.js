@@ -1207,8 +1207,6 @@ function migrateData(data) {
     ) {
       data.site.contactEmail = seeded.site.contactEmail
     }
-    const targetNames = ['张翀', '周健', '赵德伟', '杨怀宇', '向与飞', '巫林娜', '李海峰']
-    const hasTargetMembers = targetNames.every((name) => data.members.some((item) => item.name === name))
     const newFirstYearNames = ['向乐达', '彭遥影', '宾慧敏', '胡佳', '欧阳天舒', '郑松义']
     const hasNewFirstYearMembers = newFirstYearNames.every((name) => data.members.some((item) => item.name === name))
     if (!hasNewFirstYearMembers) {
@@ -1223,21 +1221,6 @@ function migrateData(data) {
       if (!data.members.some((item) => item.id === 'm-student-yanyi-07')) {
         data.members.push(studentMember('m-student-yanyi-07', '郑松义', '20250007', '研一', '待定'))
       }
-    }
-    const visibleStudentCount = data.members.filter(
-      (item) => ['student', 'alumni'].includes(item.role) && item.visible_on_site && item.status === 'active',
-    ).length
-    const hasEnglishMembers = data.members.some((item) =>
-      ['Zhou Jian', 'Zhao Dewei', 'Yang Huaiyu', 'Xiang Yufei', 'Wu Lingna', 'Li Haifeng'].includes(item.name),
-    )
-    if (!hasTargetMembers || visibleStudentCount < 12 || hasEnglishMembers) {
-      const seededMembers = seeded.members.filter((item) => item.id !== 'm-admin')
-      data.members = [
-        ...data.members.filter((item) => item.id === 'm-admin'),
-        ...seededMembers,
-      ]
-      data.bookings = seeded.bookings
-      data.reimbursements = seeded.reimbursements
     }
     for (const name of ['张翀', '周健']) {
       const member = data.members.find((item) => item.name === name)
