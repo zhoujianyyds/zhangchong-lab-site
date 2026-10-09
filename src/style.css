@@ -1112,19 +1112,50 @@ img {
 }
 
 .visual-caption {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   width: min(92%, 360px);
   margin: 8px 0 0 auto;
-  padding: 18px;
-  border: 1px solid var(--border-weak);
+  padding: 20px 18px;
+  border: 1px solid transparent;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
   background:
-    linear-gradient(135deg, rgba(0, 168, 143, 0.08), rgba(37, 99, 235, 0.06)),
-    var(--panel);
+    linear-gradient(120deg, rgba(5, 24, 42, 0.97), rgba(7, 29, 47, 0.94)) padding-box,
+    linear-gradient(110deg, rgba(93, 218, 255, 0.88), rgba(112, 131, 255, 0.35) 52%, rgba(62, 235, 211, 0.72)) border-box;
   box-shadow:
-    10px 12px rgba(37, 99, 235, 0.08),
-    inset 0 0 24px rgba(0, 168, 143, 0.06);
+    0 12px 26px rgba(0, 7, 19, 0.28),
+    0 0 22px rgba(72, 181, 255, 0.12),
+    inset 0 0 24px rgba(74, 183, 255, 0.08);
+  backdrop-filter: blur(12px) saturate(1.25);
 }
 
-.visual-caption span {
+.visual-caption::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(96, 209, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(96, 209, 255, 0.045) 1px, transparent 1px),
+    radial-gradient(ellipse at 50% 0%, rgba(83, 177, 255, 0.13), transparent 68%);
+  background-size: 24px 24px, 24px 24px, 100% 100%;
+  content: '';
+  pointer-events: none;
+}
+
+.visual-caption::after {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 0;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, #68d9ff 18%, #a48aff 52%, #55efd2 82%, transparent);
+  box-shadow: 0 0 12px rgba(104, 217, 255, 0.78);
+  content: '';
+  pointer-events: none;
+}
+
+.visual-caption > span {
   color: var(--blueprint);
   font-size: 0.76rem;
   font-weight: 850;
@@ -1132,12 +1163,25 @@ img {
 }
 
 .visual-caption strong {
+  position: relative;
+  z-index: 1;
   display: block;
   margin-top: 6px;
-  color: var(--heading);
-  line-height: 1.4;
+  color: #f7fbff;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.5;
   text-align: center;
-  white-space: pre-line;
+  text-shadow: 0 0 14px rgba(126, 210, 255, 0.28);
+}
+
+.visual-caption-line {
+  display: block;
+  max-width: 100%;
+  color: #f7fbff;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  text-shadow: 0 0 12px rgba(112, 190, 255, 0.18);
 }
 
 .stats-strip {
@@ -4872,6 +4916,91 @@ button.editable,
   .member-modal .tool-page-title-row .button {
     grid-column: 1 / -1;
     justify-self: stretch;
+  }
+}
+
+/* Keep mobile page styling consistent while allowing content to fit narrow screens. */
+@media (max-width: 760px) {
+  .section-frame,
+  .section,
+  .stats-strip,
+  .contact-band,
+  .footer,
+  .tool-page,
+  .member-page,
+  .mentor-page > .section-frame,
+  .mentor-page > .section {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: calc(100% - 24px);
+  }
+
+  .hero,
+  .section-title,
+  .research-card,
+  .member-group,
+  .member-group-column,
+  .member-row,
+  .tool-card,
+  .pi-panel,
+  .mentor-hero,
+  .mentor-output-layout,
+  .public-member-card,
+  .public-output-card,
+  .tool-page-title-row,
+  .form-row,
+  .permission-grid,
+  .member-stats,
+  .reimb-header,
+  .reimb-meta {
+    min-width: 0;
+  }
+
+  .hero h1,
+  .section-title h2,
+  .contact-band h2,
+  .tool-page h1,
+  .tool-page h2,
+  .member-page h1,
+  .public-member-content h1,
+  .public-output-card h2 {
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+  }
+
+  .visual-caption {
+    box-sizing: border-box;
+    max-width: 100%;
+    padding-inline: clamp(10px, 3.2vw, 16px);
+  }
+
+  .visual-caption strong {
+    font-size: clamp(1rem, 4.4vw, 1.15rem);
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  .visual-caption-line {
+    text-wrap: balance;
+  }
+
+  .research-grid,
+  .member-groups,
+  .tool-grid,
+  .people-section {
+    min-width: 0;
+  }
+
+  .research-grid > *,
+  .member-groups > *,
+  .tool-grid > *,
+  .people-section > *,
+  .stats-strip > *,
+  .member-stats > *,
+  .permission-grid > *,
+  .form-row > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 }
 

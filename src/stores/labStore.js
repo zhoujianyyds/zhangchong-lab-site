@@ -1132,6 +1132,7 @@ function migrateData(data) {
     }
     if (
       data.site.visualStack === 'Oil & Gas Wells / Embedded / Agent' ||
+      data.site.visualStack?.trim().replace(/\s+/g, ' ') === '油气井 / 嵌入式 / Agent' ||
       !data.site.visualStack
     ) {
       data.site.visualStack = seeded.site.visualStack
@@ -1753,9 +1754,11 @@ export function useLabStore() {
     const result = await fetchSharedState()
     if (result.ok && result.data) {
       const remoteData = migrateData(result.data)
+      const visualStackNeedsMigration = remoteData.site.visualStack !== result.data.site?.visualStack
       const remoteUpdatedAt = stateUpdatedTime(remoteData, result.updatedAt)
       const localUpdatedAt = stateUpdatedTime(state)
-      if (!initialCloudSyncComplete || remoteUpdatedAt > localUpdatedAt) {
+      const shouldAdoptRemote = !initialCloudSyncComplete || remoteUpdatedAt > localUpdatedAt
+      if (shouldAdoptRemote) {
         replaceState(remoteData)
         lastPersistedState = cloneState()
       }
@@ -1763,6 +1766,15 @@ export function useLabStore() {
       // this baseline, the first admin save after a sync is incorrectly
       // treated as a conflicting edit from another device.
       cloud.lastSavedAt = result.updatedAt || remoteData.meta?.updatedAt || ''
+      if (shouldAdoptRemote && visualStackNeedsMigration) {
+        const migrationSave = await retryCloud(() => saveSharedState(cloneState()))
+        if (migrationSave.ok) {
+          cloud.lastSavedAt = migrationSave.updatedAt
+          lastPersistedState = cloneState()
+        } else {
+          cloud.error = migrationSave.message || '研究方向标题迁移失败'
+        }
+      }
     } else if (result.ok && !result.data) {
       if (!stateUpdatedTime(state)) writeLocalState()
       const seedResult = await saveSharedState(cloneState())

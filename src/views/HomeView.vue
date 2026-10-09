@@ -22,6 +22,7 @@ import HourglassVisual from '../components/HourglassVisual.vue'
 import { useLabStore } from '../stores/labStore'
 
 const store = useLabStore()
+const visualStackLines = computed(() => String(store.state.site.visualStack || '').split(/\r?\n/).filter(Boolean))
 
 const iconMap = {
   network: Network,
@@ -274,7 +275,9 @@ function downloadAwardImage(item = selectedOutput.value) {
       <div class="hero-visual" aria-label="研究系统视觉">
         <HourglassVisual />
         <div class="visual-caption">
-          <strong :class="editableClass()" @dblclick="editSiteField('visualStack', '视觉说明')">{{ store.state.site.visualStack }}</strong>
+          <strong :class="editableClass()" @dblclick="editSiteField('visualStack', '视觉说明')">
+            <span v-for="(line, index) in visualStackLines" :key="index" class="visual-caption-line">{{ line }}</span>
+          </strong>
         </div>
       </div>
     </section>
