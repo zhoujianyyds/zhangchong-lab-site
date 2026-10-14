@@ -230,7 +230,7 @@ onMounted(() => {
     }, 3000)
   }
   refreshSharedState()
-  sharedSyncTimer = window.setInterval(refreshSharedState, 8000)
+  sharedSyncTimer = window.setInterval(refreshSharedState, 15000)
   window.addEventListener('focus', refreshSharedState)
   document.addEventListener('visibilitychange', refreshSharedStateWhenVisible)
 })

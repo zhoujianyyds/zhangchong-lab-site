@@ -4,6 +4,7 @@ import { Check, Eye, EyeOff, Pencil, Plus, Trash2, X } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 import AuthGate from '../components/AuthGate.vue'
 import { useLabStore } from '../stores/labStore'
+import { compressImageFile } from '../lib/imageCompression'
 
 const store = useLabStore()
 const editingId = ref('')
@@ -246,7 +247,7 @@ function toggleArrayValue(list, value) {
   else list.push(value)
 }
 
-function setPhotoFromFile(event, target) {
+async function setPhotoFromFile(event, target) {
   const file = event.target.files?.[0]
   if (!file) return
   if (!file.type.startsWith('image/')) {
@@ -259,12 +260,13 @@ function setPhotoFromFile(event, target) {
     event.target.value = ''
     return
   }
-  const reader = new FileReader()
-  reader.onload = () => {
-    target.photo = String(reader.result || '')
+  try {
+    target.photo = await compressImageFile(file, 640, 0.8)
+  } catch {
+    window.alert('图片处理失败，请尝试其他图片')
+  } finally {
+    event.target.value = ''
   }
-  reader.readAsDataURL(file)
-  event.target.value = ''
 }
 
 async function clearPhoto(target) {

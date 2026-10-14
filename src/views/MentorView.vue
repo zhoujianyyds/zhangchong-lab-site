@@ -6,6 +6,7 @@ import heroImage from '../assets/hero.png'
 import mentorPreviewImage from '../assets/mentor-preview.jpg'
 import { researchDirections } from '../data/researchDirections'
 import { useLabStore } from '../stores/labStore'
+import { compressImageFile } from '../lib/imageCompression'
 
 const previewMentorPhoto = mentorPreviewImage
 const isLocalPreview = import.meta.env.DEV
@@ -128,7 +129,7 @@ function chooseMentorPhoto() {
   document.getElementById('mentor-photo-input')?.click()
 }
 
-function uploadMentorPhoto(event) {
+async function uploadMentorPhoto(event) {
   if (!store.canEditMentorPage()) return
   const file = event.target.files?.[0]
   if (!file || !mentor.value) return
@@ -142,18 +143,20 @@ function uploadMentorPhoto(event) {
     event.target.value = ''
     return
   }
-  const reader = new FileReader()
-  reader.onload = () => {
+  try {
+    const photo = await compressImageFile(file, 640, 0.8)
     saveResult(
       () => store.upsertMember({
         ...JSON.parse(JSON.stringify(mentor.value)),
-        photo: String(reader.result || ''),
+        photo,
       }),
       '导师照片保存成功', '确定上传并保存这张导师照片吗？',
     )
+  } catch {
+    window.alert('图片处理失败，请尝试其他图片')
+  } finally {
+    event.target.value = ''
   }
-  reader.readAsDataURL(file)
-  event.target.value = ''
 }
 </script>
 

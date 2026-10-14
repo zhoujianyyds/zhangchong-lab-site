@@ -4,7 +4,9 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 const stateId = import.meta.env.VITE_SUPABASE_STATE_ID || 'main'
 const localPreviewOnly = import.meta.env.DEV && import.meta.env.VITE_LOCAL_PREVIEW_ONLY === 'true'
-const REQUEST_TIMEOUT_MS = 20000
+const VERSION_READ_TIMEOUT_MS = 8000
+const DATA_READ_TIMEOUT_MS = 20000
+const WRITE_TIMEOUT_MS = 20000
 
 export const sharedStateEnabled = Boolean(supabaseUrl && supabaseAnonKey && !localPreviewOnly)
 
@@ -13,7 +15,18 @@ const supabase = sharedStateEnabled
       global: {
         fetch: (input, init = {}) => {
           const controller = new AbortController()
-          const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+          const method = String(init.method || 'GET').toUpperCase()
+          let isVersionRead = false
+          try {
+            const requestUrl = new URL(typeof input === 'string' ? input : input.url)
+            isVersionRead = requestUrl.searchParams.get('select') === 'updated_at'
+          } catch {
+            // Fall back to the safer full request timeout for unusual fetch inputs.
+          }
+          const timeoutMs = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
+            ? WRITE_TIMEOUT_MS
+            : isVersionRead ? VERSION_READ_TIMEOUT_MS : DATA_READ_TIMEOUT_MS
+          const timeout = setTimeout(() => controller.abort(), timeoutMs)
           init.signal?.addEventListener('abort', () => controller.abort(), { once: true })
           return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timeout))
         },
@@ -30,8 +43,21 @@ export async function fetchSharedState() {
     .eq('id', stateId)
     .maybeSingle()
 
-  if (error) return { ok: false, data: null, message: describeCloudError(error) }
+  if (error) return { ok: false, data: null, ...cloudErrorDetails(error) }
   return { ok: true, data: data?.data || null, updatedAt: data?.updated_at || '' }
+}
+
+export async function fetchSharedStateVersion() {
+  if (!supabase) return { ok: false, updatedAt: '', message: 'Supabase is not configured', retryable: false }
+
+  const { data, error } = await supabase
+    .from('lab_site_state')
+    .select('updated_at')
+    .eq('id', stateId)
+    .maybeSingle()
+
+  if (error) return { ok: false, updatedAt: '', ...cloudErrorDetails(error) }
+  return { ok: true, updatedAt: data?.updated_at || '' }
 }
 
 export async function saveSharedState(data) {
@@ -44,16 +70,18 @@ export async function saveSharedState(data) {
     updated_at: updatedAt,
   })
 
-  if (error) return { ok: false, message: describeCloudError(error) }
+  if (error) return { ok: false, ...cloudErrorDetails(error) }
   return { ok: true, updatedAt }
 }
 
-function describeCloudError(error) {
+function cloudErrorDetails(error) {
   if (error?.name === 'AbortError' || error?.name === 'TimeoutError' || /timeout|aborted/i.test(error?.message || '')) {
-    return '连接云端超时（20 秒）。请检查手机网络、VPN 或 DNS 后重试。'
+    return { message: '连接云端超时。请检查网络、VPN 或 DNS 后重试。', retryable: true }
   }
   if (error instanceof TypeError || /failed to fetch|networkerror|network request failed/i.test(error?.message || '')) {
-    return '手机无法连接云端服务。请检查网络、VPN 或 DNS 后重试。'
+    return { message: '无法连接云端服务。请检查网络、VPN 或 DNS 后重试。', retryable: true }
   }
-  return error?.message || '云端服务暂时不可用'
+  const status = Number(error?.status || error?.statusCode)
+  const retryable = status === 408 || status === 429 || status >= 500
+  return { message: error?.message || '云端服务暂时不可用', retryable }
 }

@@ -4,6 +4,7 @@ import { RefreshCw, Save } from 'lucide-vue-next'
 import AuthGate from '../components/AuthGate.vue'
 import MemberAchievements from '../components/MemberAchievements.vue'
 import { useLabStore } from '../stores/labStore'
+import { compressImageFile } from '../lib/imageCompression'
 
 const store = useLabStore()
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024
@@ -68,7 +69,7 @@ watch(
   { immediate: true },
 )
 
-function setPhotoFromFile(event) {
+async function setPhotoFromFile(event) {
   const file = event.target.files?.[0]
   if (!file) return
   if (!file.type.startsWith('image/')) {
@@ -81,12 +82,13 @@ function setPhotoFromFile(event) {
     event.target.value = ''
     return
   }
-  const reader = new FileReader()
-  reader.onload = () => {
-    form.photo = String(reader.result || '')
+  try {
+    form.photo = await compressImageFile(file, 640, 0.8)
+  } catch {
+    window.alert('图片处理失败，请尝试其他图片')
+  } finally {
+    event.target.value = ''
   }
-  reader.readAsDataURL(file)
-  event.target.value = ''
 }
 
 async function clearPhoto() {

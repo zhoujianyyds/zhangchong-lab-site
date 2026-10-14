@@ -1,7 +1,8 @@
 import { computed, reactive } from 'vue'
 import deploymentPreviewSnapshot from '../data/deploymentPreviewSnapshot.json'
 import { researchDirections } from '../data/researchDirections'
-import { fetchSharedState, saveSharedState, sharedStateEnabled } from '../lib/cloudState'
+import { fetchSharedState, fetchSharedStateVersion, saveSharedState, sharedStateEnabled } from '../lib/cloudState'
+import { compressMemberPhotos } from '../lib/imageCompression'
 
 const STORAGE_KEY = 'lab-site-vue-store-v1'
 const SESSION_KEY = 'lab-site-vue-session-v1'
@@ -1548,15 +1549,22 @@ async function saveImmediately() {
   window.clearTimeout(cloudSaveTimer)
   cloudSaveInProgress = true
   try {
-    const latest = await retryCloud(fetchSharedState)
+    const latest = await retryCloud(fetchSharedStateVersion)
     if (!latest.ok) {
       replaceState(lastPersistedState)
       return { ok: false, message: latest.message || '无法检查云端数据' }
     }
-    if (latest.data && latest.updatedAt !== cloud.lastSavedAt) {
-      replaceState(latest.data)
-      lastPersistedState = cloneState()
-      cloud.lastSavedAt = latest.updatedAt
+    if (!sameCloudVersion(latest.updatedAt, cloud.lastSavedAt)) {
+      const latestData = await retryCloud(fetchSharedState)
+      if (!latestData.ok) {
+        replaceState(lastPersistedState)
+        return { ok: false, message: latestData.message || '无法读取最新云端数据' }
+      }
+      if (latestData.data) {
+        replaceState(latestData.data)
+        lastPersistedState = cloneState()
+      }
+      cloud.lastSavedAt = latestData.updatedAt
       return { ok: false, message: '数据已在其他设备更新，页面已刷新，请重新操作' }
     }
     const result = await retryCloud(() => saveSharedState(cloneState()))
@@ -1578,12 +1586,21 @@ async function saveImmediately() {
   }
 }
 
-async function retryCloud(operation, attempts = 3) {
+async function retryCloud(operation, attempts = 2) {
   let result
   for (let index = 0; index < attempts; index += 1) {
-    result = await operation()
+    try {
+      result = await operation()
+    } catch (error) {
+      result = {
+        ok: false,
+        message: error?.message || '云端请求失败',
+        retryable: error?.name === 'AbortError' || error instanceof TypeError,
+      }
+    }
     if (result?.ok) return result
-    if (index < attempts - 1) await new Promise((resolve) => window.setTimeout(resolve, 350 * (index + 1)))
+    if (!result?.retryable || index === attempts - 1) return result
+    await new Promise((resolve) => window.setTimeout(resolve, 200))
   }
   return result
 }
@@ -1612,6 +1629,11 @@ function stateUpdatedTime(data, fallback = '') {
   return Date.parse(data?.meta?.updatedAt || fallback || '') || 0
 }
 
+function sameCloudVersion(first, second) {
+  if (!first || !second) return first === second
+  return Date.parse(first) === Date.parse(second)
+}
+
 function queueCloudSave() {
   if (!sharedStateEnabled) return
   window.clearTimeout(cloudSaveTimer)
@@ -1622,12 +1644,19 @@ function queueCloudSave() {
     }
     cloudSaveInProgress = true
     try {
-      const latest = await retryCloud(fetchSharedState)
-      if (!latest.ok || (latest.data && latest.updatedAt !== cloud.lastSavedAt)) {
-        if (latest.ok && latest.data) {
-          replaceState(latest.data)
-          lastPersistedState = cloneState()
-          cloud.lastSavedAt = latest.updatedAt
+      const latest = await retryCloud(fetchSharedStateVersion)
+      if (!latest.ok || !sameCloudVersion(latest.updatedAt, cloud.lastSavedAt)) {
+        if (latest.ok && !sameCloudVersion(latest.updatedAt, cloud.lastSavedAt)) {
+          const latestData = await retryCloud(fetchSharedState)
+          if (!latestData.ok) {
+            cloud.error = latestData.message
+            return
+          }
+          if (latestData.data) {
+            replaceState(latestData.data)
+            lastPersistedState = cloneState()
+          }
+          cloud.lastSavedAt = latestData.updatedAt
         }
         cloud.error = latest.ok ? '数据已在其他设备更新，页面已刷新，请重新操作' : latest.message
         return
@@ -1765,9 +1794,23 @@ export function useLabStore() {
     cloud.loading = true
     cloud.error = ''
     try {
+      const version = initialCloudSyncComplete && cloud.lastSavedAt
+        ? await retryCloud(fetchSharedStateVersion)
+        : null
+      if (version) {
+        if (!version.ok) {
+          cloud.error = version.message || '无法检查云端版本'
+          return
+        }
+        if (sameCloudVersion(version.updatedAt, cloud.lastSavedAt)) {
+          cloud.error = ''
+          return
+        }
+      }
       const result = await retryCloud(fetchSharedState)
       if (result.ok && result.data) {
         const remoteData = migrateData(result.data)
+        const photosCompacted = await compressMemberPhotos(remoteData.members)
         const visualStackNeedsMigration = remoteData.site.visualStack !== result.data.site?.visualStack
         const remoteUpdatedAt = stateUpdatedTime(remoteData, result.updatedAt)
         const localUpdatedAt = stateUpdatedTime(state)
@@ -1780,7 +1823,7 @@ export function useLabStore() {
         // this baseline, the first admin save after a sync is incorrectly
         // treated as a conflicting edit from another device.
         cloud.lastSavedAt = result.updatedAt || remoteData.meta?.updatedAt || ''
-        if (shouldAdoptRemote && visualStackNeedsMigration) {
+        if (shouldAdoptRemote && (visualStackNeedsMigration || photosCompacted)) {
           const migrationSave = await retryCloud(() => saveSharedState(cloneState()))
           if (migrationSave.ok) {
             cloud.lastSavedAt = migrationSave.updatedAt

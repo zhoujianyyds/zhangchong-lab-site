@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { Download, ImagePlus, Pencil, Plus, Trash2, X } from 'lucide-vue-next'
 import AuthGate from '../components/AuthGate.vue'
+import { compressImageFile } from '../lib/imageCompression'
 import { useLabStore } from '../stores/labStore'
 
 const store = useLabStore()
@@ -347,7 +348,7 @@ function chooseAwardImage() {
   document.getElementById('award-image-upload')?.click()
 }
 
-function handleAwardImage(event) {
+async function handleAwardImage(event) {
   const file = event.target.files?.[0]
   if (!file) return
   if (!file.type.startsWith('image/')) {
@@ -360,13 +361,14 @@ function handleAwardImage(event) {
     event.target.value = ''
     return
   }
-  const reader = new FileReader()
-  reader.onload = () => {
-    form.image_data = String(reader.result || '')
+  try {
+    form.image_data = await compressImageFile(file, 1600, 0.82)
     form.image_name = file.name
+  } catch {
+    window.alert('图片处理失败，请尝试其他图片')
+  } finally {
+    event.target.value = ''
   }
-  reader.readAsDataURL(file)
-  event.target.value = ''
 }
 </script>
 
